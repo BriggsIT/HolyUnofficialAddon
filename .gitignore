@@ -1,0 +1,10 @@
+# Build output (building from Source writes its package next to it, in HolyUnofficialAddon\)
+bin/
+obj/
+/HolyUnofficialAddon/
+
+# Editors
+.vs/
+.vscode/
+*.user
+*.suo

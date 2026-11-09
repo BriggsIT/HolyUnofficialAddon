@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Never touch line endings in images or the built addon
+*.png binary
+*.dll binary

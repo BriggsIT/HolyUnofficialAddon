@@ -1,0 +1,78 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>HolyUnofficialAddon</AssemblyName>
+    <RootNamespace>HolyAddon</RootNamespace>
+    <Product>Holy Unofficial Addon</Product>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <Version>0.11.8</Version>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <!-- Where Mad Games Tycoon 2 is installed; override with -p:GameDir=... -->
+    <GameDir Condition="'$(GameDir)' == ''">E:\SteamLibrary\steamapps\common\Mad Games Tycoon 2</GameDir>
+    <Managed>$(GameDir)\Mad Games Tycoon 2_Data\Managed</Managed>
+    <PluginFolder>HolyUnofficialAddon</PluginFolder>
+    <!-- A copy of what goes into the game folder; override with -p:PackageDir=... -->
+    <PackageDir Condition="'$(PackageDir)' == ''">$(MSBuildThisFileDirectory)..\HolyUnofficialAddon\BepInEx\plugins\$(PluginFolder)</PackageDir>
+    <InstallDir>$(GameDir)\BepInEx\plugins\$(PluginFolder)</InstallDir>
+    <!-- Up to 0.6.0 the mod was called "Editor" and installed here; it has to go, or both copies load. -->
+    <OldInstallDir>$(GameDir)\BepInEx\plugins\Editor</OldInstallDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx" HintPath="$(GameDir)\BepInEx\core\BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(GameDir)\BepInEx\core\0Harmony.dll" Private="false" />
+    <Reference Include="Assembly-CSharp" HintPath="$(Managed)\Assembly-CSharp.dll" Private="false" />
+    <Reference Include="Assembly-CSharp-firstpass" HintPath="$(Managed)\Assembly-CSharp-firstpass.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(Managed)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(Managed)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.UI" HintPath="$(Managed)\UnityEngine.UI.dll" Private="false" />
+    <Reference Include="UnityEngine.UIModule" HintPath="$(Managed)\UnityEngine.UIModule.dll" Private="false" />
+    <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(Managed)\UnityEngine.TextRenderingModule.dll" Private="false" />
+    <Reference Include="UnityEngine.InputLegacyModule" HintPath="$(Managed)\UnityEngine.InputLegacyModule.dll" Private="false" />
+    <Reference Include="UnityEngine.ImageConversionModule" HintPath="$(Managed)\UnityEngine.ImageConversionModule.dll" Private="false" />
+    <Reference Include="UnityEngine.AnimationModule" HintPath="$(Managed)\UnityEngine.AnimationModule.dll" Private="false" />
+    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(Managed)\UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(Managed)\Newtonsoft.Json.dll" Private="false" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Files that ship next to HolyUnofficialAddon.dll. Assets\icon.png is drawn by Assets\draw-icon.ps1,
+         the review logos by Assets\reviews\draw-logos.ps1, the company logos by Assets\logos\render-logos.ps1. -->
+    <PluginFiles Include="$(TargetPath);$(MSBuildThisFileDirectory)Assets\icon.png;$(MSBuildThisFileDirectory)Assets\contracts.png" />
+    <ReviewFiles Include="$(MSBuildThisFileDirectory)Assets\reviews\reviews.json" />
+    <ReviewLogos Include="$(MSBuildThisFileDirectory)Assets\reviews\logos\*.png" />
+    <CompanyLogos Include="$(MSBuildThisFileDirectory)Assets\logos\logos.json;$(MSBuildThisFileDirectory)Assets\logos\png\*.png" />
+    <!-- Update type icons, drawn by Assets\icons\update-icons.html (render with Assets\logos\render-logos.ps1 -Page ...). -->
+    <UpdateIcons Include="$(MSBuildThisFileDirectory)Assets\icons\png\*.png" />
+    <!-- Store logos (yours and the rival stores'), drawn by Assets\store\store-logos.html. -->
+    <StoreLogos Include="$(MSBuildThisFileDirectory)Assets\store\png\*.png" />
+  </ItemGroup>
+
+  <!-- Copy the built mod into the distributable package folder (same layout as the other mods). -->
+  <Target Name="Package" AfterTargets="Build">
+    <MakeDir Directories="$(PackageDir)" />
+    <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(PackageDir)" />
+    <Copy SourceFiles="@(ReviewFiles)" DestinationFolder="$(PackageDir)\reviews" />
+    <Copy SourceFiles="@(ReviewLogos)" DestinationFolder="$(PackageDir)\reviews\logos" />
+    <Copy SourceFiles="@(CompanyLogos)" DestinationFolder="$(PackageDir)\logos" />
+    <Copy SourceFiles="@(UpdateIcons)" DestinationFolder="$(PackageDir)\icons" />
+    <Copy SourceFiles="@(StoreLogos)" DestinationFolder="$(PackageDir)\store" />
+  </Target>
+
+  <!-- dotnet build -t:Install copies the package straight into the game. -->
+  <Target Name="Install" DependsOnTargets="Build">
+    <RemoveDir Directories="$(OldInstallDir)" Condition="Exists('$(OldInstallDir)\Editor.dll')" />
+    <MakeDir Directories="$(InstallDir)" />
+    <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(InstallDir)" />
+    <Copy SourceFiles="@(ReviewFiles)" DestinationFolder="$(InstallDir)\reviews" />
+    <Copy SourceFiles="@(ReviewLogos)" DestinationFolder="$(InstallDir)\reviews\logos" />
+    <Copy SourceFiles="@(CompanyLogos)" DestinationFolder="$(InstallDir)\logos" />
+    <Copy SourceFiles="@(UpdateIcons)" DestinationFolder="$(InstallDir)\icons" />
+    <Copy SourceFiles="@(StoreLogos)" DestinationFolder="$(InstallDir)\store" />
+    <Message Importance="high" Text="Installed HolyUnofficialAddon.dll, icons, reviews, company and store logos into $(InstallDir)" />
+  </Target>
+</Project>

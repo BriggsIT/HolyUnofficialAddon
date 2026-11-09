@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Store logos</title>
+<!--
+  Logos for the digital store: logo-1..12 are for your own store only (no NPC ever uses them), rival-<id> are the
+  rival stores (original stores, and parodies with their own look). App-icon style; names are shown as text.
+  Render with: ..\logos\render-logos.ps1 -Page ..\store\store-logos.html -Size 128 -NoJson   (PNGs go to png\)
+-->
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  #sheet { display: grid; grid-template-columns: repeat(8, 128px); grid-auto-rows: 128px; }
+  #sheet svg { width: 128px; height: 128px; display: block; }
+  #meta { display: none; }
+</style>
+</head>
+<body>
+<div id="sheet"></div>
+<pre id="meta"></pre>
+<script>
+const O = '#1c1d24';
+const ICONS = [];
+const add = (id, svg) => ICONS.push({ id, name: id, svg });
+const shadow = p => `<filter id="${p}sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#000" flood-opacity=".4"/></filter>`;
+const stops = list => list.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('');
+const lg = (id, list, d = [0, 0, 0, 1]) => `<linearGradient id="${id}" x1="${d[0]}" y1="${d[1]}" x2="${d[2]}" y2="${d[3]}">${stops(list)}</linearGradient>`;
+const rg = (id, list, cx = .5, cy = .5, r = .6) => `<radialGradient id="${id}" cx="${cx}" cy="${cy}" r="${r}">${stops(list)}</radialGradient>`;
+
+// A rounded app tile with a soft shine.
+const tile = (p, c1, c2, inner, extra = '') => `<defs>${shadow(p)}${lg(p + 't', [[0, c1], [1, c2]], [0, 0, 1, 1])}${extra}</defs>
+<g filter="url(#${p}sh)"><rect x="8" y="8" width="112" height="112" rx="26" fill="url(#${p}t)" stroke="${O}" stroke-width="4"/>
+<path d="M22 30 Q26 17 42 17 H86" stroke="#fff" stroke-opacity=".28" stroke-width="5" fill="none" stroke-linecap="round"/>
+${inner}</g>`;
+
+// A round badge with a soft shine.
+const disc = (p, c1, c2, inner, extra = '') => `<defs>${shadow(p)}${lg(p + 't', [[0, c1], [1, c2]], [0, 0, 1, 1])}${extra}</defs>
+<g filter="url(#${p}sh)"><circle cx="64" cy="64" r="56" fill="url(#${p}t)" stroke="${O}" stroke-width="4"/>
+<path d="M26 44 A42 42 0 0 1 56 20" stroke="#fff" stroke-opacity=".3" stroke-width="5" fill="none" stroke-linecap="round"/>
+${inner}</g>`;
+
+const star = (cx, cy, r, attrs) => { let d = ''; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; d += (i ? 'L' : 'M') + (cx + rr * Math.cos(a)).toFixed(1) + ' ' + (cy + rr * Math.sin(a)).toFixed(1); } return `<path d="${d}Z" ${attrs}/>`; };
+const W = `fill="#fff" stroke="${O}" stroke-width="3" stroke-linejoin="round"`;
+
+/* ===== Your store's logos (only yours) ===== */
+
+/* 1 Lotus */
+add('logo-1', tile('l1', '#ff8ac8', '#8a3fd1', (() => {
+  let petals = '';
+  [[-60, 0.8], [-30, 0.95], [0, 1.05], [30, 0.95], [60, 0.8]].forEach(([a, s]) => {
+    petals += `<path d="M64 92 C${64 - 14 * s} ${92 - 30 * s} ${64 - 8 * s} ${92 - 48 * s} 64 ${92 - 56 * s} C${64 + 8 * s} ${92 - 48 * s} ${64 + 14 * s} ${92 - 30 * s} 64 92 Z" transform="rotate(${a} 64 92)" ${W}/>`;
+  });
+  return petals + `<path d="M30 96 Q64 108 98 96" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+})()));
+
+/* 2 Rocket */
+add('logo-2', tile('l2', '#4a8cff', '#1a2f80', `
+<g transform="rotate(40 64 64)">
+  <path d="M64 18 C80 32 82 58 76 82 H52 C46 58 48 32 64 18 Z" ${W}/>
+  <circle cx="64" cy="50" r="8" fill="#4a8cff" stroke="${O}" stroke-width="3"/>
+  <path d="M52 70 L40 88 L54 84 Z M76 70 L88 88 L74 84 Z" fill="#ff6b4a" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M56 84 Q64 108 72 84 Z" fill="#ffd24a" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+</g>`));
+
+/* 3 Crown */
+add('logo-3', tile('l3', '#3ad6a8', '#0f6e56', `
+<path d="M28 88 L22 44 L44 62 L64 34 L84 62 L106 44 L100 88 Z" fill="#ffd24a" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+<rect x="28" y="88" width="72" height="12" rx="3" fill="#ffd24a" stroke="${O}" stroke-width="4"/>
+<circle cx="64" cy="74" r="6" fill="#ff5a7a" stroke="${O}" stroke-width="2.5"/><circle cx="44" cy="78" r="4" fill="#5ab8ff" stroke="${O}" stroke-width="2"/><circle cx="84" cy="78" r="4" fill="#5ab8ff" stroke="${O}" stroke-width="2"/>`));
+
+/* 4 Lighthouse */
+add('logo-4', tile('l4', '#2b3f6e', '#0d1530', `
+<path d="M64 38 L110 22 L110 54 Z" fill="#ffe680" fill-opacity=".55"/>
+<path d="M54 104 L58 46 H70 L74 104 Z" ${W}/>
+<path d="M56 66 H72 M55 84 H73" stroke="#e8463a" stroke-width="7"/>
+<path d="M54 46 H74 V36 H54 Z" fill="#ffe680" stroke="${O}" stroke-width="3"/>
+<path d="M52 36 L64 26 L76 36 Z" fill="#e8463a" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+<path d="M30 104 H98" stroke="#7cc4ff" stroke-width="5" stroke-linecap="round"/>`));
+
+/* 5 Paper plane */
+add('logo-5', tile('l5', '#7cd0ff', '#2a6fd0', `
+<path d="M22 64 L104 30 L82 100 L62 78 Z" ${W}/>
+<path d="M62 78 L104 30 L56 72 Z" fill="#d9e8ff" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+<path d="M56 72 L58 92 L66 82" fill="#b8cff0" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>`));
+
+/* 6 Shield with a star */
+add('logo-6', tile('l6', '#ff6b6b', '#8a1c1c', `
+<path d="M64 20 L98 32 V62 C98 86 80 100 64 108 C48 100 30 86 30 62 V32 Z" ${W}/>
+${star(64, 64, 20, `fill="#ffcf3a" stroke="${O}" stroke-width="3" stroke-linejoin="round"`)}`));
+
+/* 7 Infinity loop */
+add('logo-7', tile('l7', '#ffb347', '#e0452a', `
+<path d="M64 64 C52 46 26 46 26 64 C26 82 52 82 64 64 C76 46 102 46 102 64 C102 82 76 82 64 64 Z" stroke="${O}" stroke-width="15" fill="none"/>
+<path d="M64 64 C52 46 26 46 26 64 C26 82 52 82 64 64 C76 46 102 46 102 64 C102 82 76 82 64 64 Z" stroke="#fff" stroke-width="9" fill="none"/>`));
+
+/* 8 Mountain sunrise */
+add('logo-8', tile('l8', '#ffd27a', '#ff5f8a', `
+<circle cx="64" cy="66" r="22" fill="#fff6c8" stroke="${O}" stroke-width="3"/>
+<path d="M14 104 L46 58 L62 78 L80 52 L114 104 Z" fill="#5a3a8a" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+<path d="M46 58 L52 68 L42 70 Z M80 52 L87 62 L76 64 Z" fill="#fff"/>`));
+
+/* 9 Flame */
+add('logo-9', tile('l9', '#3a2a3a', '#120a14', `
+<path d="M64 108 C40 108 30 90 34 72 C38 56 50 52 50 34 C66 44 70 56 68 66 C74 60 76 52 74 44 C92 58 98 76 94 88 C90 100 80 108 64 108 Z" fill="#ff7a2a" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+<path d="M64 106 C52 106 46 96 50 86 C54 78 60 76 60 66 C70 74 72 82 70 88 C76 84 78 80 78 76 C84 86 84 96 78 100 C74 104 70 106 64 106 Z" fill="#ffd24a"/>`));
+
+/* 10 Ringed planet */
+add('logo-10', tile('l10', '#7a5cff', '#22125c', `
+${star(30, 30, 5, 'fill="#fff"')}${star(100, 40, 4, 'fill="#fff"')}${star(96, 100, 3.5, 'fill="#fff"')}
+<ellipse cx="64" cy="66" rx="50" ry="14" transform="rotate(-20 64 66)" fill="none" stroke="${O}" stroke-width="10"/>
+<circle cx="64" cy="66" r="28" fill="#ffb86b" stroke="${O}" stroke-width="4"/>
+<path d="M40 56 Q64 50 88 58 M38 70 Q64 64 90 72" stroke="#e08a3a" stroke-width="4" fill="none"/>
+<path d="M18 82 A50 14 -20 0 0 112 48" transform="rotate(0)" fill="none" stroke="#ffe0b0" stroke-width="5" stroke-linecap="round"/>`));
+
+/* 11 Lantern */
+add('logo-11', tile('l11', '#2f8a5a', '#0c3a24', `
+<circle cx="64" cy="70" r="34" fill="#ffe680" fill-opacity=".25"/>
+<path d="M54 28 Q64 18 74 28" stroke="${O}" stroke-width="5" fill="none"/>
+<rect x="48" y="32" width="32" height="10" rx="3" fill="#c48a00" stroke="${O}" stroke-width="3"/>
+<path d="M46 42 H82 L86 92 H42 Z" fill="#ffe680" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+<path d="M58 46 V88 M70 46 V88" stroke="#c48a00" stroke-width="3"/>
+<rect x="40" y="92" width="48" height="10" rx="3" fill="#c48a00" stroke="${O}" stroke-width="3"/>`));
+
+/* 12 Compass */
+add('logo-12', tile('l12', '#5fa8b8', '#1f4a5a', `
+<circle cx="64" cy="64" r="40" fill="#f6f2e4" stroke="${O}" stroke-width="4"/>
+<path d="M64 30 L72 64 L64 98 L56 64 Z" fill="#e8463a" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+<path d="M64 64 L72 64 L64 98 L56 64 Z" fill="#2b3039"/>
+<path d="M30 64 L64 58 L98 64 L64 70 Z" fill="#b8c2cc" stroke="${O}" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="64" cy="64" r="5" fill="#ffd24a" stroke="${O}" stroke-width="2.5"/>`));
+
+/* ===== Rival stores ===== */
+
+/* Diesel: a fuel drop inside a gear wheel (a store you can't miss) */
+add('rival-diesel', disc('rd', '#3a5a86', '#0e1a2c', (() => {
+  let teeth = '';
+  for (let i = 0; i < 12; i++) teeth += `<rect x="-5" y="-42" width="10" height="12" rx="2" transform="translate(64 64) rotate(${i * 30})" fill="#e8eef5"/>`;
+  return `${teeth}<circle cx="64" cy="64" r="32" fill="none" stroke="#e8eef5" stroke-width="9"/>
+<path d="M64 42 C70 54 78 62 78 72 C78 80 72 86 64 86 C56 86 50 80 50 72 C50 62 58 54 64 42 Z" fill="#e8eef5"/>
+<path d="M58 72 C58 66 62 62 64 60" stroke="#3a5a86" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+})()));
+
+/* Pixelport: an anchor made of pixels */
+add('rival-pixelport', tile('rp', '#3ad6c8', '#0f6e7a', (() => {
+  const px = [[3,0],[3,1],[2,1],[4,1],[3,2],[3,3],[3,4],[3,5],[1,3],[2,3],[4,3],[5,3],[0,5],[6,5],[0,6],[1,6],[5,6],[6,6],[1,7],[2,7],[3,7],[4,7],[5,7]];
+  return px.map(([x, y]) => `<rect x="${29 + x * 10}" y="${26 + y * 10}" width="10" height="10" fill="#fff" stroke="${O}" stroke-width="1.5"/>`).join('');
+})()));
+
+/* COG: Classic Old Games, a cog with a C */
+add('rival-cog', tile('rc', '#9a5ce6', '#4a1f8f', (() => {
+  let teeth = '';
+  for (let i = 0; i < 8; i++) teeth += `<rect x="-8" y="-44" width="16" height="16" rx="3" transform="translate(64 64) rotate(${i * 45})" fill="#fff" stroke="${O}" stroke-width="3"/>`;
+  return `${teeth}<circle cx="64" cy="64" r="32" fill="#fff" stroke="${O}" stroke-width="3"/>
+<text x="64" y="80" text-anchor="middle" font-family="'Arial Black', Bahnschrift, sans-serif" font-weight="900" font-size="46" fill="#6a2fc0">C</text>`;
+})()));
+
+/* Skirmish.net: crossed swords over a blue orb */
+add('rival-skirmish', disc('rs', '#4ab8ff', '#0a3a8a', `
+<g stroke="#e8f4ff" stroke-width="3" fill="none" opacity=".5"><ellipse cx="64" cy="64" rx="40" ry="16"/><ellipse cx="64" cy="64" rx="16" ry="40"/></g>
+<g transform="rotate(45 64 64)"><rect x="60" y="22" width="8" height="62" rx="2" ${W}/><rect x="50" y="80" width="28" height="7" rx="2" fill="#ffd24a" stroke="${O}" stroke-width="3"/><rect x="61" y="87" width="6" height="16" rx="2" fill="#7a4a1c" stroke="${O}" stroke-width="2.5"/></g>
+<g transform="rotate(-45 64 64)"><rect x="60" y="22" width="8" height="62" rx="2" ${W}/><rect x="50" y="80" width="28" height="7" rx="2" fill="#ffd24a" stroke="${O}" stroke-width="3"/><rect x="61" y="87" width="6" height="16" rx="2" fill="#7a4a1c" stroke="${O}" stroke-width="2.5"/></g>`));
+
+/* Modest Bundle: a heart wrapped like a parcel */
+add('rival-modest', tile('rm', '#d64545', '#5a1010', `
+<path d="M64 102 C40 86 22 72 22 52 C22 38 32 30 44 30 C54 30 60 36 64 44 C68 36 74 30 84 30 C96 30 106 38 106 52 C106 72 88 86 64 102 Z" ${W}/>
+<path d="M64 44 V102 M24 58 H104" stroke="#d64545" stroke-width="7"/>`));
+
+/* Genesis: a sunrise */
+add('rival-genesis', disc('rg', '#ffa04a', '#d4501a', `
+<g stroke="#fff" stroke-width="6" stroke-linecap="round"><path d="M64 28 V40"/><path d="M36 40 L44 48"/><path d="M92 40 L84 48"/><path d="M24 66 H36"/><path d="M92 66 H104"/></g>
+<path d="M36 82 A28 28 0 0 1 92 82 Z" ${W}/>
+<path d="M24 92 H104" stroke="#fff" stroke-width="7" stroke-linecap="round"/>`));
+
+/* scratch.io: a little storefront with claw marks */
+add('rival-scratch', tile('rx', '#ff6d7d', '#c41e44', `
+<path d="M24 50 L32 30 H96 L104 50 Z" ${W}/>
+<path d="M24 50 Q30 60 36 50 Q42 60 48 50 Q54 60 60 50 Q66 60 72 50 Q78 60 84 50 Q90 60 96 50 Q102 60 104 50" fill="#fff" stroke="${O}" stroke-width="3"/>
+<rect x="30" y="56" width="68" height="44" rx="3" ${W}/>
+<g stroke="#c41e44" stroke-width="5" stroke-linecap="round"><path d="M48 66 L56 92"/><path d="M60 64 L68 92"/><path d="M72 66 L80 92"/></g>`));
+
+/* Nebula Arcade: a joystick in a nebula */
+add('rival-nebula', tile('rn', '#6a3ad6', '#10123a', `
+<ellipse cx="54" cy="52" rx="34" ry="20" fill="#ff7ad8" fill-opacity=".35" transform="rotate(-20 54 52)"/>
+<ellipse cx="78" cy="70" rx="30" ry="16" fill="#5ab8ff" fill-opacity=".3" transform="rotate(25 78 70)"/>
+${star(30, 32, 4, 'fill="#fff"')}${star(98, 30, 5, 'fill="#fff"')}${star(100, 92, 3.5, 'fill="#fff"')}
+<rect x="40" y="86" width="48" height="16" rx="6" fill="#2b3039" stroke="${O}" stroke-width="3"/>
+<rect x="61" y="58" width="6" height="30" fill="#c9ced6" stroke="${O}" stroke-width="2.5"/>
+<circle cx="64" cy="54" r="11" fill="#ff4a6a" stroke="${O}" stroke-width="3"/>`));
+
+/* Mythic Games Store: a dark shield with an M */
+add('rival-mythic', `<defs>${shadow('ry')}${lg('ryt', [[0, '#3a3a40'], [1, '#0c0c10']])}</defs>
+<g filter="url(#rysh)"><path d="M24 12 H104 Q112 12 112 20 V84 Q112 92 104 96 L64 116 L24 96 Q16 92 16 84 V20 Q16 12 24 12 Z" fill="url(#ryt)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+<path d="M30 24 H98" stroke="#fff" stroke-opacity=".2" stroke-width="4" stroke-linecap="round"/>
+<path d="M36 86 V36 H48 L64 62 L80 36 H92 V86 H80 V58 L64 82 L48 58 V86 Z" fill="#fff"/>
+<path d="M40 98 L64 108 L88 98" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>`);
+
+/* Stadio: a stadium arc with a play button */
+add('rival-stadio', tile('rt', '#ff8a3a', '#d4207a', `
+<path d="M20 86 A44 40 0 0 1 108 86" stroke="#fff" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M36 86 A28 26 0 0 1 92 86" stroke="#fff" stroke-opacity=".6" stroke-width="6" fill="none" stroke-linecap="round"/>
+<path d="M56 64 L80 78 L56 92 Z" ${W}/>`));
+
+/* Passline: a season ticket */
+add('rival-passline', tile('rl', '#5ad67a', '#1a7a3a', `
+<path d="M20 44 H108 V58 Q100 64 108 70 V84 H20 V70 Q28 64 20 58 Z" ${W}/>
+<path d="M44 44 V84" stroke="#1a7a3a" stroke-width="3" stroke-dasharray="5 4"/>
+<path d="M56 56 H96 M56 64 H90 M56 72 H94" stroke="#1a7a3a" stroke-width="4" stroke-linecap="round"/>
+${star(32, 64, 7, `fill="#ffcf3a" stroke="${O}" stroke-width="2"`)}`));
+
+/* Curio: a magnifier with a sparkle */
+add('rival-curio', disc('ru', '#ffd04a', '#d48a00', `
+<circle cx="56" cy="56" r="24" fill="#fff6c8" stroke="${O}" stroke-width="5"/>
+<path d="M74 74 L98 98" stroke="${O}" stroke-width="13" stroke-linecap="round"/>
+<path d="M74 74 L98 98" stroke="#7a4a1c" stroke-width="7" stroke-linecap="round"/>
+<path d="M56 42 L59 53 L70 56 L59 59 L56 70 L53 59 L42 56 L53 53 Z" fill="#ff8a3a"/>`));
+
+/* Horizon Hall: a VR headset over a horizon */
+add('rival-horizon', tile('rh', '#ff9a6a', '#4a2a8a', `
+<circle cx="64" cy="80" r="24" fill="#ffe0a0" fill-opacity=".8"/>
+<path d="M14 88 H114" stroke="#fff" stroke-opacity=".7" stroke-width="4"/>
+<path d="M24 48 Q24 38 34 38 H94 Q104 38 104 48 V68 Q104 78 94 78 H76 L70 70 H58 L52 78 H34 Q24 78 24 68 Z" fill="#2b3039" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+<path d="M32 46 H96" stroke="#7cd0ff" stroke-width="6" stroke-linecap="round" opacity=".8"/>
+<path d="M20 52 H24 M104 52 H108" stroke="${O}" stroke-width="5"/>`));
+
+document.getElementById('sheet').innerHTML = ICONS.map(i => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">${i.svg}</svg>`).join('');
+document.getElementById('meta').textContent = JSON.stringify(ICONS.map(i => ({ id: i.id, name: i.name })));
+</script>
+</body>
+</html>

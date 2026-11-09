@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Update icons</title>
+<!--
+  Icons of the addon's update types, in the style of the game's Updates & Addons icons (an object and a badge).
+  Render with: ..\logos\render-logos.ps1 -Page ..\icons\update-icons.html -Size 128 -NoJson   (PNGs go to png\)
+-->
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  #sheet { display: grid; grid-template-columns: repeat(8, 128px); grid-auto-rows: 128px; }
+  #sheet svg { width: 128px; height: 128px; display: block; }
+  #meta { display: none; }
+</style>
+</head>
+<body>
+<div id="sheet"></div>
+<pre id="meta"></pre>
+<script>
+const O = '#1c1d24';
+const ICONS = [];
+const add = (id, svg) => ICONS.push({ id, name: id, svg });
+const shadow = p => `<filter id="${p}sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#000" flood-opacity=".4"/></filter>`;
+const stops = list => list.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('');
+const lg = (id, list, d = [0, 0, 0, 1]) => `<linearGradient id="${id}" x1="${d[0]}" y1="${d[1]}" x2="${d[2]}" y2="${d[3]}">${stops(list)}</linearGradient>`;
+
+// The green badge the game's icons use: a circle with a plus, or with an arrow.
+function badge(p, x, y, kind, col = ['#7ee05a', '#2f9a1c']) {
+  const sym = kind === 'plus'
+    ? `<path d="M${x - 9} ${y} H${x + 9} M${x} ${y - 9} V${y + 9}" stroke="#fff" stroke-width="6" stroke-linecap="round"/>`
+    : kind === 'check'
+    ? `<path d="M${x - 9} ${y + 1} L${x - 3} ${y + 8} L${x + 9} ${y - 7}" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
+    : kind === 'up'
+      ? `<path d="M${x} ${y + 10} V${y - 7} M${x - 9} ${y + 1} L${x} ${y - 9} L${x + 9} ${y + 1}" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
+      : `<path d="M${x} ${y - 10} V${y + 7} M${x - 9} ${y - 1} L${x} ${y + 9} L${x + 9} ${y - 1}" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
+  return `<defs>${lg(p + 'bd', [[0, col[0]], [1, col[1]]])}</defs>
+<circle cx="${x}" cy="${y}" r="21" fill="url(#${p}bd)" stroke="${O}" stroke-width="4"/>
+<ellipse cx="${x - 5}" cy="${y - 9}" rx="11" ry="6" fill="#fff" fill-opacity=".35"/>${sym}`;
+}
+
+/* Port: a game going to another console */
+add('update-port', `
+<defs>${shadow('po')}${lg('poA', [[0, '#5f6878'], [1, '#2b3039']])}${lg('poB', [[0, '#ffffff'], [1, '#c9d0da']])}${lg('poS', [[0, '#6ec8ff'], [1, '#2a7ad0']])}</defs>
+<g filter="url(#posh)">
+  <rect x="10" y="22" width="62" height="40" rx="7" fill="url(#poA)" stroke="${O}" stroke-width="4"/>
+  <rect x="18" y="32" width="30" height="5" rx="2.5" fill="#15181d"/>
+  <circle cx="60" cy="50" r="4" fill="#7ee05a"/>
+  <rect x="38" y="56" width="70" height="44" rx="8" fill="url(#poB)" stroke="${O}" stroke-width="4"/>
+  <rect x="47" y="67" width="34" height="6" rx="3" fill="#8a94a3"/>
+  <circle cx="96" cy="88" r="4.5" fill="#2a7ad0"/>
+  <path d="M30 70 Q30 86 46 86" stroke="url(#poS)" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M42 78 L50 86 L42 94" stroke="#2a7ad0" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+${badge('po', 100, 32, 'plus')}
+`);
+
+/* Engine update: a gear with an up arrow */
+add('update-engine', (() => {
+  const teeth = [];
+  for (let i = 0; i < 10; i++) {
+    const a = i * Math.PI / 5;
+    teeth.push(`<rect x="-7" y="-50" width="14" height="18" rx="3" transform="translate(56 66) rotate(${(a * 180 / Math.PI).toFixed(1)})"/>`);
+  }
+  return `
+<defs>${shadow('en')}${lg('enM', [[0, '#e9eef3'], [0.5, '#9aa6b2'], [1, '#5a6672']])}</defs>
+<g filter="url(#ensh)">
+  <g fill="url(#enM)" stroke="${O}" stroke-width="4" stroke-linejoin="round">${teeth.join('')}</g>
+  <circle cx="56" cy="66" r="36" fill="url(#enM)" stroke="${O}" stroke-width="4"/>
+  <g fill="url(#enM)">${teeth.join('')}</g>
+  <circle cx="56" cy="66" r="34" fill="url(#enM)"/>
+  <circle cx="56" cy="66" r="15" fill="#2b3039" stroke="${O}" stroke-width="4"/>
+  <path d="M30 50 A30 30 0 0 1 64 36" stroke="#fff" stroke-opacity=".7" stroke-width="4" fill="none" stroke-linecap="round"/>
+</g>
+${badge('en', 100, 32, 'up')}
+`;
+})());
+
+/* New gameplay features: a puzzle piece with a plus */
+add('update-features', `
+<defs>${shadow('fe')}${lg('feA', [[0, '#ffc25a'], [1, '#e8761c']])}${lg('feB', [[0, '#7cc4ff'], [1, '#2a6fd0']])}</defs>
+<g filter="url(#fesh)">
+  <path d="M14 46 H34 C30 36 36 28 44 28 C52 28 58 36 54 46 H74 V66 C84 62 92 68 92 76 C92 84 84 90 74 86 V106 H14 Z" fill="url(#feA)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M20 52 H34" stroke="#fff" stroke-opacity=".6" stroke-width="4" stroke-linecap="round"/>
+  <path d="M54 72 h22 v-6 c0 -6 6 -10 12 -10 c6 0 12 4 12 10 v6 h12 v38 h-58 Z" fill="url(#feB)" stroke="${O}" stroke-width="4" stroke-linejoin="round" transform="translate(-6 -2)"/>
+</g>
+${badge('fe', 100, 32, 'plus')}
+`);
+
+/* Age rating edit: rating labels with a down arrow */
+add('update-rating', `
+<defs>${shadow('ra')}${lg('raR', [[0, '#ff6b6b'], [1, '#c4161c']])}${lg('raG', [[0, '#7ee05a'], [1, '#2f9a1c']])}</defs>
+<g filter="url(#rash)">
+  <rect x="12" y="22" width="56" height="56" rx="10" fill="url(#raR)" stroke="${O}" stroke-width="4"/>
+  <text x="40" y="62" text-anchor="middle" font-family="'Arial Black', Bahnschrift, sans-serif" font-weight="900" font-size="30" fill="#fff">18</text>
+  <rect x="44" y="52" width="58" height="58" rx="10" fill="url(#raG)" stroke="${O}" stroke-width="4"/>
+  <text x="73" y="94" text-anchor="middle" font-family="'Arial Black', Bahnschrift, sans-serif" font-weight="900" font-size="31" fill="#fff">12</text>
+</g>
+${badge('ra', 102, 30, 'down', ['#7cc4ff', '#1f6ad0'])}
+`);
+
+/* ---- Copy protection technologies ---- */
+
+// A gold key lying at (x, y), turned by `turn` degrees.
+const key = (p, x, y, turn) => `<defs>${lg(p + 'k', [[0, '#ffe680'], [1, '#c48a00']])}</defs>
+<g transform="translate(${x} ${y}) rotate(${turn})" stroke="${O}" stroke-width="3.5" stroke-linejoin="round">
+  <rect x="8" y="-4.5" width="34" height="9" rx="2" fill="url(#${p}k)"/>
+  <path d="M30 4 v8 h6 v-8 M20 4 v6 h5 v-6" fill="url(#${p}k)"/>
+  <circle cx="0" cy="0" r="13" fill="url(#${p}k)"/>
+  <circle cx="0" cy="0" r="4.5" fill="#6a4a00" stroke-width="2"/>
+</g>`;
+
+/* Disk check: a floppy disk, checked */
+add('cp-disk', `
+<defs>${shadow('cd')}${lg('cdB', [[0, '#4a82e0'], [1, '#1c3f86']])}${lg('cdM', [[0, '#f1f4f7'], [1, '#8e9aa6']])}</defs>
+<g filter="url(#cdsh)">
+  <path d="M14 30 Q14 24 20 24 H90 L102 36 V100 Q102 106 96 106 H20 Q14 106 14 100 Z" fill="url(#cdB)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <rect x="32" y="24" width="46" height="30" rx="3" fill="url(#cdM)" stroke="${O}" stroke-width="3.5"/>
+  <rect x="62" y="30" width="10" height="18" rx="2" fill="#2b3039"/>
+  <rect x="26" y="66" width="64" height="36" rx="4" fill="#f6f2e4" stroke="${O}" stroke-width="3"/>
+  <path d="M34 77 H82 M34 85 H76 M34 93 H68" stroke="#9aa3b0" stroke-width="3" stroke-linecap="round"/>
+</g>
+${badge('cd', 100, 30, 'check')}
+`);
+
+/* Code wheel and serial key: a two-part code wheel and a key */
+add('cp-codewheel', (() => {
+  let ticks = '';
+  for (let i = 0; i < 16; i++) {
+    const a = i * Math.PI / 8, c = Math.cos(a), s = Math.sin(a);
+    ticks += `<path d="M${(54 + 33 * c).toFixed(1)} ${(60 + 33 * s).toFixed(1)} L${(54 + 43 * c).toFixed(1)} ${(60 + 43 * s).toFixed(1)}"/>`;
+  }
+  return `
+<defs>${shadow('cw')}${lg('cwO', [[0, '#fff4d6'], [1, '#e2b866']])}${lg('cwI', [[0, '#6ec8ff'], [1, '#2a6fd0']])}</defs>
+<g filter="url(#cwsh)">
+  <circle cx="54" cy="60" r="46" fill="url(#cwO)" stroke="${O}" stroke-width="4"/>
+  <g stroke="#b07a2a" stroke-width="2.5">${ticks}</g>
+  <circle cx="54" cy="60" r="30" fill="url(#cwI)" stroke="${O}" stroke-width="3.5"/>
+  <path d="M54 60 L54 30 A30 30 0 0 1 75 39 Z" fill="#fff4d6" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="54" cy="60" r="6" fill="#2b3039"/>
+</g>
+${key('cw', 96, 96, -40)}
+`;
+})());
+
+/* Disc fingerprint: a disc with a fingerprint */
+add('cp-fingerprint', `
+<defs>${shadow('fp')}${lg('fpD', [[0, '#f3f5f8'], [0.35, '#d9e8ff'], [0.55, '#f6dcf2'], [0.75, '#dff5e6'], [1, '#aeb8c4']], [0, 0, 1, 1])}${lg('fpB', [[0, '#7cc4ff'], [1, '#1f6ad0']])}</defs>
+<g filter="url(#fpsh)">
+  <circle cx="52" cy="58" r="44" fill="url(#fpD)" stroke="${O}" stroke-width="4"/>
+  <circle cx="52" cy="58" r="15" fill="#e6eaef" stroke="${O}" stroke-width="2.5"/>
+  <circle cx="52" cy="58" r="6" fill="#3a3f48"/>
+  <path d="M24 40 A34 34 0 0 1 48 25" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/>
+</g>
+<circle cx="96" cy="94" r="25" fill="url(#fpB)" stroke="${O}" stroke-width="4"/>
+<g stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round">
+  <path d="M86 104 Q84 86 96 84 Q108 86 106 104"/><path d="M91 106 Q89 91 96 90 Q103 91 101 106"/>
+  <path d="M96 96 V108"/><path d="M81 96 Q82 78 96 76 Q110 78 111 96"/>
+</g>
+`);
+
+/* Online activation: a screen with the world on it, and a key */
+add('cp-activation', `
+<defs>${shadow('oa')}${lg('oaS', [[0, '#6ec8ff'], [1, '#1f5fb8']])}${lg('oaC', [[0, '#5f6878'], [1, '#2b3039']])}</defs>
+<g filter="url(#oash)">
+  <rect x="10" y="20" width="88" height="64" rx="7" fill="url(#oaC)" stroke="${O}" stroke-width="4"/>
+  <rect x="17" y="27" width="74" height="50" rx="3" fill="url(#oaS)"/>
+  <path d="M44 84 L40 98 H68 L64 84 Z" fill="url(#oaC)" stroke="${O}" stroke-width="3.5" stroke-linejoin="round"/>
+  <rect x="32" y="96" width="44" height="7" rx="3" fill="url(#oaC)" stroke="${O}" stroke-width="3.5"/>
+  <g stroke="#fff" stroke-width="2.6" fill="none"><circle cx="54" cy="52" r="17"/><ellipse cx="54" cy="52" rx="7.5" ry="17"/><path d="M37 52 H71 M40 43 H68 M40 61 H68"/></g>
+</g>
+${key('oa', 92, 92, -35)}
+`);
+
+/* Always-online DRM: a cloud with a padlock */
+add('cp-alwaysonline', `
+<defs>${shadow('ao')}${lg('aoC', [[0, '#ffffff'], [1, '#bcd8f5']])}${lg('aoL', [[0, '#ffe680'], [1, '#c48a00']])}${lg('aoM', [[0, '#f1f4f7'], [1, '#8e9aa6']])}</defs>
+<g filter="url(#aosh)">
+  <path d="M28 82 C12 82 8 62 22 56 C20 38 40 30 52 40 C58 24 86 24 90 44 C108 42 114 64 102 74 C99 80 92 82 86 82 Z" fill="url(#aoC)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <g stroke="#2a7ad0" stroke-width="4" fill="none" stroke-linecap="round"><path d="M36 64 A16 16 0 0 1 62 52"/><path d="M42 68 A9 9 0 0 1 56 60"/></g>
+  <circle cx="48" cy="72" r="3.5" fill="#2a7ad0"/>
+  <path d="M74 80 V70 A13 13 0 0 1 100 70 V80" stroke="${O}" stroke-width="9" fill="none"/>
+  <path d="M74 80 V70 A13 13 0 0 1 100 70 V80" stroke="url(#aoM)" stroke-width="4" fill="none"/>
+  <rect x="66" y="78" width="42" height="32" rx="6" fill="url(#aoL)" stroke="${O}" stroke-width="4"/>
+  <circle cx="87" cy="91" r="4.5" fill="#6a4a00"/><path d="M87 94 V102" stroke="#6a4a00" stroke-width="4" stroke-linecap="round"/>
+</g>
+`);
+
+/* ---- MMO management ---- */
+
+// A gear: teeth drawn with an outline, then the body and teeth again on top to hide the inner outlines.
+const gear = (cx, cy, r, n, fill) => {
+  const tw = r * 0.42, th = r * 0.42;
+  let t = '';
+  for (let i = 0; i < n; i++) {
+    t += `<rect x="${(-tw / 2).toFixed(1)}" y="${(-r - th + 5).toFixed(1)}" width="${tw.toFixed(1)}" height="${th.toFixed(1)}" rx="2.5" transform="translate(${cx} ${cy}) rotate(${(i * 360 / n).toFixed(1)})"/>`;
+  }
+  return `<g fill="${fill}" stroke="${O}" stroke-width="4" stroke-linejoin="round">${t}</g>
+<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${O}" stroke-width="4"/>
+<g fill="${fill}">${t}</g><circle cx="${cx}" cy="${cy}" r="${r - 2}" fill="${fill}"/>
+<circle cx="${cx}" cy="${cy}" r="${(r * 0.38).toFixed(1)}" fill="#2b3039" stroke="${O}" stroke-width="3.5"/>`;
+};
+
+/* The window: the world, and a server */
+add('mmo-window', `
+<defs>${shadow('mw')}${lg('mwO', [[0, '#7cd0ff'], [1, '#1f5fb8']])}${lg('mwL', [[0, '#9be36a'], [1, '#3f9a22']])}${lg('mwS', [[0, '#6a7384'], [1, '#2b3039']])}</defs>
+<g filter="url(#mwsh)">
+  <circle cx="54" cy="54" r="44" fill="url(#mwO)" stroke="${O}" stroke-width="4"/>
+  <g fill="url(#mwL)" stroke="${O}" stroke-width="3" stroke-linejoin="round">
+    <path d="M26 36 C34 24 52 26 56 36 C60 46 48 50 46 58 C43 68 30 68 25 56 C21 48 21 42 26 36 Z"/>
+    <path d="M62 58 C70 52 86 56 88 66 C90 78 80 88 70 84 C63 80 57 66 62 58 Z"/>
+    <path d="M62 22 C72 16 86 24 84 34 C80 40 68 36 62 22 Z"/>
+  </g>
+  <path d="M22 40 A34 34 0 0 1 42 18" stroke="#fff" stroke-opacity=".75" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+  <rect x="68" y="64" width="48" height="54" rx="6" fill="url(#mwS)" stroke="${O}" stroke-width="4"/>
+  <g fill="#15181d"><rect x="75" y="73" width="34" height="9" rx="2"/><rect x="75" y="87" width="34" height="9" rx="2"/><rect x="75" y="101" width="34" height="9" rx="2"/></g>
+  <circle cx="103" cy="77.5" r="2.6" fill="#7ee05a"/><circle cx="103" cy="91.5" r="2.6" fill="#7ee05a"/><circle cx="103" cy="105.5" r="2.6" fill="#ffd24a"/>
+  <path d="M80 77.5 H94 M80 91.5 H94 M80 105.5 H94" stroke="#4a5262" stroke-width="2.5" stroke-linecap="round"/>
+</g>
+`);
+
+/* Graphics overhaul: a landscape picture and a paintbrush */
+add('mmo-graphics', `
+<defs>${shadow('mg')}${lg('mgF', [[0, '#ffd77a'], [1, '#c48a00']])}${lg('mgS', [[0, '#9fdcff'], [1, '#3d8ee0']])}${lg('mgM', [[0, '#9be36a'], [1, '#2f8a1c']])}${lg('mgH', [[0, '#c98a4a'], [1, '#7a4a1c']])}${lg('mgC', [[0, '#f1f4f7'], [1, '#8e9aa6']])}</defs>
+<g filter="url(#mgsh)">
+  <rect x="8" y="24" width="84" height="66" rx="6" fill="url(#mgF)" stroke="${O}" stroke-width="4"/>
+  <rect x="17" y="33" width="66" height="48" rx="2" fill="url(#mgS)" stroke="${O}" stroke-width="2.5"/>
+  <circle cx="68" cy="47" r="7" fill="#ffe14a" stroke="${O}" stroke-width="2.5"/>
+  <path d="M17 81 L38 54 L50 68 L60 58 L83 81 Z" fill="url(#mgM)" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M38 54 L43 61 L34 66 Z" fill="#fff" fill-opacity=".8"/>
+  <g transform="translate(70 100) rotate(45)">
+    <rect x="-6" y="-50" width="12" height="40" rx="5" fill="url(#mgH)" stroke="${O}" stroke-width="3.5"/>
+    <rect x="-8.5" y="-13" width="17" height="13" rx="2" fill="url(#mgC)" stroke="${O}" stroke-width="3.5"/>
+    <path d="M-8 0 H8 L7 14 Q0 26 -7 14 Z" fill="#e8463a" stroke="${O}" stroke-width="3.5" stroke-linejoin="round"/>
+  </g>
+</g>
+${badge('mg', 102, 28, 'up')}
+`);
+
+/* 64-bit client: a chip with 64 on it */
+add('mmo-client64', (() => {
+  let pins = '';
+  for (let k = 0; k < 4; k++) {
+    const a = 33 + k * 13;
+    pins += `<rect x="${a}" y="16" width="7" height="14" rx="2"/><rect x="${a}" y="96" width="7" height="14" rx="2"/>`;
+    pins += `<rect x="8" y="${a + 3}" width="14" height="7" rx="2"/><rect x="88" y="${a + 3}" width="14" height="7" rx="2"/>`;
+  }
+  return `
+<defs>${shadow('mc')}${lg('mcB', [[0, '#3c4656'], [1, '#161a22']])}${lg('mcI', [[0, '#f1f4f7'], [1, '#9aa6b2']])}${lg('mcP', [[0, '#ffe680'], [1, '#c48a00']])}</defs>
+<g filter="url(#mcsh)">
+  <g fill="url(#mcP)" stroke="${O}" stroke-width="2.5">${pins}</g>
+  <rect x="20" y="28" width="70" height="70" rx="8" fill="url(#mcB)" stroke="${O}" stroke-width="4"/>
+  <rect x="30" y="38" width="50" height="50" rx="5" fill="url(#mcI)" stroke="${O}" stroke-width="2.5"/>
+  <text x="55" y="74" text-anchor="middle" font-family="'Arial Black', Bahnschrift, sans-serif" font-weight="900" font-size="27" fill="${O}">64</text>
+  <circle cx="28" cy="36" r="2.5" fill="#7ee05a"/>
+</g>
+${badge('mc', 104, 28, 'up')}
+`;
+})());
+
+/* Engine migration: an old gear handing over to a new one */
+add('mmo-migration', `
+<defs>${shadow('mm')}${lg('mmO', [[0, '#c9ced6'], [1, '#6c7480']])}${lg('mmN', [[0, '#ffe680'], [1, '#d08a00']])}${lg('mmA', [[0, '#6ec8ff'], [1, '#2a7ad0']])}</defs>
+<g filter="url(#mmsh)">
+  ${gear(36, 42, 20, 8, 'url(#mmO)')}
+  ${gear(80, 84, 27, 10, 'url(#mmN)')}
+  <path d="M14 70 Q16 98 44 102" stroke="url(#mmA)" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M38 94 L46 102 L38 110" stroke="#2a7ad0" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M60 64 A27 27 0 0 1 84 58" stroke="#fff" stroke-opacity=".8" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+</g>
+${badge('mm', 102, 28, 'up')}
+`);
+
+/* World expansion: a map with a route, and a plus */
+add('mmo-expansion', `
+<defs>${shadow('me')}${lg('meP', [[0, '#fbefcf'], [1, '#e2c88a']])}</defs>
+<g filter="url(#mesh)">
+  <path d="M8 46 L36 36 L66 46 L96 36 V104 L66 114 L36 104 L8 114 Z" fill="url(#meP)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M36 36 V104 L66 114 V46 Z" fill="#000" fill-opacity=".08"/>
+  <path d="M36 36 V104 M66 46 V114" stroke="#b08a4a" stroke-width="3"/>
+  <g fill="#8fcf5a" fill-opacity=".85" stroke="#4f8a2a" stroke-width="2"><path d="M14 60 Q22 52 30 58 Q34 66 26 72 Q16 72 14 60 Z"/><path d="M70 80 Q80 72 90 80 Q92 92 80 94 Q70 92 70 80 Z"/><path d="M44 56 Q52 50 58 56 Q58 64 50 64 Q44 62 44 56 Z"/></g>
+  <path d="M18 100 Q30 78 46 84 T82 58" stroke="#c4161c" stroke-width="3.5" stroke-dasharray="5 5" fill="none" stroke-linecap="round"/>
+  <path d="M77 52 L89 64 M89 52 L77 64" stroke="#c4161c" stroke-width="5.5" stroke-linecap="round"/>
+</g>
+${badge('me', 102, 28, 'plus')}
+`);
+
+/* Content patch: a scroll with a seal */
+add('mmo-patch', `
+<defs>${shadow('mp')}${lg('mpP', [[0, '#fbefcf'], [1, '#e2c88a']])}${lg('mpR', [[0, '#f3dca6'], [0.5, '#c9a35a'], [1, '#9a7a3a']])}${lg('mpW', [[0, '#ff6b6b'], [1, '#b0121a']])}</defs>
+<g filter="url(#mpsh)">
+  <rect x="22" y="30" width="64" height="76" rx="3" fill="url(#mpP)" stroke="${O}" stroke-width="4"/>
+  <g stroke="#9a7a4a" stroke-width="3.5" stroke-linecap="round"><path d="M32 50 H76"/><path d="M32 60 H70"/><path d="M32 70 H76"/><path d="M32 80 H58"/></g>
+  <rect x="12" y="20" width="84" height="17" rx="8.5" fill="url(#mpR)" stroke="${O}" stroke-width="4"/>
+  <rect x="12" y="99" width="84" height="17" rx="8.5" fill="url(#mpR)" stroke="${O}" stroke-width="4"/>
+  <circle cx="72" cy="88" r="9" fill="url(#mpW)" stroke="${O}" stroke-width="3"/>
+  <path d="M68 88 L71 91 L76 85" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+${badge('mp', 102, 28, 'plus')}
+`);
+
+/* Expansion pack (the game's MMO addon): a big box with a star */
+add('mmo-addon', `
+<defs>${shadow('ma')}${lg('maL', [[0, '#9a6cff'], [1, '#5a32b8']])}${lg('maR', [[0, '#7a4ae6'], [1, '#3c1f8a']])}${lg('maT', [[0, '#c7b0ff'], [1, '#8a62f0']])}${lg('maS', [[0, '#ffe680'], [1, '#e0a000']])}</defs>
+<g filter="url(#mash)">
+  <path d="M14 48 L56 62 V112 L14 98 Z" fill="url(#maL)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M56 62 L98 48 V98 L56 112 Z" fill="url(#maR)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M14 48 L56 34 L98 48 L56 62 Z" fill="url(#maT)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M35 64 L38.5 72 L47 72.5 L40.5 78 L42.5 86.5 L35 82 L27.5 86.5 L29.5 78 L23 72.5 L31.5 72 Z" fill="url(#maS)" stroke="${O}" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M64 74 L90 65 M64 82 L84 75" stroke="#c7b0ff" stroke-width="3" stroke-linecap="round" stroke-opacity=".8"/>
+</g>
+${badge('ma', 102, 28, 'plus')}
+`);
+
+/* ---- Your digital store ---- */
+
+// A shopping bag with a play button: the store.
+const bag = (p, x, y, s) => `<defs>${lg(p + 'bg', [[0, '#a27cff'], [1, '#5b34c9']])}${lg(p + 'hd', [[0, '#c9b4ff'], [1, '#7a52e0']])}</defs>
+<g transform="translate(${x} ${y}) scale(${s})">
+  <path d="M30 34 C30 14 66 14 66 34" stroke="${O}" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <path d="M30 34 C30 14 66 14 66 34" stroke="url(#${p}hd)" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+  <path d="M10 34 H86 L80 98 Q79 104 73 104 H23 Q17 104 16 98 Z" fill="url(#${p}bg)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M18 42 H78" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round"/>
+  <path d="M40 54 L62 68 L40 82 Z" fill="#fff" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+</g>`;
+
+add('store-window', `<defs>${shadow('sw')}</defs><g filter="url(#swsh)">${bag('sw', 14, 6, 1.05)}</g>`);
+
+add('store-build', `<defs>${shadow('sb')}</defs><g filter="url(#sbsh)">${bag('sb', 6, 14, 0.98)}</g>${badge('sb', 100, 30, 'plus')}`);
+
+add('store-feature', `
+<defs>${shadow('sf')}${lg('sfW', [[0, '#ffffff'], [1, '#cfd6e0']])}${lg('sfT', [[0, '#a27cff'], [1, '#5b34c9']])}</defs>
+<g filter="url(#sfsh)">
+  <rect x="8" y="24" width="94" height="78" rx="8" fill="url(#sfW)" stroke="${O}" stroke-width="4"/>
+  <path d="M8 32 Q8 24 16 24 H94 Q102 24 102 32 V42 H8 Z" fill="url(#sfT)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="20" cy="33" r="3.5" fill="#fff"/><circle cx="31" cy="33" r="3.5" fill="#fff"/>
+  <rect x="18" y="52" width="32" height="40" rx="4" fill="#d9ccff" stroke="${O}" stroke-width="3"/>
+  <path d="M58 56 H92 M58 68 H86 M58 80 H90" stroke="#8a94a3" stroke-width="4" stroke-linecap="round"/>
+</g>
+${badge('sf', 102, 30, 'plus')}
+`);
+
+/* User reviews: a speech bubble with stars */
+add('store-f0', (() => {
+  const star = (cx, cy, r, fill) => { let d = ''; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; d += (i ? 'L' : 'M') + (cx + rr * Math.cos(a)).toFixed(1) + ' ' + (cy + rr * Math.sin(a)).toFixed(1); } return `<path d="${d}Z" fill="${fill}" stroke="${O}" stroke-width="2.5" stroke-linejoin="round"/>`; };
+  return `
+<defs>${shadow('r0')}${lg('r0B', [[0, '#ffffff'], [1, '#dfe6ef']])}</defs>
+<g filter="url(#r0sh)">
+  <path d="M14 24 H110 Q118 24 118 32 V80 Q118 88 110 88 H50 L30 106 L32 88 H14 Q6 88 6 80 V32 Q6 24 14 24 Z" fill="url(#r0B)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  ${star(30, 56, 13, '#ffcf3a')}${star(62, 56, 13, '#ffcf3a')}${star(94, 56, 13, '#e3e7ec')}
+</g>`;
+})());
+
+/* Friends and chat: two people and a chat bubble */
+add('store-f1', `
+<defs>${shadow('r1')}${lg('r1A', [[0, '#7cc4ff'], [1, '#2a6fd0']])}${lg('r1B', [[0, '#9be36a'], [1, '#3f9a22']])}</defs>
+<g filter="url(#r1sh)">
+  <circle cx="34" cy="50" r="15" fill="url(#r1A)" stroke="${O}" stroke-width="4"/>
+  <path d="M8 104 C8 78 60 78 60 104 Z" fill="url(#r1A)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="74" cy="58" r="14" fill="url(#r1B)" stroke="${O}" stroke-width="4"/>
+  <path d="M50 108 C50 84 98 84 98 108 Z" fill="url(#r1B)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M78 10 H116 Q122 10 122 16 V36 Q122 42 116 42 H96 L86 52 L87 42 H78 Q72 42 72 36 V16 Q72 10 78 10 Z" fill="#fff" stroke="${O}" stroke-width="3.5" stroke-linejoin="round"/>
+  <circle cx="87" cy="26" r="3.2" fill="#2a6fd0"/><circle cx="97" cy="26" r="3.2" fill="#2a6fd0"/><circle cx="107" cy="26" r="3.2" fill="#2a6fd0"/>
+</g>
+`);
+
+/* Automatic updates: circling arrows around a download arrow */
+add('store-f2', `
+<defs>${shadow('r2')}${lg('r2A', [[0, '#7ee05a'], [1, '#2f9a1c']])}${lg('r2M', [[0, '#f1f4f7'], [1, '#aeb8c4']])}</defs>
+<g filter="url(#r2sh)">
+  <circle cx="64" cy="64" r="50" fill="url(#r2M)" stroke="${O}" stroke-width="4"/>
+  <path d="M30 56 A36 36 0 0 1 92 40" stroke="${O}" stroke-width="13" fill="none" stroke-linecap="round"/>
+  <path d="M30 56 A36 36 0 0 1 92 40" stroke="url(#r2A)" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M98 72 A36 36 0 0 1 36 88" stroke="${O}" stroke-width="13" fill="none" stroke-linecap="round"/>
+  <path d="M98 72 A36 36 0 0 1 36 88" stroke="url(#r2A)" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M84 26 L100 38 L82 46 Z M44 102 L28 90 L46 82 Z" fill="url(#r2A)" stroke="${O}" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M64 46 V78 M52 68 L64 80 L76 68" stroke="#2b3039" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+`);
+
+/* Regional pricing: a globe with a price tag */
+add('store-f3', `
+<defs>${shadow('r3')}${lg('r3O', [[0, '#7cd0ff'], [1, '#1f5fb8']])}${lg('r3L', [[0, '#9be36a'], [1, '#3f9a22']])}${lg('r3T', [[0, '#ffe680'], [1, '#e0a000']])}</defs>
+<g filter="url(#r3sh)">
+  <circle cx="54" cy="56" r="44" fill="url(#r3O)" stroke="${O}" stroke-width="4"/>
+  <g fill="url(#r3L)" stroke="${O}" stroke-width="3" stroke-linejoin="round"><path d="M26 38 C34 26 52 28 56 38 C60 48 48 52 46 60 C43 70 30 70 25 58 C21 50 21 44 26 38 Z"/><path d="M62 64 C70 58 86 62 88 72 C88 82 78 90 70 86 C63 82 58 70 62 64 Z"/></g>
+  <path d="M74 74 L104 74 L120 90 L104 106 L74 106 Z" fill="url(#r3T)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="106" cy="90" r="4" fill="#fff" stroke="${O}" stroke-width="2.5"/>
+  <text x="88" y="98" text-anchor="middle" font-family="'Arial Black', Bahnschrift, sans-serif" font-weight="900" font-size="20" fill="${O}">$</text>
+</g>
+`);
+
+/* Achievements: a trophy */
+add('store-f4', `
+<defs>${shadow('r4')}${lg('r4G', [[0, '#ffe680'], [0.6, '#f0b400'], [1, '#b07800']])}</defs>
+<g filter="url(#r4sh)">
+  <path d="M38 30 H20 C20 56 34 60 42 60 M90 30 H108 C108 56 94 60 86 60" stroke="${O}" stroke-width="9" fill="none"/>
+  <path d="M38 30 H20 C20 56 34 60 42 60 M90 30 H108 C108 56 94 60 86 60" stroke="url(#r4G)" stroke-width="4.5" fill="none"/>
+  <path d="M38 22 H90 V50 C90 72 76 82 64 82 C52 82 38 72 38 50 Z" fill="url(#r4G)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <rect x="56" y="80" width="16" height="16" fill="url(#r4G)" stroke="${O}" stroke-width="4"/>
+  <rect x="38" y="94" width="52" height="16" rx="3" fill="#7a4a1c" stroke="${O}" stroke-width="4"/>
+  <path d="M50 30 V56" stroke="#fff" stroke-opacity=".7" stroke-width="5" stroke-linecap="round"/>
+</g>
+`);
+
+/* Cloud saves: a cloud with a save disk */
+add('store-f5', `
+<defs>${shadow('r5')}${lg('r5C', [[0, '#ffffff'], [1, '#bcd8f5']])}${lg('r5D', [[0, '#4a82e0'], [1, '#1c3f86']])}</defs>
+<g filter="url(#r5sh)">
+  <path d="M28 86 C10 86 6 64 22 58 C20 38 42 30 54 42 C60 24 90 24 94 46 C114 44 120 68 106 78 C103 84 96 86 90 86 Z" fill="url(#r5C)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M46 62 Q46 58 50 58 H76 L84 66 V100 Q84 104 80 104 H50 Q46 104 46 100 Z" fill="url(#r5D)" stroke="${O}" stroke-width="3.5" stroke-linejoin="round"/>
+  <rect x="54" y="58" width="20" height="13" rx="2" fill="#e6eaef" stroke="${O}" stroke-width="2.5"/>
+  <rect x="53" y="82" width="24" height="16" rx="2" fill="#f6f2e4" stroke="${O}" stroke-width="2.5"/>
+</g>
+`);
+
+document.getElementById('sheet').innerHTML = ICONS.map(i => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">${i.svg}</svg>`).join('');
+document.getElementById('meta').textContent = JSON.stringify(ICONS.map(i => ({ id: i.id, name: i.name })));
+</script>
+</body>
+</html>
