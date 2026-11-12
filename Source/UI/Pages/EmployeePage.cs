@@ -92,7 +92,7 @@ internal class EmployeePage : Page
 		Perks(w, y);
 		float buttonsY = w.Height - 75f - 50f;
 		float bw = (w.Width - 28f - 30f) / 4f;
-		w.BigButton("Max skills", 14f, buttonsY, bw, 40f, () =>
+		w.BigButton("Max Skills", 14f, buttonsY, bw, 40f, () =>
 		{
 			for (int i = 0; i < Employees.SkillCount; i++)
 			{
@@ -100,17 +100,17 @@ internal class EmployeePage : Page
 			}
 			w.Rebuild();
 		}, enabled: true, "Set all eight skills to 100.");
-		w.BigButton("Max motivation", 14f + (bw + 10f), buttonsY, bw, 40f, () =>
+		w.BigButton("Max Motivation", 14f + (bw + 10f), buttonsY, bw, 40f, () =>
 		{
 			Employees.SetMotivation(c, 100f);
 			w.Rebuild();
 		}, enabled: true, "Set motivation to 100%.");
-		w.BigButton("Cure sickness", 14f + (bw + 10f) * 2f, buttonsY, bw, 40f, () =>
+		w.BigButton("Cure Sickness", 14f + (bw + 10f) * 2f, buttonsY, bw, 40f, () =>
 		{
 			c.krank = 0;
 			w.Rebuild();
 		}, Employees.IsSick(c), Employees.IsSick(c) ? "Make the employee healthy again right away." : "This employee isn't sick.");
-		w.BigButton("Undo changes", 14f + (bw + 10f) * 3f, buttonsY, bw, 40f, () =>
+		w.BigButton("Undo Changes", 14f + (bw + 10f) * 3f, buttonsY, bw, 40f, () =>
 		{
 			for (int i = 0; i < Employees.SkillCount; i++)
 			{

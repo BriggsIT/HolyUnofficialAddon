@@ -65,6 +65,151 @@ internal class MmoGame
 
 	// Platforms beyond the game's four platform slots (the game saves only four per game).
 	public List<int> ExtraPlatforms = new List<int>();
+
+	// ---- Bots (MmoBots) ----
+
+	// Bot accounts among its subscribers: gold farmers pay for their accounts like anyone else.
+	public long Bots;
+
+	// Bots on free trial accounts: they don't pay.
+	public long TrialBots;
+
+	public int BustReady = -1000;
+
+	// After a ban wave, bot makers stay away for a while.
+	public int DeterUntil = -1000;
+
+	public int Busts;
+
+	public long Banned;
+
+	// ---- Live operations (MmoLive) ----
+
+	public bool TrialBuilt;
+
+	public bool TrialOn;
+
+	public int WelcomeReady = -1000;
+
+	public int Welcomes;
+
+	public int StabilityReady = -1000;
+
+	public int StableUntil = -1000;
+
+	// Classic realms inside the game (its launch-day version, in the same subscription).
+	public bool ClassicOn;
+
+	public string ClassicName;
+
+	public long ClassicSubs;
+
+	public long ClassicPeak;
+
+	public int ClassicPhase;
+
+	public int ClassicPhaseReady = -1000;
+
+	public int ClassicWeek = -1;
+
+	public List<long> ClassicHistory = new List<long>();
+
+	// The classic version relaunched as its own game (on the original), and the original (on the classic game).
+	public int ClassicGame = -1;
+
+	public int ClassicOf = -1;
+
+	// Autopilot: null = off.
+	public MmoAuto Auto;
+}
+
+// What the autopilot may start for one MMO.
+internal class MmoAuto
+{
+	public bool On;
+
+	public bool Bust = true;
+
+	// Bots as a share of subscribers (in %) that start a ban wave.
+	public int BustAt = 4;
+
+	public bool Stability = true;
+
+	// Bugs that start a stability patch.
+	public int StabilityAt = 10;
+
+	public bool Patch = true;
+
+	public bool Welcome;
+
+	public bool ClassicPhase = true;
+}
+
+// Autopilot rules for the whole studio.
+internal class MmoAutoStudio
+{
+	// Never start anything that would leave less money than this.
+	public long MoneyFloor = 500000L;
+
+	// Development rooms with staff that the autopilot leaves free for you.
+	public int KeepFree = 1;
+
+	// Update your own anti-bot systems once their strength falls below this (0 = never).
+	public int AntiBotAt = 60;
+}
+
+// An anti-bot system: your own, or one licensed from another studio.
+internal class AntiBotSystem
+{
+	public int Id;
+
+	public string Name;
+
+	// The genre it's built for: full effect on MMOs of that genre, less on others.
+	public int Genre = -1;
+
+	public int Tech;
+
+	public float Strength = 100f;
+
+	public int Built;
+
+	public int Updated;
+
+	public int Updates;
+
+	// -1 = your own; otherwise the studio you license it from.
+	public int Source = -1;
+
+	// Licensed from a studio: what you pay each month.
+	public long Fee;
+
+	// Your own: 0 = your MMOs only, 1 = sold to other studios.
+	public int Licensing;
+
+	public int FeeStep = 2;
+
+	public List<int> Licensees = new List<int>();
+
+	public long Revenue;
+
+	public bool Retired;
+}
+
+// A yearly MMO fan festival.
+internal class FanFestRecord
+{
+	public int Year;
+
+	public int GameId;
+
+	public string Game;
+
+	public int Venue;
+
+	public long Cost;
+
+	public long Income;
 }
 
 // A platform an MMO could launch on, or why not.
@@ -110,6 +255,22 @@ internal class MmoState
 	public Dictionary<int, AwardBase> AwardBase = new Dictionary<int, AwardBase>();
 
 	public List<AwardWin> Wins = new List<AwardWin>();
+
+	// Bots in rival MMOs, by game id.
+	public Dictionary<int, long> RivalBots = new Dictionary<int, long>();
+
+	public List<AntiBotSystem> AntiBots = new List<AntiBotSystem>();
+
+	public int NextAntiBotId = 1;
+
+	public MmoAutoStudio Autopilot = new MmoAutoStudio();
+
+	public int FanFestYear = -1;
+
+	public List<FanFestRecord> FanFests = new List<FanFestRecord>();
+
+	// Your expansion packs' platforms beyond their four slots (their MMO's extra platforms), by game id.
+	public Dictionary<int, List<int>> AddonPlatforms = new Dictionary<int, List<int>>();
 }
 
 internal static class MmoUiText
@@ -305,6 +466,7 @@ internal static class MmoOps
 		}
 		m.History = m.History ?? new List<long>();
 		m.ExtraPlatforms = m.ExtraPlatforms ?? new List<int>();
+		m.ClassicHistory = m.ClassicHistory ?? new List<long>();
 		return m;
 	}
 
@@ -483,6 +645,129 @@ internal static class MmoOps
 		return Mathf.Max(1f, after / Mathf.Max(1f, before));
 	}
 
+	// ---- Expansion packs on every platform the MMO is on ----
+
+	// The game copies an MMO's four platform slots into an expansion pack when its development starts: retired
+	// platforms included, extra platforms left out. A pack goes on sale everywhere its MMO is instead.
+
+	// The MMO's platforms still on the market: its slots first, then its extra platforms.
+	public static List<int> ActivePlatforms(gameScript g)
+	{
+		return AllPlatforms(g).Where((int id) => !Retired(id)).ToList();
+	}
+
+	public static List<int> AddonExtras(gameScript addon)
+	{
+		if (!addon || !S.AddonPlatforms.TryGetValue(addon.myID, out var list) || list == null)
+		{
+			return new List<int>();
+		}
+		return list;
+	}
+
+	// Puts an expansion pack on the platforms its MMO is on: the first four in its slots (keeping the ones it
+	// already has in place), the rest as extra platforms. Platforms' game counts change with it for a pack already
+	// on sale (at release the game counts the slots itself). Returns whether anything changed.
+	public static bool SyncAddonPlatforms(gameScript addon, gameScript mmo, bool onSale)
+	{
+		List<int> active = ActivePlatforms(mmo);
+		if (active.Count == 0)
+		{
+			return false;
+		}
+		List<int> oldExtras = AddonExtras(addon);
+		List<int> before = addon.gamePlatform.Where((int id) => id != -1).Concat(oldExtras).Distinct().ToList();
+		int[] slots = new int[addon.gamePlatform.Length];
+		for (int i = 0; i < slots.Length; i++)
+		{
+			slots[i] = (active.Contains(addon.gamePlatform[i]) ? addon.gamePlatform[i] : (-1));
+		}
+		Queue<int> todo = new Queue<int>(active.Where((int id) => !slots.Contains(id)));
+		for (int j = 0; j < slots.Length; j++)
+		{
+			if (slots[j] == -1 && todo.Count > 0)
+			{
+				slots[j] = todo.Dequeue();
+			}
+		}
+		List<int> extras = todo.ToList();
+		if (slots.SequenceEqual(addon.gamePlatform) && extras.SequenceEqual(oldExtras))
+		{
+			return false;
+		}
+		for (int k = 0; k < slots.Length; k++)
+		{
+			addon.gamePlatform[k] = slots[k];
+			addon.gamePlatformScript[k] = null;
+		}
+		addon.FindMyPlatforms();
+		if (extras.Count > 0)
+		{
+			S.AddonPlatforms[addon.myID] = extras;
+		}
+		else
+		{
+			S.AddonPlatforms.Remove(addon.myID);
+		}
+		foreach (int id in onSale ? active.Where((int x) => !before.Contains(x)) : extras.AsEnumerable())
+		{
+			platformScript p = GameUpdates.Platform(id);
+			if ((bool)p)
+			{
+				p.games++;
+			}
+		}
+		if (onSale)
+		{
+			foreach (int id2 in before.Where((int x) => !active.Contains(x)))
+			{
+				platformScript p2 = GameUpdates.Platform(id2);
+				if ((bool)p2 && p2.games > 0)
+				{
+					p2.games--;
+				}
+			}
+		}
+		if (addon.exklusiv && active.Count > 1)
+		{
+			addon.exklusiv = false;
+			if (onSale)
+			{
+				foreach (int id3 in before)
+				{
+					platformScript p3 = GameUpdates.Platform(id3);
+					if ((bool)p3 && p3.exklusivGames > 0)
+					{
+						p3.exklusivGames--;
+					}
+				}
+			}
+		}
+		if (addon.herstellerExklusiv && active.Any((int id4) => GameUpdates.Platform(id4)?.ownerID != G.MS.myID))
+		{
+			addon.herstellerExklusiv = false;
+		}
+		if ((bool)addon.gameTab_)
+		{
+			addon.gameTab_.UpdateData();
+		}
+		return true;
+	}
+
+	// How much more of the market an expansion pack reaches through its extra platforms (as ExtraReachFactor).
+	public static float AddonReach(gameScript addon)
+	{
+		List<int> extras = AddonExtras(addon);
+		if (extras.Count == 0)
+		{
+			return 1f;
+		}
+		List<int> main = addon.gamePlatform.Where((int id) => id != -1).ToList();
+		float before = GameUpdates.Reach(addon, main, addon.exklusiv);
+		float after = GameUpdates.Reach(addon, main.Concat(extras.Where((int id) => !main.Contains(id))), exclusive: false);
+		return Mathf.Max(1f, after / Mathf.Max(1f, before));
+	}
+
 	public static string PlatformNames(IEnumerable<int> ids)
 	{
 		return string.Join(", ", from id in ids
@@ -586,12 +871,23 @@ internal static class MmoOps
 		{
 			extra -= ClientChurn;
 		}
+		if (m.StableUntil > Now)
+		{
+			extra -= MmoLive.StableChurn;
+		}
+		// Bots spoil the game for real players: farmed-out zones, spam, a broken economy.
+		extra += MmoBots.ChurnFromBots(g, m);
 		return extra;
 	}
 
 	// Multiplier on new players (through the game's weekly sales roll).
 	public static float NewPlayerFactor(gameScript g)
 	{
+		// An expansion pack sells on its MMO's extra platforms too.
+		if (On && (bool)g && g.typ_mmoaddon && g.IsMyGame())
+		{
+			return AddonReach(g);
+		}
 		if (!On || !g || g.gameTyp != 1 || !g.IsMyGame())
 		{
 			return 1f;
@@ -601,7 +897,7 @@ internal static class MmoOps
 		{
 			return 1f;
 		}
-		float reach = ExtraReachFactor(g, m);
+		float reach = ExtraReachFactor(g, m) * MmoBots.JoinFactor(g, m) * MmoLive.TrialJoin(m);
 		if (m.OldSchool)
 		{
 			return reach * (1f - OldSchoolJoin);
@@ -927,11 +1223,36 @@ internal static class MmoOps
 
 	// ---- Content patch ----
 
+	// No content patch in the first two months after an expansion pack: players are still busy with it.
+	public const int AddonPatchGap = 8;
+
+	// Weeks until a content patch may follow the MMO's newest expansion pack, and that pack.
+	public static int AddonWait(gameScript g, out gameScript addon)
+	{
+		addon = null;
+		int wait = 0;
+		foreach (gameScript a in Addons(g))
+		{
+			if (a.isOnMarket && a.weeksOnMarket < AddonPatchGap && AddonPatchGap - a.weeksOnMarket > wait)
+			{
+				wait = AddonPatchGap - a.weeksOnMarket;
+				addon = a;
+			}
+		}
+		return wait;
+	}
+
 	public static UpdatePlan PlanPatch(gameScript g)
 	{
 		MmoGame m = Get(g);
 		UpdatePlan plan = new UpdatePlan();
 		int wait = WeeksLeft(m.PatchReady);
+		int addonWait = AddonWait(g, out gameScript addon);
+		if (addonWait > wait)
+		{
+			plan.Problem = "Players are still exploring " + addon.GetNameSimple() + ": the next content patch can start in " + InWeeks(addonWait) + " (two months after an expansion pack).";
+			return plan;
+		}
 		if (wait > 0)
 		{
 			plan.Problem = "Players are still busy with the last patch: the next one can start in " + InWeeks(wait) + ".";
@@ -1049,6 +1370,9 @@ internal static class MmoOps
 			UpdateKind.MmoPort => 0.05f,
 			UpdateKind.MmoMigration => migration ? 0.08f : 0.04f,
 			UpdateKind.MmoExpansion => 0.15f,
+			UpdateKind.MmoStability => 0.01f,
+			UpdateKind.MmoClassic => 0.08f,
+			UpdateKind.MmoClassicPhase => 0.03f,
 			_ => 0f,
 		};
 	}
@@ -1086,7 +1410,7 @@ internal static class MmoOps
 			UpdateKind.MmoClient64 => PlanClient64(g),
 			UpdateKind.MmoExpansion => PlanExpansion(g),
 			UpdateKind.MmoPatch => PlanPatch(g),
-			_ => null,
+			_ => MmoLive.Plan(kind, g, 0),
 		};
 		return plan?.Problem;
 	}
@@ -1117,6 +1441,7 @@ internal static class MmoOps
 			float tech = Mathf.Max(5f, g.points_technik * 0.1f);
 			g.points_technik += tech;
 			g.points_bugs *= 0.7f;
+			LeftoverBugs.Tidy(g);
 			m.Client64 = true;
 			m.Client64Built = true;
 			g.AddMMOInteresse(5f);
@@ -1232,7 +1557,17 @@ internal static class MmoOps
 			break;
 		}
 		default:
-			return null;
+			text = MmoLive.Complete(p, g, m, name);
+			if (text == null)
+			{
+				return null;
+			}
+			break;
+		}
+		// New code breaks the bot programs, as an update breaks pirated copies (a ban wave has its own effect).
+		if (p.Kind != UpdateKind.MmoBotBust && p.Kind != UpdateKind.MmoWelcomeBack && p.Kind != UpdateKind.MmoFreeTrial)
+		{
+			text += MmoBots.UpdateLine(MmoBots.BreakBots(g, m, MmoBots.UpdateCut));
 		}
 		text += IpLine(g, KeepIpAlive(g, ReleaseIp(g) * ipShare));
 		if ((bool)g.gameTab_)
@@ -1330,10 +1665,14 @@ internal static class MmoOps
 	{
 		try
 		{
-			MmoGame m = (On ? Find(__instance.myID) : null);
-			if (m?.ExtraPlatforms != null && m.ExtraPlatforms.Count > 0)
+			if (!On)
 			{
-				__result = __result + "\n<color=#1565c0>Also on: " + PlatformNames(m.ExtraPlatforms) + "</color>";
+				return;
+			}
+			List<int> extra = (__instance.typ_mmoaddon ? AddonExtras(__instance) : Find(__instance.myID)?.ExtraPlatforms);
+			if (extra != null && extra.Count > 0)
+			{
+				__result = __result + "\n<color=#1565c0>Also on: " + PlatformNames(extra) + "</color>";
 			}
 		}
 		catch (Exception)
@@ -1388,7 +1727,7 @@ internal static class MmoOps
 	}
 
 	// Puts players on your MMO servers; returns how many fit.
-	private static long PlaceOnServers(long players)
+	internal static long PlaceOnServers(long players)
 	{
 		long left = players;
 		roomScript[] rooms = (G.MS ? G.MS.arrayRoomScripts : null);
@@ -1408,6 +1747,22 @@ internal static class MmoOps
 			}
 		}
 		return players - left;
+	}
+
+	// MMO Management needs MMOs: the game unlocks them with gameplay feature 23 (its unlock 21).
+	public static string LockReason()
+	{
+		if (!On)
+		{
+			return "MMO Management is switched off in the addon's settings.";
+		}
+		unlockScript u = (G.MainObj ? G.MainObj.GetComponent<unlockScript>() : null);
+		if ((bool)u && !u.unlock[21])
+		{
+			gameplayFeatures gf = G.MainObj.GetComponent<gameplayFeatures>();
+			return "MMOs aren't available yet: research " + (gf ? gf.GetName(23) : "the gameplay feature for them") + " to make them.";
+		}
+		return null;
 	}
 
 	public static string ExpansionPackProblem(gameScript g)
@@ -1556,6 +1911,7 @@ internal static class MmoOps
 					g.bestAbonnements = g.abonnements;
 				}
 			}
+			MmoLive.AfterSales(g, m, __state.Abos);
 		}
 		catch (Exception ex)
 		{
@@ -1605,6 +1961,12 @@ internal static class MmoOps
 			{
 				gameScript ip = IpOf(__instance);
 				__state = (ip ? ip.ipTime : (-1));
+				// It goes on sale everywhere its MMO is (the game copied the MMO's slots when development started).
+				gameScript mmo = GameUpdates.FindGame(__instance.originalGameID);
+				if ((bool)mmo && IsMyMmo(mmo))
+				{
+					SyncAddonPlatforms(__instance, mmo, onSale: false);
+				}
 			}
 		}
 		catch (Exception)
@@ -1637,6 +1999,7 @@ internal static class MmoOps
 			b.points_technik *= bump;
 			MmoGame m = Get(b);
 			m.Renewal += AddonRenewal;
+			MmoBots.BreakBots(b, m, MmoBots.AddonCut);
 			// As the game counts IP points for releases: less if the IP had another release in the last 8 weeks.
 			gameScript ipGame = IpOf(addon);
 			float ip = ReleaseIp(addon) * AddonIpShare;
@@ -1694,10 +2057,26 @@ internal static class MmoOps
 				{
 					m.History.RemoveRange(0, m.History.Count - HistoryWeeks);
 				}
+				if (m.ClassicOn)
+				{
+					m.ClassicHistory.Add(m.ClassicSubs);
+					if (m.ClassicHistory.Count > HistoryWeeks)
+					{
+						m.ClassicHistory.RemoveRange(0, m.ClassicHistory.Count - HistoryWeeks);
+					}
+				}
 				// The card redrew its bars during the week's sales, before this week's entry: redraw them.
 				if ((bool)g.gameTab_)
 				{
 					g.gameTab_.UpdateData();
+				}
+				// Its expansion packs on sale follow it to new platforms and leave retired ones.
+				foreach (gameScript a in Addons(g))
+				{
+					if (a.isOnMarket && a.IsMyGame())
+					{
+						SyncAddonPlatforms(a, g, onSale: true);
+					}
 				}
 				if (IpHealthy(g))
 				{
@@ -1756,6 +2135,22 @@ internal static class MmoOps
 			S.Games = S.Games ?? new Dictionary<int, MmoGame>();
 			S.AwardBase = S.AwardBase ?? new Dictionary<int, AwardBase>();
 			S.Wins = S.Wins ?? new List<AwardWin>();
+			S.RivalBots = S.RivalBots ?? new Dictionary<int, long>();
+			S.AntiBots = S.AntiBots ?? new List<AntiBotSystem>();
+			S.Autopilot = S.Autopilot ?? new MmoAutoStudio();
+			S.FanFests = S.FanFests ?? new List<FanFestRecord>();
+			S.AddonPlatforms = S.AddonPlatforms ?? new Dictionary<int, List<int>>();
+			foreach (AntiBotSystem a in S.AntiBots)
+			{
+				a.Licensees = a.Licensees ?? new List<int>();
+			}
+			foreach (MmoGame m in S.Games.Values)
+			{
+				if (m != null)
+				{
+					m.ClassicHistory = m.ClassicHistory ?? new List<long>();
+				}
+			}
 			if (S.Games.Count > 0)
 			{
 				Plugin.Log.LogInfo("MMOs loaded: " + S.Games.Count);

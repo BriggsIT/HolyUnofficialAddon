@@ -25,9 +25,20 @@ internal enum UpdateKind
 	MmoPort = 15,
 	MmoFeatures = 16,
 	MmoRating = 17,
-	// Your digital store (Core/Store): not tied to a game.
+	// Live operations for an MMO (Core/Mmo/MmoLive).
+	MmoBotBust = 18,
+	MmoWelcomeBack = 19,
+	MmoClassic = 20,
+	MmoFreeTrial = 21,
+	MmoStability = 22,
+	MmoClassicPhase = 23,
+	// Your Digital Store (Core/Store): not tied to a game.
 	StoreBuild = 30,
-	StoreFeature = 31
+	StoreFeature = 31,
+	StoreConsole = 32,
+	// Anti-bot systems (Core/Mmo/MmoBots): studio-wide, not tied to a game.
+	AntiBotBuild = 40,
+	AntiBotUpdate = 41
 }
 
 // One update in development: a room works it off like the game's own free updates.
@@ -70,6 +81,21 @@ internal class UpdateProject
 
 	// Age rating edit: the new rating (gameScript.usk).
 	public int Usk = -1;
+
+	// Classic servers: 0 = classic realms in the same subscription, 1 = relaunched as its own game; and its name.
+	public int Option;
+
+	public string NewName;
+
+	// Anti-bot systems: the genre it's built for, its technology, and the system an update is for.
+	public int Genre = -1;
+
+	public int Tech;
+
+	public int SystemId = -1;
+
+	// Console storefront: the console it's for.
+	public int PlatformId = -1;
 
 	[JsonIgnore]
 	public float Fraction => (Needed <= 0f) ? 1f : Mathf.Clamp01(Progress / Needed);
@@ -171,20 +197,29 @@ internal static class GameUpdates
 	{
 		return k switch
 		{
-			UpdateKind.Port => "Port to more platforms",
-			UpdateKind.Engine => "Engine update",
-			UpdateKind.Features => "New gameplay features",
-			UpdateKind.Rating => "Age rating edit",
-			UpdateKind.MmoGraphics => "Graphics overhaul",
-			UpdateKind.MmoClient64 => "64-bit client",
-			UpdateKind.MmoMigration => "Engine migration",
-			UpdateKind.MmoExpansion => "World expansion",
-			UpdateKind.MmoPatch => "Content patch",
-			UpdateKind.MmoPort => "New platforms",
-			UpdateKind.MmoFeatures => "New game systems",
-			UpdateKind.MmoRating => "Age rating change",
-			UpdateKind.StoreBuild => "Store client",
-			UpdateKind.StoreFeature => "Store feature",
+			UpdateKind.Port => "Port to More Platforms",
+			UpdateKind.Engine => "Engine Update",
+			UpdateKind.Features => "New Gameplay Features",
+			UpdateKind.Rating => "Age Rating Edit",
+			UpdateKind.MmoGraphics => "Graphics Overhaul",
+			UpdateKind.MmoClient64 => "64-bit Client",
+			UpdateKind.MmoMigration => "Engine Migration",
+			UpdateKind.MmoExpansion => "World Expansion",
+			UpdateKind.MmoPatch => "Content Patch",
+			UpdateKind.MmoPort => "New Platforms",
+			UpdateKind.MmoFeatures => "New Game Systems",
+			UpdateKind.MmoRating => "Age Rating Change",
+			UpdateKind.MmoBotBust => "Bot Ban Wave",
+			UpdateKind.MmoWelcomeBack => "Welcome-Back Campaign",
+			UpdateKind.MmoClassic => "Classic Servers",
+			UpdateKind.MmoFreeTrial => "Free Trial",
+			UpdateKind.MmoStability => "Stability Patch",
+			UpdateKind.MmoClassicPhase => "Classic Phase",
+			UpdateKind.StoreBuild => "Store Client",
+			UpdateKind.StoreFeature => "Store Feature",
+			UpdateKind.StoreConsole => "Console Storefront",
+			UpdateKind.AntiBotBuild => "New Anti-Bot System",
+			UpdateKind.AntiBotUpdate => "Anti-Bot Update",
 			_ => "Update",
 		};
 	}
@@ -199,6 +234,21 @@ internal static class GameUpdates
 	}
 
 	public static bool IsStore(UpdateKind k)
+	{
+		if (k >= UpdateKind.StoreBuild)
+		{
+			return k < UpdateKind.AntiBotBuild;
+		}
+		return false;
+	}
+
+	public static bool IsAntiBot(UpdateKind k)
+	{
+		return k >= UpdateKind.AntiBotBuild;
+	}
+
+	// Projects for the whole studio (the store, anti-bot systems) rather than one game.
+	public static bool IsStudio(UpdateKind k)
 	{
 		return k >= UpdateKind.StoreBuild;
 	}
@@ -404,7 +454,18 @@ internal static class GameUpdates
 		return 0.6f + Mathf.Clamp(g.reviewTotal, 0, 100) / 250f;
 	}
 
+	// The room's pace, with the rooms supporting it (their staff work on its project too).
 	public static float RoomRate(roomScript r, UpdateKind kind)
+	{
+		float total = OwnRate(r, kind);
+		foreach (roomScript s in RoomSupport.Supporters(r))
+		{
+			total += OwnRate(s, kind);
+		}
+		return total;
+	}
+
+	private static float OwnRate(roomScript r, UpdateKind kind)
 	{
 		if (!r || !G.MS)
 		{
@@ -433,6 +494,10 @@ internal static class GameUpdates
 			UpdateKind.MmoGraphics => c.s_grafik,
 			UpdateKind.MmoExpansion => (c.s_gamedesign + c.s_programmieren + c.s_grafik) / 3f,
 			UpdateKind.MmoPatch => (c.s_gamedesign + c.s_programmieren) * 0.5f,
+			UpdateKind.MmoClassicPhase => (c.s_gamedesign + c.s_programmieren) * 0.5f,
+			UpdateKind.MmoWelcomeBack => c.s_gamedesign,
+			UpdateKind.MmoBotBust => (c.s_programmieren + c.s_gametests) * 0.5f,
+			UpdateKind.MmoStability => (c.s_programmieren + c.s_gametests) * 0.5f,
 			_ => c.s_programmieren,
 		};
 	}
@@ -871,8 +936,8 @@ internal static class GameUpdates
 
 	public static string Start(UpdateProject p, UpdatePlan plan, roomScript room, gameScript g)
 	{
-		bool store = IsStore(p.Kind);
-		string problem = plan.Problem ?? (store ? Store.StoreOps.ProjectProblem(p) : Problem(p.Kind, g)) ?? RoomProblem(room);
+		bool store = IsStudio(p.Kind);
+		string problem = plan.Problem ?? (IsAntiBot(p.Kind) ? Mmo.MmoBots.ProjectProblem(p) : (store ? Store.StoreOps.ProjectProblem(p) : Problem(p.Kind, g))) ?? RoomProblem(room);
 		if (problem != null)
 		{
 			return problem;
@@ -932,7 +997,7 @@ internal static class GameUpdates
 		S.Projects.Remove(p);
 		UpdateRoom.Detach(p);
 		Version++;
-		bool store = IsStore(p.Kind);
+		bool store = IsStudio(p.Kind);
 		gameScript g = FindGame(p.GameId);
 		if (!g && !store)
 		{
@@ -952,7 +1017,7 @@ internal static class GameUpdates
 		}
 		try
 		{
-			string message = (store ? Store.StoreOps.Complete(p) : Complete(p, g));
+			string message = (IsAntiBot(p.Kind) ? Mmo.MmoBots.Complete(p, room) : (store ? Store.StoreOps.Complete(p) : Complete(p, g)));
 			if (!store && !string.IsNullOrEmpty(message))
 			{
 				message += Aftermath(p, g, room);
@@ -979,7 +1044,11 @@ internal static class GameUpdates
 	{
 		List<string> notes = new List<string>();
 		UpdateKind b = BaseOf(p.Kind);
-		g.amountUpdates++;
+		// A campaign, a free trial or classic servers aren't patches of the game.
+		if (p.Kind != UpdateKind.MmoWelcomeBack && p.Kind != UpdateKind.MmoFreeTrial && p.Kind != UpdateKind.MmoClassic)
+		{
+			g.amountUpdates++;
+		}
 		if (b == UpdateKind.Engine || b == UpdateKind.Features || b == UpdateKind.Rating)
 		{
 			long gone = HolyCompat.BreakPirates(g, 0.4f, 0.3f);
@@ -1016,6 +1085,11 @@ internal static class GameUpdates
 		}
 		case UpdateKind.MmoExpansion:
 			nudge = 0.02f;
+			break;
+		case UpdateKind.MmoBotBust:
+		case UpdateKind.MmoStability:
+		case UpdateKind.MmoClassicPhase:
+			nudge = 0.01f;
 			break;
 		}
 		if (nudge > 0f)
@@ -1232,7 +1306,7 @@ internal static class GameUpdates
 	[HarmonyPatch(typeof(mainScript), "WochenUpdates")]
 	private static void Weekly()
 	{
-		if (!G.Singleplayer)
+		if (!G.Singleplayer || S.Projects.Count == 0)
 		{
 			return;
 		}
@@ -1243,7 +1317,7 @@ internal static class GameUpdates
 			{
 				gameScript g = FindGame(p.GameId);
 				bool roomOk = rooms.Any((roomScript r) => r.taskID == p.TaskId);
-				bool gameOk = IsStore(p.Kind) || ((bool)g && g.isOnMarket);
+				bool gameOk = IsStudio(p.Kind) || ((bool)g && g.isOnMarket);
 				if (!gameOk || !roomOk)
 				{
 					long refund = Cancel(p);
@@ -1302,11 +1376,12 @@ internal static class GameUpdates
 		selling = (HolyCompat.SalesBonusShared ? 1f : OurSalesFactor(__instance));
 	}
 
-	// All of the addon's sales effects on one game: update bonuses and launch boosts, MMO players, the store.
-	// With Holy installed they go into Holy's sales bonus total instead (and its cap), see HolyCompat.
+	// All of the addon's sales effects on one game: update bonuses and launch boosts, MMO players, the store, and
+	// the sales events (added, as Holy adds its own seasonal sale). With Holy installed they go into Holy's sales
+	// bonus total instead (and its cap), see HolyCompat.
 	public static float OurSalesFactor(gameScript g)
 	{
-		return SalesFactor(g) * Mmo.MmoOps.NewPlayerFactor(g) * Store.StoreOps.SalesFactor(g);
+		return SalesFactor(g) * Mmo.MmoOps.NewPlayerFactor(g) * Store.StoreOps.SalesFactor(g) + Store.SalesEvents.Bonus(g) + Events.StudioCon.Bonus(g) + Industry.IndustryCore.Bonus(g);
 	}
 
 	[HarmonyFinalizer]

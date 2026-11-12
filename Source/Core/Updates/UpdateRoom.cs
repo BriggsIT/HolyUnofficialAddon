@@ -293,7 +293,7 @@ internal static class UpdateRoom
 					{
 						G.MS.PauseGame(p: false);
 					}
-					EditorWindow window = ((now == null) ? EditorWindow.Updates : (GameUpdates.IsMmo(now.Kind) ? EditorWindow.Mmo : (GameUpdates.IsStore(now.Kind) ? EditorWindow.Store : EditorWindow.Updates)));
+					EditorWindow window = ((now == null) ? EditorWindow.Updates : ((GameUpdates.IsMmo(now.Kind) || GameUpdates.IsAntiBot(now.Kind)) ? EditorWindow.Mmo : (GameUpdates.IsStore(now.Kind) ? EditorWindow.Store : EditorWindow.Updates)));
 					window.Open();
 					if (now != null)
 					{
@@ -341,8 +341,17 @@ internal static class UpdateRoom
 			UpdateKind.MmoPort => "New Platforms",
 			UpdateKind.MmoFeatures => "New Game Systems",
 			UpdateKind.MmoRating => "Age Rating Change",
+			UpdateKind.MmoBotBust => "Bot Ban Wave",
+			UpdateKind.MmoWelcomeBack => "Welcome-Back Campaign",
+			UpdateKind.MmoClassic => "Classic Servers",
+			UpdateKind.MmoFreeTrial => "Free Trial",
+			UpdateKind.MmoStability => "Stability Patch",
+			UpdateKind.MmoClassicPhase => "Classic Phase",
 			UpdateKind.StoreBuild => "Store Client",
 			UpdateKind.StoreFeature => "Store Feature",
+			UpdateKind.StoreConsole => "Console Storefront",
+			UpdateKind.AntiBotBuild => "Anti-Bot System",
+			UpdateKind.AntiBotUpdate => "Anti-Bot Update",
 			_ => "Update",
 		};
 	}

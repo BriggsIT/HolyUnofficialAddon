@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using HolyAddon.Core;
 using HolyAddon.Core.Contracts;
+using HolyAddon.Core.Updates;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -72,14 +73,17 @@ internal class ContractsPage : Page
 
 	public override float Width => 1000f;
 
-	public override float Height => 760f;
+	public override float Height => 956f;
 
 	private static float BodyHeight(EditorWindow w)
 	{
 		return w.Height - 75f;
 	}
 
-	private float ListTop => 128f;
+	// Everything under the banner, cards and tabs starts this much lower than it used to.
+	private const float O = 196f;
+
+	private float ListTop => 128f + O;
 
 	private float ListHeight(EditorWindow w)
 	{
@@ -88,10 +92,11 @@ internal class ContractsPage : Page
 
 	public override void Build(EditorWindow w)
 	{
-		TabButton(w, TabResearch, "Research", 14f);
-		TabButton(w, TabGames, "Game work", 184f);
-		TabButton(w, TabActive, "Active contracts (" + ContractBook.Active.Count() + ")", 354f);
-		w.Label(G.Money(((bool)G.MS) ? G.MS.money : 0), w.Width - 274f, 10f, 260f, 28f, TextAnchor.MiddleRight, bold: true);
+		Top(w);
+		float tw = (w.Width - 28f - 20f) / 3f;
+		TabButton(w, TabResearch, "Research", UpdateIcons.Game("iconForschung", UpdateIcons.Game("iconForschungSonstiges")), 14f, tw);
+		TabButton(w, TabGames, "Game Work", UpdateIcons.Game("iconDevelopment", UpdateIcons.Game("iconGames")), 14f + tw + 10f, tw);
+		TabButton(w, TabActive, "Active Contracts (" + ContractBook.Active.Count() + ")", UpdateIcons.Game("iconPublishingOfferVertrag", UpdateIcons.Game("iconDeveloper")), 14f + 2f * (tw + 10f), tw);
 		switch (tab)
 		{
 		case TabResearch:
@@ -108,29 +113,47 @@ internal class ContractsPage : Page
 		line.color = UIKit.Green;
 	}
 
-	private void TabButton(EditorWindow w, int index, string text, float x)
+	// The banner and the cards: your contracts at a glance.
+	private static void Top(EditorWindow w)
 	{
-		Button button = w.SmallButton(text, x, 10f, 160f, () =>
+		w.Banner(UpdateIcons.Banner("contracts"), 14f, 14f, w.Width - 28f, 96f, full: true);
+		w.BannerText("<b>Contracts</b>", 30f, 22f, 520f, 32f, 22, Color.white);
+		w.BannerText("Hire independent studios for research or to help with your games in development.", 30f, 56f, 620f, 24f, 14, new Color(0.84f, 0.88f, 0.94f));
+		w.BannerText(G.Money(((bool)G.MS) ? G.MS.money : 0), w.Width - 334f, 22f, 300f, 26f, 15, Color.white, bold: true, TextAnchor.MiddleRight);
+		List<Contract> running = ContractBook.Active.ToList();
+		List<Contract> done = ContractBook.History.ToList();
+		int firms = Firms.All().Count();
+		int free = Firms.All().Count((publisherScript f) => !ContractBook.FirmBusy(f.myID));
+		float cw = (w.Width - 28f - 30f) / 4f;
+		w.StatCard(UpdateIcons.Game("iconPublishingOfferVertrag", UpdateIcons.Game("iconDeveloper")), "Active contracts", running.Count.ToString(), (running.Count > 0) ? ("worth " + G.Money(running.Sum((Contract c) => c.Price))) : "none running", 14f, 118f, cw, 66f);
+		w.StatCard(UpdateIcons.Game("iconDeveloper", UpdateIcons.Game("iconPublisher")), "Studios for hire", firms.ToString(), free + " free right now", 14f + (cw + 10f), 118f, cw, 66f);
+		w.StatCard(UpdateIcons.Game("iconForschung", UpdateIcons.Game("iconForschungSonstiges")), "Research jobs", running.Count((Contract c) => c.IsResearch).ToString(), "running now", 14f + 2f * (cw + 10f), 118f, cw, 66f);
+		w.StatCard(UpdateIcons.Game("iconBestGames", UpdateIcons.Game("iconStar")), "Finished recently", done.Count.ToString(), (done.Count > 0) ? ("last: " + done[0].FirmName) : "-", 14f + 3f * (cw + 10f), 118f, cw, 66f);
+	}
+
+	private void TabButton(EditorWindow w, int index, string text, Sprite icon, float x, float width)
+	{
+		w.IconButton(text, icon, x, 192f, width, 42f, () =>
 		{
 			tab = index;
 			status = "";
 			w.Rebuild();
-		}, enabled: true, null, null, 30f);
+		});
 		if (tab == index)
 		{
-			button.GetComponent<Image>().color = UIKit.SelectedRow;
+			MmoUi.Rect(w.Body, x + 6f, 236f, width - 12f, 4f, new Color(0.18f, 0.5f, 0.86f));
 		}
 	}
 
 	private void QuotesHeader(EditorWindow w)
 	{
-		w.Label("Studios that will take the job", 476f, 50f, 260f, 30f, TextAnchor.MiddleLeft, bold: true);
-		w.Dropdown(w.Width - 214f, 50f, 200f, new List<string> { "Best rated first", "Cheapest first", "Fastest first" }, sort, (int v) =>
+		w.Label("Studios that will take the job", 476f, 50f + O, 260f, 30f, TextAnchor.MiddleLeft, bold: true);
+		w.Dropdown(w.Width - 214f, 50f + O, 200f, new List<string> { "Best rated first", "Cheapest first", "Fastest first" }, sort, (int v) =>
 		{
 			sort = v;
 			FillFirms(w);
 		});
-		summary = w.Label("", 476f, 88f, w.Width - 490f, 34f, TextAnchor.MiddleLeft, bold: false, null, 13);
+		summary = w.Label("", 476f, 88f + O, w.Width - 490f, 34f, TextAnchor.MiddleLeft, bold: false, null, 13);
 	}
 
 	// ---- Research ----
@@ -138,13 +161,13 @@ internal class ContractsPage : Page
 	private void BuildResearch(EditorWindow w)
 	{
 		List<string> names = ResearchCatalog.Order.Select(ResearchCatalog.CategoryName).ToList();
-		w.Dropdown(14f, 50f, 220f, names, Array.IndexOf(ResearchCatalog.Order, category), (int v) =>
+		w.Dropdown(14f, 50f + O, 220f, names, Array.IndexOf(ResearchCatalog.Order, category), (int v) =>
 		{
 			category = ResearchCatalog.Order[v];
 			search = "";
 			w.Rebuild();
 		});
-		w.Input(search, "Search...", 244f, 48f, 216f, (string v) =>
+		w.Input(search, "Search...", 244f, 48f + O, 216f, (string v) =>
 		{
 			search = v;
 			refillAt = Time.unscaledTime + 0.25f;
@@ -155,7 +178,7 @@ internal class ContractsPage : Page
 			List<string> options = new List<string> { "Topics for any genre" };
 			options.AddRange(genres.Select(((int id, string name) g) => "Suits " + g.name));
 			int index = genres.FindIndex(((int id, string name) g) => g.id == genreFilter) + 1;
-			w.Dropdown(14f, 88f, 220f, options, index, (int v) =>
+			w.Dropdown(14f, 88f + O, 220f, options, index, (int v) =>
 			{
 				genreFilter = ((v == 0) ? (-1) : genres[v - 1].id);
 				FillResearch(w);
@@ -163,9 +186,9 @@ internal class ContractsPage : Page
 		}
 		else
 		{
-			w.Label("Click items to add them to one contract.", 18f, 88f, 216f, 30f, TextAnchor.MiddleLeft, bold: false, null, 13);
+			w.Label("Click items to add them to one contract.", 18f, 88f + O, 216f, 30f, TextAnchor.MiddleLeft, bold: false, null, 13);
 		}
-		w.SmallButton("Select all shown", 244f, 90f, 120f, () =>
+		w.SmallButton("Select All Shown", 244f, 90f + O, 120f, () =>
 		{
 			foreach (ResearchItem r in ResearchList())
 			{
@@ -174,7 +197,7 @@ internal class ContractsPage : Page
 			FillResearch(w, keepScroll: true);
 			FillFirms(w);
 		}, enabled: true, "Add every item in the list below to the contract.", null, 28f);
-		w.SmallButton("Clear", 370f, 90f, 90f, () =>
+		w.SmallButton("Clear", 370f, 90f + O, 90f, () =>
 		{
 			basket.Clear();
 			FillResearch(w, keepScroll: true);
@@ -250,11 +273,11 @@ internal class ContractsPage : Page
 		List<gameScript> games = GameServices.MyGamesInDevelopment();
 		if (games.Count == 0)
 		{
-			w.Label("You have no games in development right now. Start one, then come back to hire help with it.", 18f, 60f, w.Width - 36f, 60f);
+			w.Label("You have no games in development right now. Start one, then come back to hire help with it.", 18f, 60f + O, w.Width - 36f, 60f);
 			return;
 		}
 		gameIndex = Mathf.Clamp(gameIndex, 0, games.Count - 1);
-		w.Dropdown(14f, 50f, 446f, games.Select((gameScript g) => g.GetNameSimple() + "  (" + Mathf.RoundToInt(g.GetProzentGesamt()) + "% done)").ToList(), gameIndex, (int v) =>
+		w.Dropdown(14f, 50f + O, 446f, games.Select((gameScript g) => g.GetNameSimple() + "  (" + Mathf.RoundToInt(Mathf.Max(0f, CurrentChartsPage.DevProgress(g, out int _)) * 100f) + "% done)").ToList(), gameIndex, (int v) =>
 		{
 			gameIndex = v;
 			addonSlots.Clear();
@@ -265,7 +288,7 @@ internal class ContractsPage : Page
 			}
 			w.Rebuild();
 		});
-		w.Label("Pick a job, or click improvements to bundle several from one studio.", 18f, 88f, 446f, 34f, TextAnchor.MiddleLeft, bold: false, null, 13);
+		w.Label("Pick a job, or click improvements to bundle several from one studio.", 18f, 88f + O, 446f, 34f, TextAnchor.MiddleLeft, bold: false, null, 13);
 		QuotesHeader(w);
 		items = w.List(13f, ListTop, 450f, ListHeight(w));
 		firms = w.List(474f, ListTop, w.Width - 487f, ListHeight(w));
@@ -494,7 +517,7 @@ internal class ContractsPage : Page
 
 	private void BuildActive(EditorWindow w)
 	{
-		active = w.List(13f, 50f, w.Width - 26f, BodyHeight(w) - 50f - 46f);
+		active = w.List(13f, 50f + O, w.Width - 26f, BodyHeight(w) - 50f - O - 46f);
 		FillActive(w);
 	}
 

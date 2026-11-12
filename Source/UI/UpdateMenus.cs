@@ -100,10 +100,10 @@ internal static class UpdateMenus
 	{
 		return k switch
 		{
-			UpdateKind.Port => "Port to more platforms",
-			UpdateKind.Engine => "Update the engine",
-			UpdateKind.Features => "Add gameplay features",
-			UpdateKind.Rating => "Change the age rating",
+			UpdateKind.Port => "Port to More Platforms",
+			UpdateKind.Engine => "Update the Engine",
+			UpdateKind.Features => "Add Gameplay Features",
+			UpdateKind.Rating => "Change the Age Rating",
 			_ => "",
 		};
 	}

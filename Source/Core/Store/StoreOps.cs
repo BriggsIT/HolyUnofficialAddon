@@ -123,6 +123,148 @@ internal class StoreState
 	public List<string> Announced = new List<string>();
 
 	public long NextMilestone = 1000000L;
+
+	// ---- Phase 2 (Core/Store/StorePlus) ----
+
+	// Your store's sale events: how deep each one goes, by "<event>-<year>" (0 = skip it).
+	public Dictionary<string, int> SalePlans = new Dictionary<string, int>();
+
+	public List<StoreSaleRecord> SaleHistory = new List<StoreSaleRecord>();
+
+	public string SaleNow;
+
+	// The front page: a big featured spot and three smaller ones.
+	public List<FrontSlot> FrontPage = new List<FrontSlot>();
+
+	public bool SellSlots = true;
+
+	public long PlacementMonth;
+
+	public long PlacementLast;
+
+	public long PlacementTotal;
+
+	// Wishlists and early access, by game id.
+	public Dictionary<int, StoreGame> Games = new Dictionary<int, StoreGame>();
+
+	public long EarlyAccessTotal;
+
+	// Your MMOs in the launcher (by game id; missing = yes).
+	public Dictionary<int, bool> Launcher = new Dictionary<int, bool>();
+
+	public long LauncherAccounts;
+
+	// Storefronts on your own consoles.
+	public List<ConsoleStore> Consoles = new List<ConsoleStore>();
+
+	public long ConsoleMonth;
+
+	public long ConsoleLast;
+
+	public long ConsoleTotal;
+
+	// All your PC games sell only on your store (a store setting, on top of the games you pick one by one).
+	public bool AllExclusive;
+
+	// Studios sign with your store one by one (StorePlus): who has signed, who's asking, and your signing fee.
+	public bool Signing;
+
+	public long SigningFee = 100000L;
+
+	public Dictionary<int, SignedStudio> Signed = new Dictionary<int, SignedStudio>();
+
+	public List<StudioRequest> Requests = new List<StudioRequest>();
+
+	// Studios that won't ask again before this week, by studio id.
+	public Dictionary<int, int> AskAgain = new Dictionary<int, int>();
+
+	public long SigningTotal;
+}
+
+internal class SignedStudio
+{
+	public int Week;
+
+	public long Fee;
+}
+
+// A studio asking to sell its games on your store.
+internal class StudioRequest
+{
+	public int StudioId;
+
+	public int Week;
+
+	public long Fee;
+
+	// A big studio: its request opens a pop-up.
+	public bool Big;
+
+	// The pop-up has been shown (closing it leaves the request in the list).
+	public bool Seen;
+}
+
+// One of your store's sale events, after it ran.
+internal class StoreSaleRecord
+{
+	public string Id;
+
+	public string Name;
+
+	public int Year;
+
+	public int Depth;
+
+	public long Commission;
+
+	public long Accounts;
+
+	public int StartWeek = -1;
+}
+
+// A spot on your store's front page: empty, one of your games, or sold to a studio for one of theirs.
+internal class FrontSlot
+{
+	public int Mode;
+
+	public int GameId = -1;
+
+	public int StudioId = -1;
+
+	// The month (year * 12 + month) a sold spot runs until.
+	public int Until = -1;
+}
+
+// Wishlists and early access for one of your games.
+internal class StoreGame
+{
+	public long Wishlists;
+
+	public float LaunchBoost;
+
+	public int LaunchWeek = -1000;
+
+	public bool EarlyAccess;
+
+	public int EaWeek = -1;
+
+	public long EaUnits;
+
+	public long EaRevenue;
+
+	public bool Released;
+}
+
+// Your storefront on one of your consoles.
+internal class ConsoleStore
+{
+	public int PlatformId;
+
+	public int BuiltWeek;
+
+	public long CommissionTotal;
+
+	public long CommissionLast;
 }
 
 // Your own digital PC store, and the rival stores around it. From 2003 the market for digital PC buyers is split
@@ -274,7 +416,7 @@ internal static class StoreOps
 	{
 		if (!On)
 		{
-			return "Your digital store is switched off in the addon's settings.";
+			return "Your Digital Store is switched off in the addon's settings.";
 		}
 		if (!Open)
 		{
@@ -335,7 +477,8 @@ internal static class StoreOps
 		}
 		float age = Now - ((float)r.OpenYear + (float)(r.OpenMonth - 1) / 12f);
 		float ramp = Mathf.Clamp(age / Mathf.Max(0.1f, r.RampYears), 0.15f, 1f);
-		return r.Peak * ramp;
+		// The rival stores' own Summer and Winter sales draw buyers too.
+		return r.Peak * ramp * (StorePlus.RivalSaleNow() ? 1.12f : 1f);
 	}
 
 	public static bool HasFeature(int id)
@@ -353,12 +496,9 @@ internal static class StoreOps
 		appeal += 25f * S.Coverage;
 		appeal += (S.Reputation - 50f) * 0.4f;
 		appeal += 6f * Mathf.Log10(1f + (float)S.Accounts / 100000f);
-		appeal += 2f * (float)S.Exclusive.Count((int id) => (bool)GameUpdates.FindGame(id) && GameUpdates.FindGame(id).isOnMarket);
+		appeal += 2f * (float)Mathf.Min(20, ExclusiveCount());
 		appeal *= 1f - 0.6f * S.Outage;
-		if (SaleRunning())
-		{
-			appeal *= 1.15f;
-		}
+		appeal *= StorePlus.AppealFactor();
 		return Mathf.Max(1f, appeal);
 	}
 
@@ -471,11 +611,16 @@ internal static class StoreOps
 		return (float)pcCount / (float)count;
 	}
 
-	// ---- Sales events ----
+	// ---- Sales Events ----
 
 	// The store sales: Holy's seasonal sales when it runs them, otherwise June and December.
 	public static bool SaleRunning()
 	{
+		// Your store runs its own sale events (StorePlus).
+		if (S.Built)
+		{
+			return StorePlus.DepthNow() > 0;
+		}
 		if (!holyLooked)
 		{
 			holyLooked = true;
@@ -516,9 +661,32 @@ internal static class StoreOps
 	{
 		if ((bool)g && S.Built)
 		{
-			return S.Exclusive.Contains(g.myID);
+			if (!S.Exclusive.Contains(g.myID))
+			{
+				if (S.AllExclusive)
+				{
+					return CanBeExclusive(g);
+				}
+				return false;
+			}
+			return true;
 		}
 		return false;
+	}
+
+	// Your games on the market sold only on your store.
+	public static int ExclusiveCount()
+	{
+		if (!S.Built)
+		{
+			return 0;
+		}
+		gameScript[] all = ((G.MS && (bool)G.MS.games_) ? G.MS.games_.arrayGamesScripts : null);
+		if (all == null)
+		{
+			return 0;
+		}
+		return all.Count((gameScript g) => (bool)g && g.isOnMarket && g.IsMyGame() && IsExclusive(g));
 	}
 
 	public static bool CanBeExclusive(gameScript g)
@@ -556,7 +724,16 @@ internal static class StoreOps
 	// Your PC games on the front page of your store sell more; exclusives lose the buyers who stay in rival stores.
 	public static float SalesFactor(gameScript g)
 	{
-		if (!On || !S.Built || !g || !g.IsMyGame() || g.gameTyp != 0 || g.arcade || g.handy)
+		if (!On || !S.Built || !g || !g.IsMyGame())
+		{
+			return 1f;
+		}
+		// Your MMOs in the launcher.
+		if (g.gameTyp == 1 && !g.typ_mmoaddon)
+		{
+			return StorePlus.MmoFactor(g);
+		}
+		if (g.gameTyp != 0 || g.arcade || g.handy)
 		{
 			return 1f;
 		}
@@ -570,7 +747,7 @@ internal static class StoreOps
 		{
 			factor *= 1f - 0.7f * OpenRivalShare() * DigitalShare() * pc;
 		}
-		return factor;
+		return factor * StorePlus.GameFactor(g, pc);
 	}
 
 	// The cut a rival store takes from one of your games (Diesel's tiers from 2018, like the real thing).
@@ -654,7 +831,7 @@ internal static class StoreOps
 			long fee = (long)((float)units * (float)Math.Max(0, g.verkaufspreis[3]) * pc * FeeRate(g));
 			if (fee > 0 && (bool)G.MS)
 			{
-				G.MS.Pay(fee, 13);
+				G.MS.Pay(fee, 7);
 				S.FeesMonth += fee;
 				S.FeesTotal += fee;
 			}
@@ -706,11 +883,9 @@ internal static class StoreOps
 		{
 			return 0L;
 		}
-		float units = (float)g.sellsPerWeek[0] * PcFraction(g) * DigitalShare() * S.Share * S.Coverage;
-		if (SaleRunning())
-		{
-			units *= 1.6f;
-		}
+		float units = (float)g.sellsPerWeek[0] * PcFraction(g) * DigitalShare() * S.Share * StorePlus.CoverageFor(g);
+		// A sale sells more for less; the front page sells more.
+		units *= StorePlus.CommissionFactor() * StorePlus.FrontCommission(g);
 		return (long)(units * (float)Price(g) * (float)S.Commission / 100f);
 	}
 
@@ -766,6 +941,7 @@ internal static class StoreOps
 			S.CommissionLast = S.CommissionMonth;
 			S.FeesLast = S.FeesMonth;
 			S.ServerLast = S.ServerMonth;
+			StorePlus.NewMonth();
 		}
 		S.CommissionMonth = 0L;
 		S.FeesMonth = 0L;
@@ -801,11 +977,12 @@ internal static class StoreOps
 
 	private static void WeekForStore()
 	{
+		StorePlus.Week();
 		float activeBonus = 1f + Features.Where((StoreFeature f) => HasFeature(f.Id)).Sum((StoreFeature f) => f.Active);
-		bool sale = SaleRunning();
-		long active = (long)((float)DigitalPcPlayers() * S.Share * activeBonus * (sale ? 1.3f : 1f));
+		long active = (long)((float)DigitalPcPlayers() * S.Share * activeBonus * StorePlus.ActiveFactor());
 		S.Active = active;
-		long target = (long)((float)active * 1.5f);
+		// MMO players who launch their game through your store have an account too.
+		long target = (long)((float)active * 1.5f) + S.LauncherAccounts;
 		if (target > S.Accounts)
 		{
 			S.Accounts += (long)((float)(target - S.Accounts) * 0.08f);
@@ -817,21 +994,31 @@ internal static class StoreOps
 		long serverCost = active / 200;
 		if (serverCost > 0)
 		{
-			G.MS.Pay(serverCost, 13);
+			G.MS.Pay(serverCost, 34);
 			S.ServerMonth += serverCost;
 		}
-		float rep = 55f + Features.Where((StoreFeature f) => HasFeature(f.Id)).Sum((StoreFeature f) => f.Reputation) + (sale ? 5f : 0f) - 30f * S.Outage - Mathf.Min(15f, 3f * (float)S.Exclusive.Count);
+		// Players like sales; a front page full of paid spots looks like an advert.
+		float rep = 55f + Features.Where((StoreFeature f) => HasFeature(f.Id)).Sum((StoreFeature f) => f.Reputation) + StorePlus.ReputationBonus() - 1.5f * (float)StorePlus.SoldSlots() - 30f * S.Outage - Mathf.Min(15f, 3f * (float)ExclusiveCount());
 		S.Reputation = Mathf.Clamp(Mathf.Lerp(S.Reputation, rep, 0.04f), 0f, 100f);
 		float trust = 35f + (float)(30 - S.Commission) * 1.5f + Mathf.Min(30f, S.Share * 100f);
 		S.Trust = Mathf.Clamp(Mathf.Lerp(S.Trust, trust, 0.03f), 0f, 100f);
-		float coverage = Mathf.Clamp(0.15f + S.Trust / 100f * 0.6f + S.Share, 0.1f, 1f);
-		S.Coverage = Mathf.Lerp(S.Coverage, coverage, 0.05f);
+		// How much of the other studios' catalogue you carry: the studios that have signed (StorePlus).
+		if (S.Signing)
+		{
+			S.Coverage = StorePlus.SignedWeight();
+		}
+		else
+		{
+			float coverage = Mathf.Clamp(0.15f + S.Trust / 100f * 0.6f + S.Share, 0.1f, 1f);
+			S.Coverage = Mathf.Lerp(S.Coverage, coverage, 0.05f);
+		}
 		long commission = OthersGames().Sum(CommissionOn);
 		if (commission > 0)
 		{
-			G.MS.Earn(commission, 8);
+			G.MS.Earn(commission, 2);
 			S.CommissionMonth += commission;
 			S.CommissionTotal += commission;
+			StorePlus.NoteCommission(commission);
 		}
 		while (S.Accounts >= S.NextMilestone)
 		{
@@ -975,6 +1162,10 @@ internal static class StoreOps
 			}
 			return null;
 		}
+		if (p.Kind == UpdateKind.StoreConsole)
+		{
+			return StorePlus.ConsoleProblem(GameUpdates.Platform(p.PlatformId));
+		}
 		StoreFeature f = Feature(p.Usk);
 		if (f == null)
 		{
@@ -1000,8 +1191,13 @@ internal static class StoreOps
 			S.Reputation = 60f;
 			S.Trust = 50f;
 			S.Coverage = 0.2f;
+			StorePlus.LaunchPartners();
 			GameUpdates.Touch();
 			return "<b>" + S.Name + "</b> is open!\n\nPC players can now buy games from your store. It starts small: features, a fair commission, a big catalogue and enough servers make it grow. Your own PC games get a spot on its front page.";
+		}
+		if (p.Kind == UpdateKind.StoreConsole)
+		{
+			return StorePlus.CompleteConsole(p);
 		}
 		StoreFeature f = Feature(p.Usk);
 		if (f == null || HasFeature(f.Id))
@@ -1053,6 +1249,15 @@ internal static class StoreOps
 			S.ShareHistory = S.ShareHistory ?? new List<float>();
 			S.AccountHistory = S.AccountHistory ?? new List<long>();
 			S.Announced = S.Announced ?? new List<string>();
+			S.SalePlans = S.SalePlans ?? new Dictionary<string, int>();
+			S.SaleHistory = S.SaleHistory ?? new List<StoreSaleRecord>();
+			S.FrontPage = S.FrontPage ?? new List<FrontSlot>();
+			S.Games = S.Games ?? new Dictionary<int, StoreGame>();
+			S.Launcher = S.Launcher ?? new Dictionary<int, bool>();
+			S.Consoles = S.Consoles ?? new List<ConsoleStore>();
+			S.Signed = S.Signed ?? new Dictionary<int, SignedStudio>();
+			S.Requests = S.Requests ?? new List<StudioRequest>();
+			S.AskAgain = S.AskAgain ?? new Dictionary<int, int>();
 			if (S.Built)
 			{
 				Plugin.Log.LogInfo("Store loaded: " + S.Name + ", " + S.Accounts + " accounts");

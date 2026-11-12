@@ -153,7 +153,7 @@ internal class MmoPlatformsPage : Page
 
 	private gameScript Game => GameUpdates.FindGame(gameId);
 
-	public override string Title => "New platforms";
+	public override string Title => "New Platforms";
 
 	public override Sprite IconSprite => UpdateIcons.For(UpdateKind.MmoPort);
 
@@ -262,7 +262,7 @@ internal class MmoPlatformsPage : Page
 		w.Label((chosen.Count > 0) ? (plan.Notes + " " + MmoOps.PortEffects(g, chosen)) : "Pick the platforms to launch on. Each one adds to the costs and the work.", 24f, y, w.Width - 48f, 40f, TextAnchor.UpperLeft, bold: false, null, 13);
 		y += 46f;
 		bool ok = plan.Problem == null && (bool)room;
-		w.BigButton("Start the launch", 14f, y, 260f, 44f, () =>
+		w.BigButton("Start the Launch", 14f, y, 260f, 44f, () =>
 		{
 			gameScript game = Game;
 			int[] after = MmoOps.SlotsAfter(game, chosen, out List<int> more);
@@ -394,7 +394,8 @@ internal class MmoChartPage : Page
 		row.Top((mine ? "<color=#1565c0>" : "") + g.GetNameWithTag() + (mine ? "</color>" : ""), 144f, row.W - 400f);
 		string developer = g.GetDeveloperName();
 		string state = ((sort == 1) ? (g.isOnMarket ? "on the market" : "closed") : MmoUi.Years(MmoOps.AgeYears(g)));
-		row.Bottom(((developer.Length > 0) ? (developer + "  ·  ") : "") + g.reviewTotal + "%  ·  " + state, 144f, row.W - 400f);
+		long bots = ((MmoBots.On && g.isOnMarket) ? (mine ? MmoBots.Total(MmoOps.Find(g.myID)) : MmoBots.RivalBots(g)) : 0);
+		row.Bottom(((developer.Length > 0) ? (developer + "  ·  ") : "") + g.reviewTotal + "%  ·  " + state + ((bots > 0) ? ("  ·  <color=#8e44ad>" + MmoUi.Short(bots) + " bots</color>") : ""), 144f, row.W - 400f);
 		long value = ((sort == 0) ? g.abonnements : g.bestAbonnements);
 		row.Text(MmoUiText.Num(value), row.W - 250f, 240f, bold: true, TextAnchor.MiddleRight, 4f, 24f);
 		row.Text((sort == 0) ? (MmoUi.Change(g.abonnementsWoche) + " this week") : (g.isOnMarket ? (MmoUiText.Num(g.abonnements) + " now") : ""), row.W - 250f, 240f, bold: false, TextAnchor.MiddleRight, 26f, 22f);
@@ -421,7 +422,7 @@ internal class MmoAddonsPage : Page
 		this.gameId = gameId;
 	}
 
-	public override string Title => "Expansion packs";
+	public override string Title => "Expansion Packs";
 
 	public override Sprite IconSprite => UpdateIcons.ExpansionPack();
 
@@ -447,7 +448,8 @@ internal class MmoAddonsPage : Page
 			RowView row = list.Row(58f, null, a.GetTooltip());
 			MmoUi.Shot(w, a, 8f, 5f, 86f, 48f, row.T);
 			row.Top(a.GetNameWithTag() + "  <color=#666666>" + a.reviewTotal + "%</color>", 104f, row.W - 470f);
-			row.Bottom((a.isOnMarket ? "On sale" : "Off the market") + "  ·  released " + a.GetReleaseDateString(), 104f, row.W - 470f);
+			int platforms = a.gamePlatform.Count((int id) => id != -1) + MmoOps.AddonExtras(a).Count;
+			row.Bottom((a.isOnMarket ? "On sale" : "Off the market") + "  ·  released " + a.GetReleaseDateString() + "  ·  " + platforms + ((platforms == 1) ? " platform" : " platforms"), 104f, row.W - 470f);
 			long week = ((a.isOnMarket && a.sellsPerWeek != null && a.sellsPerWeek.Length != 0) ? a.sellsPerWeek[0] : 0);
 			row.Text(MmoUiText.Num(a.sellsTotal) + " sold", row.W - 360f, 170f, bold: true, TextAnchor.MiddleRight, 6f, 22f);
 			row.Text(a.isOnMarket ? (MmoUiText.Num(week) + " this week") : "", row.W - 360f, 170f, bold: false, TextAnchor.MiddleRight, 30f, 22f);
@@ -493,11 +495,12 @@ internal class MmoListPage : Page
 			w.Info("MMO Management is switched off. Turn it on under Game settings in the addon's window.", 14f, 50f, w.Width - 28f, 60f);
 			return;
 		}
-		w.Label("Keep your MMOs alive for decades: modernise them, grow them, release expansion packs and keep their players.", 116f, 4f, w.Width - 400f, 40f, TextAnchor.MiddleLeft, bold: false, null, 13);
+		w.AboutLine("Keep your MMOs alive for decades: modernise them, grow them, release expansion packs and keep their players.");
 		List<gameScript> mmos = MmoOps.MyMmos();
 		AwardWin last = MmoAward.LastWin();
-		w.Header("Your MMOs on the market (" + mmos.Count + ")" + ((last != null) ? ("  ·  Best Ongoing Game " + last.Year + ": " + last.Game) : ""), 14f, 50f, w.Width - 28f - 230f);
-		w.SmallButton("Subscription charts", w.Width - 234f, 48f, 220f, () => w.Push(new MmoChartPage()), enabled: true, "Every MMO ranked by subscribers, now or best ever (the game's MMO Subscription Charts).", null, 28f);
+		w.Header("Your MMOs on the market (" + mmos.Count + ")" + ((last != null) ? ("  ·  Best Ongoing Game " + last.Year + ": " + last.Game) : ""), 14f, 50f, w.Width - 28f - 420f);
+		w.SmallButton("Anti-Bot Systems", w.Width - 414f, 48f, 180f, () => w.Push(new AntiBotHomePage()), MmoBots.On, MmoBots.On ? "Your anti-bot systems, licences, and how well each MMO is protected." : "Bots are switched off in the addon's settings.", null, 28f);
+		w.SmallButton("Subscription Charts", w.Width - 224f, 48f, 210f, () => w.Push(new MmoChartPage()), enabled: true, "Every MMO ranked by subscribers, now or best ever (the game's MMO Subscription Charts).", null, 28f);
 		if (mmos.Count == 0)
 		{
 			w.Label("You have no MMO on the market. Develop one (Develop a Game, game type MMO) and come back once it's out.", 24f, 84f, w.Width - 48f, 44f);
@@ -519,7 +522,8 @@ internal class MmoListPage : Page
 		row.Top(g.GetNameWithTag() + "  <color=#666666>(" + MmoOps.SizeName(g.gameSize) + ")</color>", 120f, row.W - 400f);
 		UpdateProject running = GameUpdates.ProjectFor(id);
 		string state = ((running != null) ? ("<color=#1565c0>In development: " + GameUpdates.KindName(running.Kind) + " " + Mathf.FloorToInt(running.Fraction * 100f) + "%</color>") : (m.OldSchool ? "old-school" : ((MmoOps.Dated(g, m) > 0.001f) ? "<color=#c62828>looks dated</color>" : "holds up today")));
-		row.Bottom(MmoUi.Years(MmoOps.AgeYears(g)) + " on the market  ·  " + (m.Client64 ? "64-bit" : "32-bit") + "  ·  " + state, 120f, row.W - 400f);
+		string extra = (MmoBots.On ? ("  ·  <color=#8e44ad>" + MmoUi.Short(MmoBots.Total(m)) + " bots</color>") : "") + (MmoAutopilot.IsOn(m) ? "  ·  autopilot" : "");
+		row.Bottom(MmoUi.Years(MmoOps.AgeYears(g)) + " on the market  ·  " + (m.Client64 ? "64-bit" : "32-bit") + "  ·  " + state + extra, 120f, row.W - 400f);
 		row.Text(MmoUi.Short(g.abonnements) + " subscribers", row.W - 270f, 160f, bold: true, TextAnchor.MiddleRight, 10f, 24f);
 		row.Text(MmoUi.Change(g.abonnementsWoche) + " this week", row.W - 270f, 160f, bold: false, TextAnchor.MiddleRight, 36f, 24f);
 		row.Button("Manage", row.W - 98f, 90f, () => w.Push(new MmoDashboardPage(id)));
@@ -547,6 +551,9 @@ internal class MmoDashboardPage : Page
 
 	private bool statusGood;
 
+	// Showing the classic realms instead of the live game.
+	private bool classicView;
+
 	public MmoDashboardPage(int gameId)
 	{
 		this.gameId = gameId;
@@ -558,9 +565,9 @@ internal class MmoDashboardPage : Page
 
 	public override Sprite IconSprite => UpdateIcons.Mmo();
 
-	public override float Width => 1100f;
+	public override float Width => 1180f;
 
-	public override float Height => 720f;
+	public override float Height => 820f;
 
 	public override void Build(EditorWindow w)
 	{
@@ -574,27 +581,90 @@ internal class MmoDashboardPage : Page
 			return;
 		}
 		MmoGame m = MmoOps.Get(g);
+		if (!m.ClassicOn)
+		{
+			classicView = false;
+		}
 		HeaderBlock(w, g, m);
-		Text line = w.Label(status, 14f, 144f, w.Width - 28f, 22f, TextAnchor.MiddleLeft, bold: false, null, 13);
+		Text line = w.Label(status, 14f, 146f, w.Width - 28f, 22f, TextAnchor.MiddleLeft, bold: false, null, 13);
 		line.color = statusGood ? UIKit.Green : UIKit.Red;
+		CardsBlock(w, g, m, 170f);
 		float left = 14f;
-		float leftW = 520f;
-		float y = StatsBlock(w, g, m, left, 170f, leftW);
+		float leftW = 540f;
+		float top = 262f;
+		if (classicView)
+		{
+			float cy = ClassicStatsBlock(w, g, m, left, top, leftW);
+			ChartBlock(w, m.ClassicHistory, "Classic players, last two years", left, cy + 8f, leftW, w.Height - 75f - (cy + 8f) - 12f);
+			ClassicProjectsBlock(w, g, m, left + leftW + 14f, top, w.Width - (left + leftW + 14f) - 14f);
+			return;
+		}
+		float y = StatsBlock(w, g, m, left, top, leftW);
 		y = StandingBlock(w, g, m, left, y + 10f, leftW);
-		ChartBlock(w, m, left, y + 8f, leftW, w.Height - 75f - (y + 8f) - 12f);
-		ProjectsBlock(w, g, m, left + leftW + 14f, 170f, w.Width - (left + leftW + 14f) - 14f);
+		ChartBlock(w, m.History, "Subscribers, last two years", left, y + 8f, leftW, w.Height - 75f - (y + 8f) - 12f);
+		ProjectsBlock(w, g, m, left + leftW + 14f, top, w.Width - (left + leftW + 14f) - 14f);
+	}
+
+	// Four cards under the banner: the numbers that matter most for an MMO.
+	private void CardsBlock(EditorWindow w, gameScript g, MmoGame m, float y)
+	{
+		float cw = (w.Width - 28f - 30f) / 4f;
+		float h = 82f;
+		if (classicView)
+		{
+			long share = ((g.abonnements > 0) ? (m.ClassicSubs * 100 / g.abonnements) : 0);
+			w.StatCard(UpdateIcons.Game("iconAbos", UpdateIcons.Mmo()), "Classic players", MmoUi.Short(m.ClassicSubs), share + "% of all subscribers", 14f, y, cw, h);
+			w.StatCard(UpdateIcons.Game("iconDollar", UpdateIcons.Mmo()), "Income a month", G.Money(m.ClassicSubs * g.aboPreis), "$" + g.aboPreis + " each", 14f + (cw + 10f), y, cw, h);
+			w.StatCard(UpdateIcons.For(UpdateKind.MmoClassicPhase), "Phase", m.ClassicPhase + " of " + MmoLive.Phases, (MmoOps.WeeksLeft(m.ClassicPhaseReady) > 0) ? ("next in " + MmoUi.Years((float)MmoOps.WeeksLeft(m.ClassicPhaseReady) / 52f)) : "next can start now", 14f + 2f * (cw + 10f), y, cw, h);
+			w.StatCard(UpdateIcons.Game("iconPlayer", UpdateIcons.Mmo()), "Peak", MmoUi.Short(m.ClassicPeak), MmoUi.Short(MmoLive.Lapsed(g)) + " former players", 14f + 3f * (cw + 10f), y, cw, h);
+			return;
+		}
+		long week = g.abonnementsWoche;
+		w.StatCard(UpdateIcons.Game("iconAbos", UpdateIcons.Mmo()), G.Text(1236, "Subscriptions"), MmoUi.Short(g.abonnements), ((week >= 0) ? "+" : "") + MmoUi.Short(week) + " this week", 14f, y, cw, h, (week >= 0) ? UIKit.Green : UIKit.Red, "Peak: " + MmoUi.Short(g.bestAbonnements) + ".");
+		w.StatCard(UpdateIcons.Game("iconDollar", UpdateIcons.Mmo()), "Income a month", G.Money(g.abonnements * g.aboPreis), "$" + g.aboPreis + " per subscriber", 14f + (cw + 10f), y, cw, h);
+		int rank = MmoOps.ChartRank(g);
+		w.StatCard(UpdateIcons.Game("iconWochencharts", UpdateIcons.Game("iconCharts")), "Subscription charts", (rank > 0) ? ("#" + rank) : "-", "of " + MmoOps.ChartSize() + " MMOs  ·  peak " + MmoUi.Short(g.bestAbonnements), 14f + 2f * (cw + 10f), y, cw, h);
+		if (MmoBots.On)
+		{
+			w.StatCard(UpdateIcons.AntiBot(), "Bots", MmoUi.Short(MmoBots.Total(m)), Mathf.RoundToInt(MmoBots.Protection(g) * 100f) + "% kept out", 14f + 3f * (cw + 10f), y, cw, h, null, MmoBots.BotsText(g, m) + " of its accounts are bots. Protection: " + MmoBots.ProtectionText(g) + ".");
+		}
+		else
+		{
+			w.StatCard(UpdateIcons.Game("iconPlayer", UpdateIcons.Mmo()), "Interest", Mathf.RoundToInt(g.mmoInteresse).ToString(), "max " + Mathf.RoundToInt(100f - g.GetMMOAbnutzung()), 14f + 3f * (cw + 10f), y, cw, h);
+		}
 	}
 
 	private void HeaderBlock(EditorWindow w, gameScript g, MmoGame m)
 	{
-		MmoUi.Shot(w, g, 14f, 48f, 160f, 90f);
-		w.Label("<b>" + g.GetNameWithTag() + "</b>", 188f, 46f, w.Width - 440f, 30f, TextAnchor.MiddleLeft, bold: false, null, 18);
-		w.Label(MmoUi.Genre(g) + "  ·  released " + ((g.date_year > 0) ? g.date_year.ToString() : "?") + "  ·  " + MmoUi.Years(MmoOps.AgeYears(g)) + " on the market  ·  " + G.Text(277, "Review") + " " + g.reviewTotal + "%", 188f, 78f, w.Width - 440f, 24f, TextAnchor.MiddleLeft, bold: false, null, 13);
+		// A launcher's banner: the game's picture across the top, its name over it.
+		float textX = 30f;
+		w.Banner(g.GetScreenshot(), 14f, 42f, w.Width - 28f, 100f);
+		float textW = w.Width - textX - 494f;
+		string title = (classicView ? ("<b>" + m.ClassicName + "</b>  <color=#ffd27a>classic realms of " + g.GetNameSimple() + "</color>") : ("<b>" + g.GetNameWithTag() + "</b>" + ((m.ClassicOf >= 0) ? "  <color=#ffd27a>classic</color>" : "")));
+		w.BannerText(title, textX, 46f, textW, 30f, 22, Color.white);
+		Color sub = new Color(0.84f, 0.88f, 0.94f);
+		w.BannerText(MmoUi.Genre(g) + "  ·  released " + ((g.date_year > 0) ? g.date_year.ToString() : "?") + "  ·  " + MmoUi.Years(MmoOps.AgeYears(g)) + " on the market  ·  " + G.Text(277, "Review") + " " + g.reviewTotal + "%", textX, 78f, textW, 24f, 13, sub);
 		engineScript e = GameUpdates.CurrentEngine(g);
-		w.Label("Size " + MmoOps.SizeName(g.gameSize) + "  ·  " + (m.Client64 ? "64-bit client" : "32-bit client") + "  ·  " + (m.OldSchool ? "old-school design" : "modern design") + "  ·  " + (e ? (e.GetName() + " (tech " + e.GetTechLevel() + ")") : "no engine"), 188f, 102f, w.Width - 440f, 24f, TextAnchor.MiddleLeft, bold: false, null, 13);
+		w.BannerText("Size " + MmoOps.SizeName(g.gameSize) + "  ·  " + (m.Client64 ? "64-bit client" : "32-bit client") + "  ·  " + (m.OldSchool ? "old-school design" : "modern design") + "  ·  " + (e ? (e.GetName() + " (tech " + e.GetTechLevel() + ")") : "no engine"), textX, 102f, textW, 24f, 13, sub);
+		int id = g.myID;
+		bool auto = MmoAutopilot.IsOn(m);
+		w.SmallButton(auto ? "Autopilot: on" : "Autopilot: off", w.Width - 476f, 58f, 220f, () => w.Push(new MmoAutopilotPage(id)), enabled: true, "Let the autopilot start routine projects for this MMO: ban waves, stability and content patches, classic phases, welcome-back campaigns.", null, 30f);
+		if (m.ClassicOn)
+		{
+			w.SmallButton(classicView ? "Show the Live Game" : "Show Classic Realms", w.Width - 476f, 96f, 220f, () =>
+			{
+				classicView = !classicView;
+				status = "";
+				w.Rebuild();
+			}, enabled: true, classicView ? "Back to the live game." : ("Switch to " + m.ClassicName + ": its players, phases and projects."), null, 30f);
+		}
+		else
+		{
+			w.SmallButton("Anti-Bot Systems", w.Width - 476f, 96f, 220f, () => w.Push(new AntiBotHomePage()), MmoBots.On, MmoBots.On ? "Your anti-bot systems, licences, and how well each MMO is protected." : "Bots are switched off in the addon's settings.", null, 30f);
+		}
 		int wait = MmoOps.StanceWait(m);
 		string tip = (m.OldSchool ? "Make it a modern MMO: more new players again, but dated graphics and tech cost it players." : "Make it an old-school theme-park MMO: dated looks no longer cost it players, and its smaller audience is more loyal (" + Mathf.RoundToInt(MmoOps.OldSchoolJoin * 100f) + "% fewer new players, " + Mathf.RoundToInt(MmoOps.OldSchoolChurn * 100f) + "% fewer leave).") + " You can change this once every two years." + ((wait > 0) ? (" Next change possible in " + wait + " weeks.") : "");
-		w.SmallButton((wait > 0) ? ("Style locked for " + wait + " weeks") : (m.OldSchool ? "Make it modern" : "Make it old-school"), w.Width - 234f, 52f, 220f, () =>
+		w.SmallButton((wait > 0) ? ("Style locked for " + wait + " weeks") : (m.OldSchool ? "Make it modern" : "Make it old-school"), w.Width - 248f, 58f, 220f, () =>
 		{
 			gameScript game = Game;
 			if (!game)
@@ -607,7 +677,7 @@ internal class MmoDashboardPage : Page
 			statusGood = error == null;
 			w.Rebuild();
 		}, wait <= 0, tip, null, 30f);
-		w.SmallButton("Subscription charts", w.Width - 234f, 90f, 220f, () => w.Push(new MmoChartPage()), enabled: true, "Every MMO ranked by subscribers, now or best ever (the game's MMO Subscription Charts).", null, 30f);
+		w.SmallButton("Subscription Charts", w.Width - 248f, 96f, 220f, () => w.Push(new MmoChartPage()), enabled: true, "Every MMO ranked by subscribers, now or best ever (the game's MMO Subscription Charts).", null, 30f);
 	}
 
 	private float StatsBlock(EditorWindow w, gameScript g, MmoGame m, float x, float y, float width)
@@ -616,10 +686,7 @@ internal class MmoDashboardPage : Page
 		float interestCap = 100f - g.GetMMOAbnutzung();
 		List<KeyValuePair<string, string>> facts = new List<KeyValuePair<string, string>>
 		{
-			EditorWindow.KV(G.Text(1236, "Subscriptions"), MmoUi.Short(g.abonnements)),
 			EditorWindow.KV(G.Text(1905, "Peak"), MmoUi.Short(g.bestAbonnements)),
-			EditorWindow.KV("This week", MmoUi.Change(g.abonnementsWoche)),
-			EditorWindow.KV("Income a month", G.Money(g.abonnements * g.aboPreis) + " ($" + g.aboPreis + " each)"),
 			EditorWindow.KV("Interest", Mathf.RoundToInt(g.mmoInteresse) + " (max " + Mathf.RoundToInt(interestCap) + ")"),
 			EditorWindow.KV("Age for wear", MmoUi.Years(MmoOps.WearAgeYears(g, m)) + ((m.Renewal > 0) ? " (renewed)" : "")),
 			EditorWindow.KV("Servers", (capacity > 0) ? (Mathf.RoundToInt(100f * (float)used / (float)capacity) + "% of " + MmoUi.Short(capacity)) : "<color=#c62828>none</color>"),
@@ -628,7 +695,55 @@ internal class MmoDashboardPage : Page
 			EditorWindow.KV("IP points", MmoOps.IpStatus(g)),
 			EditorWindow.KV("Best ongoing", MmoAward.WinsText(g.myID))
 		};
+		if (MmoBots.On)
+		{
+			facts.Add(EditorWindow.KV("Bots", "<color=#8e44ad>" + MmoBots.BotsText(g, m) + "</color>"));
+		}
+		if (m.TrialBuilt)
+		{
+			facts.Add(EditorWindow.KV("Free trial", m.TrialOn ? "on" : "off"));
+		}
 		return y + w.Facts(x, y, width, facts, 2);
+	}
+
+	// The classic realms: their players, phase and how they came about.
+	private float ClassicStatsBlock(EditorWindow w, gameScript g, MmoGame m, float x, float y, float width)
+	{
+		long share = ((g.abonnements > 0) ? (m.ClassicSubs * 100 / g.abonnements) : 0);
+		int phaseWait = MmoOps.WeeksLeft(m.ClassicPhaseReady);
+		List<KeyValuePair<string, string>> facts = new List<KeyValuePair<string, string>>
+		{
+			EditorWindow.KV("Classic players", MmoUi.Short(m.ClassicSubs)),
+			EditorWindow.KV(G.Text(1905, "Peak"), MmoUi.Short(m.ClassicPeak)),
+			EditorWindow.KV("Share of subscribers", share + "%"),
+			EditorWindow.KV("Income a month", G.Money(m.ClassicSubs * g.aboPreis)),
+			EditorWindow.KV("Phase", m.ClassicPhase + " of " + MmoLive.Phases),
+			EditorWindow.KV("Next phase", (phaseWait > 0) ? ("in " + MmoUi.Years((float)phaseWait / 52f)) : "can start now"),
+			EditorWindow.KV("Open since", (m.ClassicWeek >= 0) ? (MmoUi.Years((float)(MmoOps.Now - m.ClassicWeek) / 52f) + " ago") : "-"),
+			EditorWindow.KV("Former players", MmoUi.Short(MmoLive.Lapsed(g)))
+		};
+		y += w.Facts(x, y, width, facts, 2) + 8f;
+		w.Label("Classic players are part of " + g.GetNameSimple() + "'s subscribers and pay the same subscription. They don't mind its old looks, but nostalgia fades the longer a phase lasts: release the next phase every few months.", x + 10f, y, width - 20f, 60f, TextAnchor.UpperLeft, bold: false, null, 13);
+		return y + 64f;
+	}
+
+	private void ClassicProjectsBlock(EditorWindow w, gameScript g, MmoGame m, float x, float y, float width)
+	{
+		w.Header("Classic projects", x, y, width);
+		y += 32f;
+		ListView list = w.List(x - 1f, y, width + 2f, w.Height - 75f - y - 12f);
+		RunningRow(w, list, g);
+		ProjectRow(w, list, g, m, UpdateKind.MmoClassicPhase);
+		int id = g.myID;
+		string problem = GameUpdates.Problem(UpdateKind.MmoClassic, g);
+		RowView row = list.Row(64f, () => w.Push(new MmoClassicPage(id)), problem ?? "Relaunch the classic realms as their own MMO, with its own subscription.");
+		Image icon = row.Picture(UpdateIcons.For(UpdateKind.MmoClassic), 10f, 44f);
+		Text top = row.Top("Relaunch as its own game", 64f, row.W - 74f);
+		Text bottom = row.Bottom(problem ?? ("Its own subscription, card and chart place  ·  " + G.Money(MmoLive.PlanClassic(g, 1).Cost)), 64f, row.W - 74f);
+		if (problem != null)
+		{
+			BotUi.Grey(icon, top, bottom);
+		}
 	}
 
 	private static string PlatformsText(gameScript g)
@@ -636,7 +751,7 @@ internal class MmoDashboardPage : Page
 		List<int> all = MmoOps.AllPlatforms(g);
 		int retired = all.Count(MmoOps.Retired);
 		int extra = all.Count((int id) => !g.gamePlatform.Contains(id));
-		return (all.Count - retired) + " active" + ((extra > 0) ? (", " + extra + " extra") : "") + ((retired > 0) ? (", " + retired + " retired") : "");
+		return (all.Count - retired) + " active" + ((extra > 0) ? (" (" + extra + " extra)") : "");
 	}
 
 	private float StandingBlock(EditorWindow w, gameScript g, MmoGame m, float x, float y, float width)
@@ -659,13 +774,13 @@ internal class MmoDashboardPage : Page
 		return y + 30f;
 	}
 
-	private static void ChartBlock(EditorWindow w, MmoGame m, float x, float y, float width, float height)
+	private static void ChartBlock(EditorWindow w, List<long> history, string title, float x, float y, float width, float height)
 	{
-		w.Header("Subscribers, last two years", x, y, width);
+		w.Header(title, x, y, width);
 		y += 30f;
 		height = Mathf.Max(60f, height - 30f);
 		RectTransform panel = w.Panel(x, y, width, height);
-		List<long> history = m.History ?? new List<long>();
+		history = history ?? new List<long>();
 		int count = Mathf.Min(104, history.Count);
 		if (count < 2)
 		{
@@ -688,34 +803,98 @@ internal class MmoDashboardPage : Page
 		w.Label("now " + MmoUi.Short(shown[count - 1]), width - 210f, 2f, 200f, 20f, TextAnchor.MiddleRight, bold: false, panel, 12);
 	}
 
+	private void RunningRow(EditorWindow w, ListView list, gameScript g)
+	{
+		UpdateProject running = GameUpdates.ProjectFor(g.myID);
+		if (running == null)
+		{
+			return;
+		}
+		int task = running.TaskId;
+		RowView row = list.Row(64f, () => w.Push(new UpdateProjectPage(task)), "Open the project: progress, room, stop it.");
+		row.Highlight();
+		row.Picture(UpdateIcons.For(running.Kind), 10f, 44f);
+		row.Top("In development: " + GameUpdates.KindName(running.Kind), 64f, row.W - 250f);
+		roomScript room = CopyProtectDev.Rooms().FirstOrDefault((roomScript r) => r.taskID == running.TaskId);
+		row.Bottom(room ? (CopyProtectDev.RoomName(room) + "  ·  " + GameUpdates.Duration(running.Needed - running.Progress, room, running.Kind) + " left") : "no room", 64f, row.W - 250f);
+		row.Bar(row.W - 176f, 166f, 22f, running.Fraction, UIKit.Green, Mathf.FloorToInt(running.Fraction * 100f) + "%");
+	}
+
+	// Most frequent first: running the game week to week, then content, then the big jobs.
 	private void ProjectsBlock(EditorWindow w, gameScript g, MmoGame m, float x, float y, float width)
 	{
 		w.Header("Projects", x, y, width);
 		y += 32f;
 		ListView list = w.List(x - 1f, y, width + 2f, w.Height - 75f - y - 12f);
-		UpdateProject running = GameUpdates.ProjectFor(g.myID);
-		if (running != null)
+		RunningRow(w, list, g);
+		if (MmoBots.On)
 		{
-			int task = running.TaskId;
-			RowView row = list.Row(64f, () => w.Push(new UpdateProjectPage(task)), "Open the project: progress, room, stop it.");
-			row.Highlight();
-			row.Picture(UpdateIcons.For(running.Kind), 10f, 44f);
-			row.Top("In development: " + GameUpdates.KindName(running.Kind), 64f, row.W - 250f);
-			roomScript room = CopyProtectDev.Rooms().FirstOrDefault((roomScript r) => r.taskID == running.TaskId);
-			row.Bottom(room ? (CopyProtectDev.RoomName(room) + "  ·  " + GameUpdates.Duration(running.Needed - running.Progress, room, running.Kind) + " left") : "no room", 64f, row.W - 250f);
-			row.Bar(row.W - 176f, 166f, 22f, running.Fraction, UIKit.Green, Mathf.FloorToInt(running.Fraction * 100f) + "%");
+			ProjectRow(w, list, g, m, UpdateKind.MmoBotBust);
 		}
+		ProjectRow(w, list, g, m, UpdateKind.MmoPatch);
+		ProjectRow(w, list, g, m, UpdateKind.MmoStability);
+		FreeUpdateRow(w, list, g);
+		ProjectRow(w, list, g, m, UpdateKind.MmoWelcomeBack);
+		ExpansionPackRow(w, list, g);
+		AddonsRow(w, list, g);
+		ProjectRow(w, list, g, m, UpdateKind.MmoExpansion);
 		ProjectRow(w, list, g, m, UpdateKind.MmoGraphics);
 		ProjectRow(w, list, g, m, UpdateKind.MmoClient64);
 		ProjectRow(w, list, g, m, UpdateKind.MmoMigration);
-		ProjectRow(w, list, g, m, UpdateKind.MmoExpansion);
 		ProjectRow(w, list, g, m, UpdateKind.MmoFeatures);
 		ProjectRow(w, list, g, m, UpdateKind.MmoPort);
-		ExpansionPackRow(w, list, g);
-		AddonsRow(w, list, g);
-		ProjectRow(w, list, g, m, UpdateKind.MmoPatch);
-		FreeUpdateRow(w, list, g);
+		TrialRow(w, list, g, m);
+		ClassicRow(w, list, g, m);
 		ProjectRow(w, list, g, m, UpdateKind.MmoRating);
+	}
+
+	// Before it has one: the project that sets up a free trial. After: switches it on and off.
+	private void TrialRow(EditorWindow w, ListView list, gameScript g, MmoGame m)
+	{
+		if (!m.TrialBuilt)
+		{
+			ProjectRow(w, list, g, m, UpdateKind.MmoFreeTrial);
+			return;
+		}
+		int id = g.myID;
+		RowView row = list.Row(64f, () =>
+		{
+			gameScript game = Game;
+			if ((bool)game)
+			{
+				MmoGame now = MmoOps.Get(game);
+				MmoLive.SetTrial(game, !now.TrialOn);
+				status = game.GetNameSimple() + "'s free trial is " + (now.TrialOn ? "on." : "off.");
+				statusGood = true;
+				w.Rebuild();
+			}
+		}, m.TrialOn ? "Switch the free trial off: fewer new players, but the free-account bots go." : ("Switch the free trial on: " + Mathf.RoundToInt(MmoLive.TrialJoinBonus * 100f) + "% more new players, but bots use free accounts too."));
+		if (m.TrialOn)
+		{
+			row.Highlight();
+		}
+		row.Picture(UpdateIcons.For(UpdateKind.MmoFreeTrial), 10f, 44f);
+		row.Top("Free trial: " + (m.TrialOn ? "on" : "off") + "  (click to switch " + (m.TrialOn ? "off)" : "on)"), 64f, row.W - 74f);
+		row.Bottom(m.TrialOn ? ("+" + Mathf.RoundToInt(MmoLive.TrialJoinBonus * 100f) + "% new players  ·  " + MmoUi.Short(m.TrialBots) + " bots on free accounts") : "Anyone could play the first levels for free", 64f, row.W - 74f);
+	}
+
+	// Classic servers: the project, or the switch to the classic realms' view once they're open.
+	private void ClassicRow(EditorWindow w, ListView list, gameScript g, MmoGame m)
+	{
+		if (!m.ClassicOn)
+		{
+			ProjectRow(w, list, g, m, UpdateKind.MmoClassic);
+			return;
+		}
+		RowView row = list.Row(64f, () =>
+		{
+			classicView = true;
+			status = "";
+			w.Rebuild();
+		}, "Switch to the classic realms: their players, phases and projects.");
+		row.Picture(UpdateIcons.For(UpdateKind.MmoClassic), 10f, 44f);
+		row.Top(m.ClassicName + "  (classic realms)", 64f, row.W - 74f);
+		row.Bottom(MmoUi.Short(m.ClassicSubs) + " players  ·  phase " + m.ClassicPhase + " of " + MmoLive.Phases + "  ·  click to switch view", 64f, row.W - 74f);
 	}
 
 	// The expansion packs already made for it (their game cards are kept off the list on the right).
@@ -769,7 +948,7 @@ internal class MmoDashboardPage : Page
 		}, problem ?? "The game's own free update for this MMO: bug fixes, more points and languages, and a lasting boost to sales. Closing its screen brings you back here.");
 		Image icon = row.Picture(UIKit.Sprite("iconUpdate") ?? UpdateIcons.For(UpdateKind.MmoPatch), 10f, 44f);
 		Text top = row.Top("Free update (patch)", 64f, row.W - 74f);
-		Text bottom = row.Bottom(problem ?? ("Bug fixes, points and languages  ·  " + g.amountUpdates + " so far  ·  " + Mathf.RoundToInt(g.points_bugs) + " bugs now"), 64f, row.W - 74f);
+		Text bottom = row.Bottom(problem ?? ("Bug fixes, points and languages  ·  " + g.amountUpdates + " so far  ·  " + LeftoverBugs.Text(g) + " now"), 64f, row.W - 74f);
 		if (problem != null)
 		{
 			icon.color = new Color(1f, 1f, 1f, 0.45f);
@@ -812,6 +991,9 @@ internal class MmoDashboardPage : Page
 			break;
 		case UpdateKind.MmoPort:
 			w.Push(new MmoPlatformsPage(id, room));
+			break;
+		case UpdateKind.MmoClassic:
+			w.Push(new MmoClassicPage(id));
 			break;
 		default:
 			w.Push(new MmoProjectPage(kind, id));
@@ -883,6 +1065,21 @@ internal class MmoDashboardPage : Page
 		}
 		case UpdateKind.MmoPatch:
 			return "Interest +" + MmoOps.PatchInterest(g) + ", " + Mathf.RoundToInt(MmoOps.PatchChurn * 100f) + "% fewer leave for " + MmoOps.PatchWeeks + " weeks  ·  " + G.Money(MmoOps.PlanPatch(g).Cost);
+		case UpdateKind.MmoBotBust:
+			return MmoBots.BotsText(g, m) + " bots now  ·  closes most of them  ·  " + G.Money(MmoLive.PlanBust(g).Cost);
+		case UpdateKind.MmoStability:
+			return Capital(LeftoverBugs.Text(g)) + " now  ·  fixes " + ((MmoLive.BugsAfterStability(g) <= 0f) ? "all of them" : "70%") + ", fewer players leave for " + MmoLive.StableWeeks + " weeks  ·  " + G.Money(MmoLive.PlanStability(g).Cost);
+		case UpdateKind.MmoWelcomeBack:
+			return MmoUi.Short(MmoLive.Lapsed(g)) + " former players  ·  wins some of them back  ·  " + G.Money(MmoLive.PlanWelcome(g).Cost);
+		case UpdateKind.MmoFreeTrial:
+			return "+" + Mathf.RoundToInt(MmoLive.TrialJoinBonus * 100f) + "% new players while it runs, more bots  ·  " + G.Money(MmoLive.PlanTrial(g).Cost);
+		case UpdateKind.MmoClassic:
+			return "Its launch-day version for the players who miss it, in its subscription or as its own game";
+		case UpdateKind.MmoClassicPhase:
+		{
+			UpdatePlan plan = MmoLive.PlanPhase(g);
+			return ((m.ClassicPhase >= MmoLive.Phases) ? "Fresh realms from phase 1" : ("Phase " + (m.ClassicPhase + 1) + " of " + MmoLive.Phases)) + "  ·  classic players join, interest +4  ·  " + G.Money(plan.Cost);
+		}
 		default:
 			return "";
 		}
@@ -985,6 +1182,12 @@ internal class MmoProjectPage : Page
 			UpdateKind.MmoFeatures => "Add researched gameplay features as new game systems. Interest goes up and it counts as younger; systems that don't suit the genre drive a few players away.",
 			UpdateKind.MmoPort => "Launch it on more platforms with internet, with no four-platform limit: new ones fill free slots first (empty, or a retired platform's), the rest are added on top. New players, a launch boost and more interest.",
 			UpdateKind.MmoRating => "Cut content for a lower age rating: more people can play it, but some subscribers liked what gets cut.",
+			UpdateKind.MmoBotBust => "Hunt down the bots and close their accounts in one go. Most of them pay a subscription, so income dips, but real players stay longer and bot makers keep away for a while. A stronger anti-bot system catches more.",
+			UpdateKind.MmoStability => "Fix crashes, lag and the worst bugs. Fewer players leave while it runs smoothly, and the new code breaks some bots' programs.",
+			UpdateKind.MmoWelcomeBack => "Free days, gifts and a letter to players who left: some come back, more right after a content patch or an expansion pack.",
+			UpdateKind.MmoFreeTrial => "Let anyone play the first levels for free. More new players while it runs, but bots love free accounts. Switch it on or off any time once it's set up.",
+			UpdateKind.MmoClassic => "Bring back the MMO as it was at launch, as classic realms in the same subscription or as its own game.",
+			UpdateKind.MmoClassicPhase => "Unlock the next part of the original content on the classic realms: classic players come back for it. After the last phase, fresh realms start everyone from phase 1.",
 			_ => "",
 		};
 	}
@@ -1035,7 +1238,7 @@ internal class MmoProjectPage : Page
 			y += 46f;
 		}
 		bool ok = plan.Problem == null && (bool)room;
-		w.BigButton("Start the project", 14f, y, 260f, 44f, () =>
+		w.BigButton("Start the Project", 14f, y, 260f, 44f, () =>
 		{
 			gameScript game = Game;
 			UpdateProject p = new UpdateProject
@@ -1065,7 +1268,7 @@ internal class MmoProjectPage : Page
 			UpdateKind.MmoClient64 => MmoOps.PlanClient64(g),
 			UpdateKind.MmoExpansion => MmoOps.PlanExpansion(g),
 			UpdateKind.MmoPatch => MmoOps.PlanPatch(g),
-			_ => new UpdatePlan
+			_ => MmoLive.Plan(kind, g, 0) ?? new UpdatePlan
 			{
 				Problem = "Unknown project."
 			},
@@ -1100,6 +1303,43 @@ internal class MmoProjectPage : Page
 			yield return EditorWindow.KV("Players leaving", "-" + Mathf.RoundToInt(MmoOps.PatchChurn * 100f) + "% for " + MmoOps.PatchWeeks + " weeks");
 			yield return EditorWindow.KV("Gameplay", "+" + Mathf.RoundToInt(plan.Gameplay));
 			yield return EditorWindow.KV("Next patch", MmoOps.PatchCooldown + " weeks after this one");
+			break;
+		case UpdateKind.MmoBotBust:
+		{
+			float share = Mathf.Min(0.95f, 0.6f + 0.3f * MmoBots.Protection(g));
+			long paying = (long)((float)m.Bots * share);
+			yield return EditorWindow.KV("Bots now", MmoBots.BotsText(g, m));
+			yield return EditorWindow.KV("Closed", "about " + Mathf.RoundToInt(share * 100f) + "% (" + MmoUi.Short((long)((float)MmoBots.Total(m) * share)) + ")");
+			yield return EditorWindow.KV("Income lost", G.Money(paying * g.aboPreis) + " a month");
+			yield return EditorWindow.KV("Afterwards", "half the bots return for " + MmoBots.DeterWeeks + " weeks");
+			break;
+		}
+		case UpdateKind.MmoStability:
+			yield return EditorWindow.KV("Bugs", LeftoverBugs.Shown(g) + " > " + Mathf.CeilToInt(MmoLive.BugsAfterStability(g) - 0.001f));
+			yield return EditorWindow.KV("Players leaving", "-" + Mathf.RoundToInt(MmoLive.StableChurn * 100f) + "% for " + MmoLive.StableWeeks + " weeks");
+			yield return EditorWindow.KV("Bots", "-" + Mathf.RoundToInt(MmoBots.UpdateCut * 100f) + "% (their programs break)");
+			yield return EditorWindow.KV("Next one", MmoLive.StabilityCooldown + " weeks after this one");
+			break;
+		case UpdateKind.MmoWelcomeBack:
+		{
+			long pool = MmoLive.Lapsed(g);
+			yield return EditorWindow.KV("Former players", MmoUi.Short(pool));
+			yield return EditorWindow.KV("Coming back", "about " + MmoUi.Short((long)((float)pool * (0.05f + 0.05f * (float)Mathf.Clamp(g.reviewTotal, 0, 100) / 100f))) + " (more after new content)");
+			yield return EditorWindow.KV("Interest", "+4");
+			yield return EditorWindow.KV("Next campaign", MmoLive.WelcomeCooldown + " weeks after this one");
+			break;
+		}
+		case UpdateKind.MmoFreeTrial:
+			yield return EditorWindow.KV("New players", "+" + Mathf.RoundToInt(MmoLive.TrialJoinBonus * 100f) + "% while it runs");
+			yield return EditorWindow.KV("Interest", "+5");
+			yield return EditorWindow.KV("Bots", MmoBots.On ? "more, on free accounts" : "-");
+			yield return EditorWindow.KV("Afterwards", "switch it on or off any time");
+			break;
+		case UpdateKind.MmoClassicPhase:
+			yield return EditorWindow.KV("Classic players", MmoUi.Short(m.ClassicSubs));
+			yield return EditorWindow.KV("Phase", (m.ClassicPhase >= MmoLive.Phases) ? "fresh realms, phase 1" : ((m.ClassicPhase + 1) + " of " + MmoLive.Phases));
+			yield return EditorWindow.KV("Interest", "+4, hype +4");
+			yield return EditorWindow.KV("Next phase", MmoLive.PhaseCooldown + " weeks after this one");
 			break;
 		}
 	}

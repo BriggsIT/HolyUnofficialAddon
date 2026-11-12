@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace HolyAddon.UI;
 
-// Our bottom bar buttons (Editor, Contracts, MMO Management, Your digital store): copies of the Statistics button,
+// Our bottom bar buttons (Editor, Contracts, MMO Management, Your Digital Store): copies of the Statistics button,
 // placed after the last button on the bar, so they land to the right of The Holy Expansion's Social Media button, or
 // of Statistics without it. A button that isn't available yet is darkened, like Holy's: faded icon, no click, and the
 // reason in red in its tooltip.
@@ -55,6 +55,22 @@ internal static class BottomButton
 		},
 		new Entry
 		{
+			Id = "Industry",
+			Tooltip = () => "<b>Industry</b>\nEvery studio and where you stand with it, the latest industry news, and your deals.",
+			Icon = () => Pages.IndustryUi.Icon,
+			Window = EditorWindow.Industry,
+			Wanted = () => Plugin.IndustryEvents.Value
+		},
+		new Entry
+		{
+			Id = "Rooms",
+			Tooltip = () => "<b>Rooms Overview</b>\nEvery room's job, what it does by itself, who supports whom, and what needs a look. Click a room to go to it.",
+			Icon = () => Pages.RoomsOverviewPage.RoomIcon,
+			Window = EditorWindow.Rooms,
+			Wanted = () => true
+		},
+		new Entry
+		{
 			Id = "Mmo",
 			Tooltip = () => "<b>MMO Management</b>\nModernise your MMOs, grow them, release expansion packs and keep their players. Also the MMO subscription charts.",
 			Icon = Core.Updates.UpdateIcons.Mmo,
@@ -65,7 +81,7 @@ internal static class BottomButton
 		new Entry
 		{
 			Id = "Store",
-			Tooltip = () => Core.Store.StoreOps.State.Built ? ("<b>" + Core.Store.StoreOps.State.Name + "</b>\nYour digital PC store: accounts, commission, catalogue, features and the rival stores.") : "<b>Your digital store</b>\nBuild your own digital PC store, take a cut of other studios' sales and compete with the rival stores.",
+			Tooltip = () => Core.Store.StoreOps.State.Built ? ("<b>" + Core.Store.StoreOps.State.Name + "</b>\nYour digital PC store: accounts, commission, catalogue, features and the rival stores.") : "<b>Your Digital Store</b>\nBuild your own digital PC store, take a cut of other studios' sales and compete with the rival stores.",
 			Icon = () => Core.Store.StoreOps.State.Built ? Core.Updates.UpdateIcons.StoreLogo(Core.Store.StoreOps.State.Logo) : Core.Updates.UpdateIcons.Store(),
 			Window = EditorWindow.Store,
 			Wanted = () => Plugin.StoreEnabled.Value,

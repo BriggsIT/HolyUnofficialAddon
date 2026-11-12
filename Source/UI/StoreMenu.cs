@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace HolyAddon.UI;
 
-// "Your digital store" in the game's Management menu, below "Your copy protection" (or "Buy copy protection").
+// "Your Digital Store" in the game's Management menu, below "Your Copy Protection" (or "Buy copy protection").
 internal static class StoreMenu
 {
 	private const string EntryName = "Editor_YourStore";
@@ -18,6 +18,10 @@ internal static class StoreMenu
 	private static GameObject button;
 
 	private static float nextTry;
+
+	private static bool? shownLocked;
+
+	private static string About => "Run your own digital PC store: sell your games, take a cut of other studios' sales, and compete with the rival stores. From " + StoreOps.OpenYear + ".";
 
 	public static void Tick()
 	{
@@ -61,6 +65,13 @@ internal static class StoreMenu
 			{
 				lockIcon.gameObject.SetActive(!StoreOps.Open);
 			}
+			// Locked like the game's own options: the reason as its tooltip, and a click does nothing.
+			bool locked = !StoreOps.Open;
+			if (locked != shownLocked)
+			{
+				shownLocked = locked;
+				UIKit.SetTooltip(button, locked ? (StoreOps.LockReason() ?? "Not available yet.") : About);
+			}
 		}
 	}
 
@@ -93,7 +104,7 @@ internal static class StoreMenu
 		Transform label = go.transform.Find("Text");
 		if ((bool)label)
 		{
-			label.GetComponent<Text>().text = "Your digital store";
+			label.GetComponent<Text>().text = "Your Digital Store";
 		}
 		// Swap the copy protection picture for the store's.
 		Sprite sprite = UpdateIcons.Store();
@@ -102,13 +113,18 @@ internal static class StoreMenu
 		{
 			picture.sprite = sprite;
 		}
-		UIKit.SetTooltip(go, "Run your own digital PC store: sell your games, take a cut of other studios' sales, and compete with the rival stores. From " + StoreOps.OpenYear + ".");
+		UIKit.SetTooltip(go, About);
+		shownLocked = null;
 		Button component = go.GetComponent<Button>();
 		component.onClick = new Button.ButtonClickedEvent();
 		component.onClick.AddListener(() =>
 		{
 			try
 			{
+				if (!StoreOps.Open)
+				{
+					return;
+				}
 				if ((bool)G.Gui)
 				{
 					G.Gui.guiMainButtons_.CloseAllDropdowns();
@@ -117,11 +133,11 @@ internal static class StoreMenu
 			}
 			catch (Exception ex)
 			{
-				Plugin.Log.LogError("Your digital store failed: " + ex);
+				Plugin.Log.LogError("Your Digital Store failed: " + ex);
 			}
 		});
 		go.transform.SetSiblingIndex(buy.GetSiblingIndex() + 1);
-		Plugin.Log.LogInfo("Your digital store added to the Management menu");
+		Plugin.Log.LogInfo("Your Digital Store added to the Management menu");
 		return go;
 	}
 }

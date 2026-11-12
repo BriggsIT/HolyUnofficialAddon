@@ -6,11 +6,11 @@ using UnityEngine.UI;
 
 namespace HolyAddon.UI.Pages;
 
-// The chooser behind the new-game screen's "Timed exclusive" button: which platform gets the game first, and for
+// The chooser behind the new-game screen's "Timed Exclusive" button: which platform gets the game first, and for
 // how long. Opens over the new-game screen (EditorWindow.TimedExclusive, an overlay window).
 internal class TimedExclusivePage : Page
 {
-	public override string Title => "Timed exclusive";
+	public override string Title => "Timed Exclusive";
 
 	public override Sprite IconSprite => UpdateIcons.For(UpdateKind.Port);
 

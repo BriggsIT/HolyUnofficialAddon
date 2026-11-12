@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HolyAddon.Core;
+using HolyAddon.Core.Store;
 using HolyAddon.UI.Pages;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,18 +14,111 @@ internal class EditorWindow
 {
 	public static readonly EditorWindow Main = new EditorWindow("Editor_Window", () => new HomePage());
 
-	public static readonly EditorWindow Contracts = new EditorWindow("Editor_ContractsWindow", () => new ContractsPage());
+	public static readonly EditorWindow Contracts = new EditorWindow("Editor_ContractsWindow", () => new ContractsPage())
+	{
+		titleOf = () => new KeyValuePair<Color, Color>(new Color(0.07f, 0.42f, 0.45f), Color.white)
+	};
 
 	public static readonly EditorWindow CopyProtect = new EditorWindow("Editor_CopyProtectWindow", () => new CopyProtectPage());
 
 	public static readonly EditorWindow Updates = new EditorWindow("Editor_UpdatesWindow", () => new UpdatesHomePage());
 
-	public static readonly EditorWindow Mmo = new EditorWindow("Editor_MmoWindow", () => new MmoListPage());
+	// MMO Management and the store keep the game's look, with accents (banners, stat cards, icon buttons, a title
+	// bar in their own colour). A window can also take a full skin (UI/Skin); none uses one at the moment.
+	public static readonly Color MmoTitleBar = new Color(0.13f, 0.22f, 0.4f);
 
-	public static readonly EditorWindow Store = new EditorWindow("Editor_StoreWindow", () => new StoreHomePage());
+	public static readonly Color MmoTitleText = new Color(0.98f, 0.85f, 0.52f);
+
+	public static readonly EditorWindow Mmo = new EditorWindow("Editor_MmoWindow", () => new MmoListPage())
+	{
+		titleOf = () => new KeyValuePair<Color, Color>(MmoTitleBar, MmoTitleText)
+	};
+
+	// The store's title bar takes its logo's colour.
+	public static readonly EditorWindow Store = new EditorWindow("Editor_StoreWindow", () => new StoreHomePage())
+	{
+		titleOf = () => StoreOps.State.Built ? new KeyValuePair<Color, Color>?(new KeyValuePair<Color, Color>(StoreUi.LogoColor(StoreOps.State.Logo), Color.white)) : null
+	};
+
+	// Current charts (Statistics menu): what sells right now.
+	public static readonly EditorWindow Charts = new EditorWindow("Editor_ChartsWindow", () => new CurrentChartsPage());
 
 	// Opens on top of the game's new-game screen, which already holds the game in menu mode.
 	public static readonly EditorWindow TimedExclusive = new EditorWindow("Editor_TimedExclusiveWindow", () => new TimedExclusivePage(), overlay: true);
+
+	// The MGH Games Awards ceremony (Core/Awards/AwardsShow), opened by the game's December awards.
+	public static readonly EditorWindow Awards = new EditorWindow("Editor_AwardsWindow", () => new AwardsCeremonyPage(0));
+
+	// The yearly MMO fan festival (Core/Mmo/MmoFanFest), opened in October.
+	public static readonly EditorWindow FanFest = new EditorWindow("Editor_FanFestWindow", () => new MmoFanFestPage())
+	{
+		titleOf = () => new KeyValuePair<Color, Color>(MmoTitleBar, MmoTitleText)
+	};
+
+	// A studio asking to sell on your store (Core/Store/StorePlus).
+	public static readonly EditorWindow StudioRequest = new EditorWindow("Editor_StudioRequestWindow", () => new StudioRequestPage())
+	{
+		titleOf = () => StoreOps.State.Built ? new KeyValuePair<Color, Color>?(new KeyValuePair<Color, Color>(StoreUi.LogoColor(StoreOps.State.Logo), Color.white)) : null
+	};
+
+	// Sales Events (Core/Store/SalesEvents): the planner, and the pop-up as each sale starts. In your store's colours
+	// once you own one, sale red before that.
+	public static readonly Color SaleTitleBar = new Color(0.72f, 0.17f, 0.15f);
+
+	public static KeyValuePair<Color, Color>? SaleTitle()
+	{
+		if (StoreOps.State.Built)
+		{
+			return new KeyValuePair<Color, Color>(StoreUi.LogoColor(StoreOps.State.Logo), Color.white);
+		}
+		return new KeyValuePair<Color, Color>(SaleTitleBar, Color.white);
+	}
+
+	public static readonly EditorWindow Sales = new EditorWindow("Editor_SalesWindow", () => new SalesPage())
+	{
+		titleOf = SaleTitle
+	};
+
+	public static readonly EditorWindow SalePopup = new EditorWindow("Editor_SalePopupWindow", () => new SalePopupPage())
+	{
+		titleOf = SaleTitle
+	};
+
+	// The yearly convention (Core/Events/StudioCon): planner, August pop-up and results, in your company logo's colour.
+	public static readonly Color ConventionFallback = new Color(0.36f, 0.2f, 0.55f);
+
+	public static KeyValuePair<Color, Color>? ConventionTitle()
+	{
+		Sprite logo = (((bool)G.Gui && (bool)G.MS) ? G.Gui.GetCompanyLogo(G.MS.GetCompanyLogoID()) : null);
+		return new KeyValuePair<Color, Color>(SpriteTools.MainColor(logo, ConventionFallback), Color.white);
+	}
+
+	public static readonly EditorWindow Convention = new EditorWindow("Editor_ConventionWindow", ConventionPage.Root)
+	{
+		titleOf = ConventionTitle
+	};
+
+	// Industry events (Core/Industry): the decision pop-up, in the colour of the studio it's about, and the Industry
+	// window with every studio and where you stand.
+	public static KeyValuePair<Color, Color>? IndustryTitle()
+	{
+		Core.Industry.IndustryPending p = Core.Industry.IndustryCore.State.Pending;
+		publisherScript studio = ((p != null) ? Core.Industry.IndustryCore.Studio(p.C.StudioId) : null);
+		return new KeyValuePair<Color, Color>(IndustryUi.StudioColor(studio), Color.white);
+	}
+
+	public static readonly EditorWindow IndustryEvent = new EditorWindow("Editor_IndustryEventWindow", () => new IndustryEventPage())
+	{
+		titleOf = IndustryTitle
+	};
+
+	public static readonly EditorWindow Industry = new EditorWindow("Editor_IndustryWindow", () => new IndustryPage())
+	{
+		titleOf = () => new KeyValuePair<Color, Color>(IndustryUi.Navy, Color.white)
+	};
+
+	// Every room at a glance (bottom bar, and a button in every room's menu).
+	public static readonly EditorWindow Rooms = new EditorWindow("Editor_RoomsWindow", () => new RoomsOverviewPage());
 
 	private readonly string objectName;
 
@@ -47,13 +141,24 @@ internal class EditorWindow
 
 	private bool claimedInput;
 
+	// The window's look, asked again at every rebuild (the store's follows its logo); null = the game's own.
+	private readonly Func<Skin> skinOf;
+
+	// The title bar's colour and its text's (null = the game's blue), asked again at every rebuild.
+	private Func<KeyValuePair<Color, Color>?> titleOf;
+
+	private readonly Dictionary<Image, Sprite> titleSprites = new Dictionary<Image, Sprite>();
+
 	public RectTransform Body { get; private set; }
 
-	public EditorWindow(string objectName, Func<Page> rootPage, bool overlay = false)
+	public Skin Skin { get; private set; }
+
+	public EditorWindow(string objectName, Func<Page> rootPage, bool overlay = false, Func<Skin> skin = null)
 	{
 		this.objectName = objectName;
 		this.rootPage = rootPage;
 		this.overlay = overlay;
+		skinOf = skin;
 	}
 
 	public bool IsOpen
@@ -230,13 +335,314 @@ internal class EditorWindow
 			child.SetActive(value: false);
 			UnityEngine.Object.Destroy(child);
 		}
+		Skin skin = null;
+		try
+		{
+			skin = skinOf?.Invoke();
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Window skin: " + ex.Message);
+		}
+		Skin = skin;
+		if (skin != null)
+		{
+			Theme(skin.Border, skin.Background, skin.Bar, skin.Title);
+			Backdrop(skin);
+		}
+		else if (titleOf != null)
+		{
+			try
+			{
+				KeyValuePair<Color, Color>? title = titleOf();
+				if (title.HasValue)
+				{
+					TitleAccent(title.Value.Key, title.Value.Value);
+				}
+			}
+			catch (Exception ex3)
+			{
+				Plugin.Log.LogWarning("Window title colour: " + ex3.Message);
+			}
+		}
+		UIKit.ActiveSkin = skin;
 		try
 		{
 			Current.Build(this);
 		}
-		catch (Exception ex)
+		catch (Exception ex2)
 		{
-			Plugin.Log.LogError(Current.GetType().Name + " build failed: " + ex);
+			Plugin.Log.LogError(Current.GetType().Name + " build failed: " + ex2);
+		}
+		finally
+		{
+			UIKit.ActiveSkin = null;
+		}
+	}
+
+	// Behind a skinned page: the skin's colour with a soft glow along the top.
+	private void Backdrop(Skin skin)
+	{
+		Image back = NewImage("SkinBackdrop", Body, skin.Body);
+		UIKit.Stretch(back.transform, 4f, 0f, 4f, 4f);
+		Image glow = NewImage("SkinGlow", Body, skin.Glow);
+		glow.sprite = Skin.Fade(up: true);
+		RectTransform rt = (RectTransform)glow.transform;
+		rt.anchorMin = new Vector2(0f, 1f);
+		rt.anchorMax = new Vector2(1f, 1f);
+		rt.pivot = new Vector2(0.5f, 1f);
+		rt.offsetMin = new Vector2(4f, -160f);
+		rt.offsetMax = new Vector2(-4f, 0f);
+		rt.localScale = new Vector3(1f, -1f, 1f);
+	}
+
+	private static Image NewImage(string name, Transform parent, Color color)
+	{
+		Image img = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+		img.transform.SetParent(parent, worldPositionStays: false);
+		img.color = color;
+		img.raycastTarget = false;
+		return img;
+	}
+
+	// A wide picture across the page (cropped to fill it), fading into the page on the left and at the bottom: the
+	// top of a launcher. Returns the area to put text and buttons in.
+	public static readonly Color BannerColor = new Color(0.055f, 0.085f, 0.14f);
+
+	// White text on a banner, with a soft shadow.
+	public Text BannerText(string text, float x, float y, float w, float h, int size, Color color, bool bold = false, TextAnchor align = TextAnchor.MiddleLeft)
+	{
+		Text t = Label(text, x, y, w, h, align, bold, null, size);
+		t.color = color;
+		Shadow shadow = t.GetComponent<Shadow>() ?? t.gameObject.AddComponent<Shadow>();
+		shadow.effectColor = new Color(0f, 0f, 0f, 0.6f);
+		shadow.effectDistance = new Vector2(1f, -1f);
+		return t;
+	}
+
+	// A wide picture across the page, cropped to fill it: art (full) covers the whole banner, a game's screenshot
+	// sits on the right and fades into the banner's colour on the left. The top of a launcher.
+	public RectTransform Banner(Sprite picture, float x, float y, float w, float h, bool full = false)
+	{
+		GameObject area = new GameObject("Banner", typeof(RectTransform), typeof(RectMask2D));
+		area.transform.SetParent(Body, worldPositionStays: false);
+		RectTransform rt = UIKit.Place(area, x, y, w, h);
+		Color under = Skin?.Body ?? BannerColor;
+		NewImage("Under", area.transform, under).rectTransform.sizeDelta = Vector2.zero;
+		UIKit.Stretch(area.transform.Find("Under"));
+		if ((bool)picture && full)
+		{
+			Image art = NewImage("Art", area.transform, Color.white);
+			art.sprite = picture;
+			float aspect = picture.rect.width / Mathf.Max(1f, picture.rect.height);
+			float aw = w;
+			float ah = aw / Mathf.Max(0.1f, aspect);
+			if (ah < h)
+			{
+				ah = h;
+				aw = ah * aspect;
+			}
+			RectTransform art2 = art.rectTransform;
+			art2.anchorMin = art2.anchorMax = new Vector2(0.5f, 0.5f);
+			art2.sizeDelta = new Vector2(aw, ah);
+			art2.anchoredPosition = Vector2.zero;
+		}
+		else if ((bool)picture)
+		{
+			Image pic = NewImage("Picture", area.transform, Color.white);
+			pic.sprite = picture;
+			float aspect = picture.rect.width / Mathf.Max(1f, picture.rect.height);
+			float pw = w * 0.72f;
+			float ph = pw / Mathf.Max(0.1f, aspect);
+			if (ph < h)
+			{
+				ph = h;
+				pw = ph * aspect;
+			}
+			RectTransform prt = pic.rectTransform;
+			prt.anchorMin = prt.anchorMax = new Vector2(1f, 0.5f);
+			prt.pivot = new Vector2(1f, 0.5f);
+			prt.sizeDelta = new Vector2(pw, ph);
+			prt.anchoredPosition = Vector2.zero;
+			// Fade the picture into the page from the left.
+			Image fade = NewImage("FadeLeft", area.transform, under);
+			fade.sprite = Skin.Fade(up: false);
+			RectTransform frt = fade.rectTransform;
+			frt.anchorMin = new Vector2(1f, 0f);
+			frt.anchorMax = new Vector2(1f, 1f);
+			frt.pivot = new Vector2(1f, 0.5f);
+			frt.sizeDelta = new Vector2(pw * 0.75f, 0f);
+			frt.anchoredPosition = new Vector2(0f - pw * 0.25f, 0f);
+			Image fill = NewImage("FillLeft", area.transform, under);
+			RectTransform lrt = fill.rectTransform;
+			lrt.anchorMin = new Vector2(0f, 0f);
+			lrt.anchorMax = new Vector2(1f, 1f);
+			lrt.offsetMin = Vector2.zero;
+			lrt.offsetMax = new Vector2(0f - pw + 2f, 0f);
+			Image shade = NewImage("Shade", area.transform, new Color(under.r, under.g, under.b, 0.25f));
+			UIKit.Stretch(shade.transform);
+		}
+		if (Skin != null)
+		{
+			Image line = NewImage("Line", area.transform, new Color(Skin.Accent.r, Skin.Accent.g, Skin.Accent.b, 0.6f));
+			RectTransform l = line.rectTransform;
+			l.anchorMin = new Vector2(0f, 0f);
+			l.anchorMax = new Vector2(1f, 0f);
+			l.pivot = new Vector2(0.5f, 0f);
+			l.sizeDelta = new Vector2(0f, 1.5f);
+			l.anchoredPosition = Vector2.zero;
+		}
+		return rt;
+	}
+
+	// One of the game's big buttons with a picture on its left (like its own menus' main buttons).
+	public Button IconButton(string text, Sprite icon, float x, float y, float w, float h, Action onClick, bool enabled = true, string tooltip = null, Transform parent = null)
+	{
+		Button button = BigButton(text, x, y, w, h, onClick, enabled, tooltip, parent);
+		Transform pic = button.transform.Find("Icon");
+		Transform label = button.transform.Find("Text");
+		float size = Mathf.Min(h - 12f, 44f);
+		if ((bool)pic && (bool)icon)
+		{
+			pic.gameObject.SetActive(value: true);
+			Image img = pic.GetComponent<Image>();
+			img.sprite = icon;
+			img.preserveAspect = true;
+			img.color = Color.white;
+			RectTransform prt = (RectTransform)pic;
+			prt.anchorMin = prt.anchorMax = new Vector2(0f, 0.5f);
+			prt.pivot = new Vector2(0f, 0.5f);
+			prt.sizeDelta = new Vector2(size, size);
+			prt.anchoredPosition = new Vector2(8f, 0f);
+		}
+		if ((bool)label)
+		{
+			UIKit.Stretch(label, (bool)icon ? (size + 14f) : 6f, 0f, 6f);
+			Text t = label.GetComponent<Text>();
+			t.alignment = (bool)icon ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter;
+		}
+		return button;
+	}
+
+	// A small card: a picture, a title, a big number and a line under it (like the game's statistics tiles).
+	public RectTransform StatCard(Sprite icon, string title, string value, string line, float x, float y, float w, float h, Color? lineColor = null, string tooltip = null)
+	{
+		RectTransform card = Panel(x, y, w, h);
+		float size = Mathf.Min(h - 16f, 56f);
+		if ((bool)icon)
+		{
+			Image img = NewImage("Icon", card, Color.white);
+			img.sprite = icon;
+			img.preserveAspect = true;
+			UIKit.Place(img.gameObject, 8f, (h - size) / 2f, size, size);
+		}
+		float tx = ((bool)icon ? (size + 16f) : 10f);
+		Text t1 = Label(title, tx, 6f, w - tx - 6f, 20f, TextAnchor.MiddleLeft, bold: false, card, 13);
+		t1.color = UIKit.Grey;
+		Label(value, tx, 24f, w - tx - 6f, 26f, TextAnchor.MiddleLeft, bold: true, card, 17);
+		if (!string.IsNullOrEmpty(line))
+		{
+			Text t3 = Label(line, tx, h - 26f, w - tx - 6f, 20f, TextAnchor.MiddleLeft, bold: false, card, 12);
+			t3.color = lineColor ?? UIKit.Grey;
+		}
+		if (tooltip != null)
+		{
+			Image hit = card.GetComponent<Image>();
+			if ((bool)hit)
+			{
+				hit.raycastTarget = true;
+			}
+			UIKit.SetTooltip(card.gameObject, tooltip);
+		}
+		return card;
+	}
+
+	public static readonly Color RankGold = new Color(0.9f, 0.68f, 0.12f);
+
+	public static readonly Color RankSilver = new Color(0.62f, 0.66f, 0.72f);
+
+	public static readonly Color RankBronze = new Color(0.72f, 0.45f, 0.24f);
+
+	public static readonly Color RankOther = new Color(0.82f, 0.84f, 0.87f);
+
+	// A chart place: gold, silver and bronze for the top three.
+	public static void RankBadge(Transform parent, int rank, float x, float y, float size)
+	{
+		Color c = rank switch
+		{
+			1 => RankGold,
+			2 => RankSilver,
+			3 => RankBronze,
+			_ => RankOther,
+		};
+		Image badge = NewImage("Rank", parent, c);
+		UIKit.Place(badge.gameObject, x, y, size, size);
+		GameObject go = UIKit.Make("BoldText", badge.transform);
+		UIKit.Stretch(go.transform);
+		Text t = go.GetComponent<Text>();
+		t.text = rank.ToString();
+		t.alignment = TextAnchor.MiddleCenter;
+		t.fontSize = (int)(size * 0.55f);
+		t.resizeTextForBestFit = false;
+		t.color = (rank <= 3) ? Color.white : new Color(0.25f, 0.27f, 0.3f);
+		t.raycastTarget = false;
+	}
+
+	// Recolours this window's own frame: its border, background, title bar and title text (the awards ceremony's
+	// black and gold). Only this window's copy of the frame changes.
+	public void Theme(Color border, Color background, Color bar, Color title)
+	{
+		if (!EnsureCreated())
+		{
+			return;
+		}
+		Image frameImage = frame.GetComponent<Image>();
+		if ((bool)frameImage)
+		{
+			frameImage.color = border;
+		}
+		Tint(frame.Find("Fill_Window"), background);
+		Tint(frame.Find("Fill_Titleleiste"), bar);
+		Tint(frame.Find("Titelleiste"), bar);
+		titleText.color = title;
+	}
+
+	// The title bar in another colour, keeping the game's gloss and edges: its picture in grey, tinted.
+	public void TitleAccent(Color bar, Color text)
+	{
+		if (!EnsureCreated())
+		{
+			return;
+		}
+		foreach (string name in new string[2] { "Fill_Titleleiste", "Titelleiste" })
+		{
+			Transform t = frame.Find(name);
+			Image img = (t ? t.GetComponent<Image>() : null);
+			if (!img)
+			{
+				continue;
+			}
+			if (!titleSprites.TryGetValue(img, out var original))
+			{
+				original = img.sprite;
+				titleSprites[img] = original;
+			}
+			Sprite grey = SpriteTools.GreyCopy(original);
+			if ((bool)grey)
+			{
+				img.sprite = grey;
+			}
+			img.color = bar;
+		}
+		titleText.color = text;
+	}
+
+	private static void Tint(Transform t, Color c)
+	{
+		Image image = (t ? t.GetComponent<Image>() : null);
+		if ((bool)image)
+		{
+			image.color = c;
 		}
 	}
 
@@ -285,7 +691,7 @@ internal class EditorWindow
 		GameObject go = UIKit.Make(bold ? "BoldText" : "Paragraph", parent ?? Body);
 		UIKit.Place(go, x, y, w, h);
 		Text component = go.GetComponent<Text>();
-		component.text = text;
+		component.text = ((Skin != null) ? Skin.Fix(text) : text);
 		component.alignment = align;
 		if (size > 0)
 		{
@@ -294,7 +700,28 @@ internal class EditorWindow
 		}
 		component.horizontalOverflow = HorizontalWrapMode.Wrap;
 		component.verticalOverflow = VerticalWrapMode.Truncate;
+		if (Skin != null)
+		{
+			component.color = Skin.Ink;
+		}
 		return component;
+	}
+
+	// A page's short explanation at the top, between the Back button and the money: a long one shrinks a little
+	// rather than being cut off.
+	public Text AboutLine(string text)
+	{
+		Text line = Label(text, 116f, 2f, Width - 116f - 196f, 48f, TextAnchor.MiddleLeft, bold: false, null, 12);
+		line.resizeTextForBestFit = true;
+		line.resizeTextMinSize = 9;
+		line.resizeTextMaxSize = 12;
+		return line;
+	}
+
+	// The money you have, top right (next to the about line).
+	public Text MoneyLine()
+	{
+		return Label(G.Money(((bool)G.MS) ? G.MS.money : 0), Width - 184f, 10f, 170f, 28f, TextAnchor.MiddleRight, bold: true);
 	}
 
 	public Button BigButton(string text, float x, float y, float w, float h, Action onClick, bool enabled = true, string tooltip = null, Transform parent = null)
@@ -324,6 +751,7 @@ internal class EditorWindow
 		{
 			UIKit.SetTooltip(go, tooltip);
 		}
+		Skin?.DressButton(go, primary: true);
 		return component;
 	}
 
@@ -347,11 +775,24 @@ internal class EditorWindow
 		{
 			UIKit.SetTooltip(go, tooltip);
 		}
+		Skin?.DressButton(go, primary: false);
 		return component;
 	}
 
 	public void Header(string text, float x, float y, float w = 254f, Transform parent = null)
 	{
+		if (Skin != null)
+		{
+			// Capitals in the accent colour over a thin rule, brighter at its start.
+			Transform p = parent ?? Body;
+			Text t = Label(Skin.CapsHeaders ? text.ToUpperInvariant() : text, x + 2f, y, w - 4f, 22f, TextAnchor.MiddleLeft, bold: true, p, 14);
+			t.color = Skin.AccentLight;
+			Image rule = NewImage("Rule", p, new Color(Skin.Accent.r, Skin.Accent.g, Skin.Accent.b, 0.35f));
+			UIKit.Place(rule.gameObject, x, y + 23f, w, 1f);
+			Image bright = NewImage("RuleBright", p, Skin.Accent);
+			UIKit.Place(bright.gameObject, x, y + 22.5f, Mathf.Min(120f, w * 0.3f), 2f);
+			return;
+		}
 		GameObject go = UIKit.Make("Header", parent ?? Body);
 		UIKit.Place(go, x, y, w, 24f);
 		Transform label = go.transform.Find("Text");
@@ -361,11 +802,21 @@ internal class EditorWindow
 
 	public RectTransform Panel(float x, float y, float w, float h, Transform parent = null)
 	{
-		return UIKit.Place(UIKit.Make("Panel", parent ?? Body), x, y, w, h);
+		GameObject go = UIKit.Make("Panel", parent ?? Body);
+		Skin?.Box(go, Skin.Panel, Skin.PanelLine);
+		return UIKit.Place(go, x, y, w, h);
 	}
 
 	public void Info(string text, float x, float y, float w, float h, Transform parent = null)
 	{
+		if (Skin != null)
+		{
+			RectTransform box = Panel(x, y, w, h, parent);
+			Image stripe = NewImage("Stripe", box, Skin.Accent);
+			UIKit.Place(stripe.gameObject, 0f, 4f, 3f, h - 8f);
+			Label(text, 14f, 2f, w - 22f, h - 4f, TextAnchor.MiddleLeft, bold: false, box, 13);
+			return;
+		}
 		GameObject go = UIKit.Make("Info", parent ?? Body);
 		UIKit.Place(go, x, y, w, h);
 		RectTransform rt = (RectTransform)go.transform.Find("TextInfo");
@@ -388,7 +839,11 @@ internal class EditorWindow
 		{
 			float cx = 6f + (float)(i / perColumn) * colWidth;
 			float cy = 6 + i % perColumn * 26;
-			Label(rows[i].Key, cx + 6f, cy, colWidth * 0.45f - 6f, 26f, TextAnchor.MiddleLeft, bold: false, panel, 13);
+			Text key = Label(rows[i].Key, cx + 6f, cy, colWidth * 0.45f - 6f, 26f, TextAnchor.MiddleLeft, bold: false, panel, 13);
+			if (Skin != null)
+			{
+				key.color = Skin.InkDim;
+			}
 			Label(rows[i].Value, cx + colWidth * 0.4f, cy, colWidth * 0.6f - 10f, 26f, TextAnchor.MiddleRight, bold: true, panel, 13);
 		}
 		return h;
@@ -420,6 +875,7 @@ internal class EditorWindow
 				Plugin.Log.LogError("Editor dropdown failed: " + ex);
 			}
 		});
+		Skin?.DressDropdown(go);
 		return component;
 	}
 
@@ -433,6 +889,10 @@ internal class EditorWindow
 		label.offsetMin = new Vector2(34f, 0f);
 		label.offsetMax = Vector2.zero;
 		label.GetComponent<Text>().text = text;
+		if (Skin != null)
+		{
+			label.GetComponent<Text>().color = Skin.Ink;
+		}
 		RectTransform box = (RectTransform)go.transform.Find("Background");
 		box.anchorMin = box.anchorMax = new Vector2(0f, 0.5f);
 		box.anchoredPosition = new Vector2(14f, 0f);
@@ -484,6 +944,7 @@ internal class EditorWindow
 		{
 			hint.GetComponent<Text>().text = placeholder;
 		}
+		Skin?.DressInput(go);
 		component.onValueChanged.AddListener((string v) =>
 		{
 			try
@@ -572,7 +1033,8 @@ internal class EditorWindow
 	{
 		GameObject go = UIKit.Make("Scroll", Body);
 		UIKit.Place(go, x, y, w, h);
-		return new ListView(go.GetComponent<ScrollRect>(), w - 38f);
+		Skin?.DressScroll(go);
+		return new ListView(go.GetComponent<ScrollRect>(), w - 38f, Skin);
 	}
 
 	public void Empty(string text, float y)
@@ -583,6 +1045,10 @@ internal class EditorWindow
 		rt.pivot = new Vector2(0.5f, 1f);
 		rt.anchoredPosition = new Vector2(0f, 0f - y);
 		go.transform.Find("TextTitle").GetComponent<Text>().text = text;
+		if (Skin != null)
+		{
+			go.transform.Find("TextTitle").GetComponent<Text>().color = Skin.InkDim;
+		}
 		Animation anim = go.GetComponent<Animation>();
 		if ((bool)anim)
 		{

@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace HolyAddon.UI.Pages;
 
-// Management > Your copy protection: the project in development and every copy protection you've made.
+// Management > Your Copy Protection: the project in development and every copy protection you've made.
 internal class CopyProtectPage : Page
 {
 	// The development room whose menu opened the window, used first when it's free.
@@ -26,7 +26,7 @@ internal class CopyProtectPage : Page
 
 	private float nextProgress;
 
-	public override string Title => "Your copy protection";
+	public override string Title => "Your Copy Protection";
 
 	public override Sprite IconSprite => CopyProtectDev.Icon();
 
@@ -54,7 +54,7 @@ internal class CopyProtectPage : Page
 		}
 		y = BuildProject(w, y, locked == null);
 		List<OwnCopyProtect> products = CopyProtectDev.Products.ToList();
-		w.Header("Your copy protections (" + products.Count + ")", 14f, y, w.Width - 28f);
+		w.Header("Your Copy Protections (" + products.Count + ")", 14f, y, w.Width - 28f);
 		y += 32f;
 		float listHeight = bottom - y - 46f;
 		if (products.Count == 0)
@@ -91,7 +91,7 @@ internal class CopyProtectPage : Page
 		CopyProtectProject p = CopyProtectDev.Project;
 		if (p == null)
 		{
-			w.BigButton("New copy protection", 14f, y, 260f, 44f, () => w.Push(new CopyProtectNewPage()), canStart, canStart ? "Pick a name, a technology and a development room." : CopyProtectDev.LockReason());
+			w.BigButton("New Copy Protection", 14f, y, 260f, 44f, () => w.Push(new CopyProtectNewPage()), canStart, canStart ? "Pick a name, a technology and a development room." : CopyProtectDev.LockReason());
 			if (canStart && CopyProtectDev.FreeRooms().Count == 0)
 			{
 				w.Label("All development rooms are busy right now.", 290f, y, w.Width - 310f, 44f, TextAnchor.MiddleLeft, bold: false, null, 13);
@@ -104,7 +104,7 @@ internal class CopyProtectPage : Page
 		string what = (p.IsUpdate ? "Update" : "New") + " · " + CopyProtectDev.TechName(p.Tech) + " · " + (room ? CopyProtectDev.RoomName(room) : "no room") + ((room != null) ? (" · " + CopyProtectDev.Duration(p.Needed - p.Progress, room) + " left") : "");
 		w.Label("<b>" + p.Name + "</b>   " + what, 24f, y, w.Width - 300f, 30f);
 		long refund = CopyProtectDev.Refund(p);
-		w.SmallButton(confirmCancel ? "Really cancel?" : "Cancel", w.Width - 214f, y + 2f, 200f, () =>
+		w.SmallButton(confirmCancel ? "Really Cancel?" : "Cancel", w.Width - 214f, y + 2f, 200f, () =>
 		{
 			if (!confirmCancel)
 			{

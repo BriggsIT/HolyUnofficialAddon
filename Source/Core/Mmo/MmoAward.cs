@@ -138,7 +138,12 @@ internal static class MmoAward
 		{
 			return "not yet";
 		}
-		return string.Join(", ", wins.Select((AwardWin w) => w.Year.ToString()));
+		if (wins.Count <= 2)
+		{
+			return string.Join(", ", wins.Select((AwardWin w) => w.Year.ToString()));
+		}
+		// Short enough for the dashboard: how many, and the latest.
+		return wins.Count + " wins, last " + wins.Max((AwardWin w) => w.Year);
 	}
 
 	public static AwardWin LastWin()
@@ -151,12 +156,40 @@ internal static class MmoAward
 		return g.developerID == G.MS.myID || g.ownerID == G.MS.myID;
 	}
 
-	// The game opens its awards in the first week of December (mainScript.MadGamesAward).
+	// The addon's own awards ceremony (Core/Awards/AwardsShow) judges this award as one of its categories and pays
+	// its prize; this records the result here (the winner for the MMO's page, next year's numbers).
+	public static void Close(int year, List<Entry> ranked)
+	{
+		MmoState s = MmoOps.State;
+		s.AwardYear = year;
+		Remember();
+		if (ranked == null || ranked.Count == 0)
+		{
+			return;
+		}
+		gameScript g = ranked[0].Game;
+		s.Wins.Add(new AwardWin
+		{
+			Year = year,
+			GameId = g.myID,
+			Game = g.GetNameSimple(),
+			Studio = g.GetDeveloperName(),
+			Mine = Mine(g)
+		});
+	}
+
+	public static string Describe(Entry e)
+	{
+		return Why(e);
+	}
+
+	// The game opens its awards in the first week of December (mainScript.MadGamesAward). Only used with the game's
+	// own ceremony screen (the addon's awards ceremony switched off).
 	[HarmonyPostfix]
 	[HarmonyPatch(typeof(mainScript), "MadGamesAward")]
 	private static void Ceremony(mainScript __instance)
 	{
-		if (!MmoOps.On)
+		if (!MmoOps.On || Awards.AwardsShow.On)
 		{
 			return;
 		}

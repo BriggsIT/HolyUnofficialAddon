@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace HolyAddon.UI;
 
-// "Your copy protection" in the game's Management menu, right under "Buy copy protection".
+// "Your Copy Protection" in the game's Management menu, right under "Buy copy protection".
 internal static class CopyProtectMenu
 {
 	private const string EntryName = "Editor_YourCopyProtect";
@@ -84,7 +84,7 @@ internal static class CopyProtectMenu
 		Transform label = go.transform.Find("Text");
 		if ((bool)label)
 		{
-			label.GetComponent<Text>().text = "Your copy protection";
+			label.GetComponent<Text>().text = "Your Copy Protection";
 		}
 		UIKit.SetTooltip(go, "Develop your own copy protection, keep it up to date and license it to other studios.");
 		Button component = go.GetComponent<Button>();
@@ -101,11 +101,11 @@ internal static class CopyProtectMenu
 			}
 			catch (Exception ex)
 			{
-				Plugin.Log.LogError("Your copy protection failed: " + ex);
+				Plugin.Log.LogError("Your Copy Protection failed: " + ex);
 			}
 		});
 		go.transform.SetSiblingIndex(buy.GetSiblingIndex() + 1);
-		Plugin.Log.LogInfo("Your copy protection added to the Management menu");
+		Plugin.Log.LogInfo("Your Copy Protection added to the Management menu");
 		return go;
 	}
 }

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Awards backdrop</title>
+<!--
+  The MGH Games Awards ceremony backdrop: a dark stage with a spotlight, velvet at the sides and a gold art-deco
+  frame. Drawn at twice the window body's size (900 x 645) so it stays sharp on big screens.
+  Render with: .\render-page.ps1 -Page awards-art.html -Width 1800 -Height 1290 -Out ..\icons\png\awards-bg.png
+-->
+<style>
+  html, body { margin: 0; padding: 0; background: #0a0806; overflow: hidden; }
+  svg { display: block; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1290" viewBox="0 0 1800 1290">
+  <defs>
+    <!-- Metal: bright edge, warm middle, deep shadow -->
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff3b0"/>
+      <stop offset="0.25" stop-color="#e9c35a"/>
+      <stop offset="0.55" stop-color="#b8862a"/>
+      <stop offset="0.8" stop-color="#f0d27a"/>
+      <stop offset="1" stop-color="#8a6014"/>
+    </linearGradient>
+    <linearGradient id="goldV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6dc86"/>
+      <stop offset="0.5" stop-color="#c39030"/>
+      <stop offset="1" stop-color="#f1d37c"/>
+    </linearGradient>
+    <!-- The stage: warm light from above, black at the edges -->
+    <radialGradient id="stage" cx="0.5" cy="0.08" r="0.95">
+      <stop offset="0" stop-color="#3b2d17"/>
+      <stop offset="0.35" stop-color="#1c150c"/>
+      <stop offset="0.75" stop-color="#0d0a07"/>
+      <stop offset="1" stop-color="#060504"/>
+    </radialGradient>
+    <radialGradient id="floor" cx="0.5" cy="1.05" r="0.6">
+      <stop offset="0" stop-color="#5a4320" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#5a4320" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Velvet folds -->
+    <linearGradient id="velvet" x1="0" y1="0" x2="1" y2="0" spreadMethod="repeat" gradientUnits="userSpaceOnUse" x2v="1">
+      <stop offset="0" stop-color="#3a0707"/>
+      <stop offset="0.5" stop-color="#160202"/>
+      <stop offset="1" stop-color="#3a0707"/>
+    </linearGradient>
+    <pattern id="folds" width="46" height="10" patternUnits="userSpaceOnUse">
+      <rect width="46" height="10" fill="url(#velvetFold)"/>
+    </pattern>
+    <linearGradient id="velvetFold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2c0505"/>
+      <stop offset="0.45" stop-color="#4a0b0b"/>
+      <stop offset="0.6" stop-color="#1a0202"/>
+      <stop offset="1" stop-color="#2c0505"/>
+    </linearGradient>
+    <linearGradient id="fadeL" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="1"/>
+    </linearGradient>
+    <mask id="velvetMaskL"><rect x="0" y="0" width="150" height="1290" fill="url(#fadeMaskL)"/></mask>
+    <linearGradient id="fadeMaskL" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset="1" stop-color="#000"/>
+    </linearGradient>
+    <mask id="velvetMaskR"><rect x="1650" y="0" width="150" height="1290" fill="url(#fadeMaskR)"/></mask>
+    <linearGradient id="fadeMaskR" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#000"/>
+      <stop offset="1" stop-color="#fff"/>
+    </linearGradient>
+    <!-- Light rays from the top -->
+    <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe7a0" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#ffe7a0" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1800" height="1290" fill="url(#stage)"/>
+  <g mask="url(#velvetMaskL)"><rect x="0" y="0" width="150" height="1290" fill="url(#folds)"/></g>
+  <g mask="url(#velvetMaskR)"><rect x="1650" y="0" width="150" height="1290" fill="url(#folds)"/></g>
+  <rect width="1800" height="1290" fill="url(#floor)"/>
+  <g>
+    <path d="M900 0 L640 1290 L760 1290 Z" fill="url(#ray)"/>
+    <path d="M900 0 L1040 1290 L1160 1290 Z" fill="url(#ray)"/>
+    <path d="M900 0 L300 1290 L420 1290 Z" fill="url(#ray)" opacity=".7"/>
+    <path d="M900 0 L1380 1290 L1500 1290 Z" fill="url(#ray)" opacity=".7"/>
+  </g>
+
+  <!-- Gold frame: an outer rule and an inner rule -->
+  <rect x="22" y="22" width="1756" height="1246" fill="none" stroke="url(#gold)" stroke-width="6"/>
+  <rect x="40" y="40" width="1720" height="1210" fill="none" stroke="url(#gold)" stroke-width="2.5" opacity=".85"/>
+
+  <!-- Art-deco corners: stepped blocks and a fan of rays -->
+  <g id="corner">
+    <path d="M22 22 H190 V40 H58 V40 L40 58 V190 H22 Z" fill="url(#gold)"/>
+    <path d="M58 58 H150 V66 H66 V150 H58 Z" fill="url(#gold)"/>
+    <path d="M74 74 H118 V80 H80 V118 H74 Z" fill="url(#gold)"/>
+    <g stroke="url(#gold)" stroke-width="2.5" opacity=".9">
+      <path d="M90 90 L162 109"/><path d="M90 90 L155 127"/><path d="M90 90 L143 143"/>
+      <path d="M90 90 L127 155"/><path d="M90 90 L109 162"/>
+    </g>
+    <circle cx="90" cy="90" r="9" fill="url(#gold)"/>
+  </g>
+  <use href="#corner" transform="translate(1800 0) scale(-1 1)"/>
+  <use href="#corner" transform="translate(0 1290) scale(1 -1)"/>
+  <use href="#corner" transform="translate(1800 1290) scale(-1 -1)"/>
+
+  <!-- A diamond and steps in the middle of the top and bottom rules -->
+  <g id="crest">
+    <path d="M900 8 L930 31 L900 54 L870 31 Z" fill="url(#gold)"/>
+    <path d="M840 31 H862 M938 31 H960" stroke="url(#gold)" stroke-width="4"/>
+    <path d="M800 31 H826 M974 31 H1000" stroke="url(#gold)" stroke-width="2.5"/>
+  </g>
+  <use href="#crest" transform="translate(0 1290) scale(1 -1)"/>
+
+  <!-- Side ornaments: a tall thin bar with steps, in the middle of each side -->
+  <g id="side">
+    <rect x="28" y="520" width="6" height="250" fill="url(#goldV)"/>
+    <rect x="46" y="560" width="4" height="170" fill="url(#goldV)"/>
+    <path d="M22 645 L56 625 L56 665 Z" fill="url(#gold)"/>
+  </g>
+  <use href="#side" transform="translate(1800 0) scale(-1 1)"/>
+</svg>
+</body>
+</html>

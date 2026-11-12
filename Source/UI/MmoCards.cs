@@ -491,7 +491,7 @@ internal static class MmoCards
 	}
 
 	// Where the sprite sits in its texture, in pixels (bottom-left origin, as Unity counts texture pixels).
-	private static Rect PackedRect(Sprite s)
+	internal static Rect PackedRect(Sprite s)
 	{
 		try
 		{
@@ -511,7 +511,7 @@ internal static class MmoCards
 
 	// A region of a texture as pixels, bottom row first. Readable textures are read directly; others are drawn
 	// into a render texture the region's size and read back, corrected by what Probe found about this machine.
-	private static Color[] ReadRegion(Texture source, Rect region, int w, int h)
+	internal static Color[] ReadRegion(Texture source, Rect region, int w, int h)
 	{
 		if (source is Texture2D t2 && t2.isReadable)
 		{
@@ -785,6 +785,170 @@ internal static class MmoCards
 				barLooks.Remove(id);
 			}
 		}
+	}
+
+	// ---- Bots line: under the weekly line, like The Holy Expansion's Pirates line on normal games ----
+
+	private const string BotsLabel = "Holy_TextBots";
+
+	private const string BotsNumber = "Holy_NumBots";
+
+	private const string HolyPirates = "Holy_TextPirates";
+
+	public static readonly Color BotsPurple = new Color(0.52f, 0.22f, 0.68f);
+
+	private static bool botsFailed;
+
+	private static float BotsHeight(gameTab tab)
+	{
+		Transform t = tab.transform.Find("PanelFull/BGData/" + BotsLabel);
+		if (!t || !t.gameObject.activeSelf)
+		{
+			return 0f;
+		}
+		return 14f;
+	}
+
+	// The card's full height ends with "+ 20": the line's 14 pixels go on top (Holy adds its Pirates line the same way).
+	[HarmonyTranspiler]
+	[HarmonyPatch(typeof(gameTab), "Update")]
+	private static IEnumerable<CodeInstruction> BotsInHeight(IEnumerable<CodeInstruction> instructions)
+	{
+		List<CodeInstruction> list = new List<CodeInstruction>(instructions);
+		for (int i = list.Count - 1; i >= 0; i--)
+		{
+			if (list[i].Is(System.Reflection.Emit.OpCodes.Ldc_R4, 20f))
+			{
+				list.InsertRange(i + 1, new CodeInstruction[3]
+				{
+					new CodeInstruction(System.Reflection.Emit.OpCodes.Ldarg_0),
+					new CodeInstruction(System.Reflection.Emit.OpCodes.Call, AccessTools.Method(typeof(MmoCards), "BotsHeight")),
+					new CodeInstruction(System.Reflection.Emit.OpCodes.Add)
+				});
+				return list;
+			}
+		}
+		Plugin.Log.LogWarning("MMO cards: the card's height was not found, the Bots line may not fit.");
+		return list;
+	}
+
+	[HarmonyPostfix]
+	[HarmonyPatch(typeof(gameTab), "Update")]
+	private static void BotsLine(gameTab __instance)
+	{
+		if ((Time.frameCount + __instance.GetInstanceID()) % 30 != 0)
+		{
+			return;
+		}
+		try
+		{
+			gameScript g = __instance.gS_;
+			if (!g)
+			{
+				return;
+			}
+			RectTransform panel = (RectTransform)__instance.transform.Find("PanelFull/BGData");
+			if (!panel)
+			{
+				return;
+			}
+			Transform label = panel.Find(BotsLabel);
+			Transform number = panel.Find(BotsNumber);
+			MmoGame m = ((MmoBots.On && g.gameTyp == 1 && !g.typ_mmoaddon && g.isOnMarket && MmoOps.IsMyMmo(g)) ? MmoOps.Find(g.myID) : null);
+			bool show = m != null;
+			if ((!label || !number) && (!show || !MakeBotsLine(panel, out label, out number)))
+			{
+				return;
+			}
+			Transform pirates = panel.Find(HolyPirates);
+			bool holyLine = (bool)pirates && pirates.gameObject.activeSelf;
+			if (label.gameObject.activeSelf != show)
+			{
+				label.gameObject.SetActive(show);
+				number.gameObject.SetActive(show);
+			}
+			float height = 55f + (holyLine ? 14f : 0f) + (show ? 14f : 0f);
+			if (Mathf.Abs(panel.sizeDelta.y - height) > 0.5f)
+			{
+				panel.sizeDelta = new Vector2(panel.sizeDelta.x, height);
+			}
+			if (!show)
+			{
+				return;
+			}
+			Place(panel, "TextWoche", label, holyLine);
+			Place(panel, "NumWoche", number, holyLine);
+			number.GetComponent<Text>().text = MmoUiText.Num(MmoBots.Total(m));
+			string tip = BotsTip(g, m);
+			UIKit.SetTooltip(label.gameObject, tip);
+			UIKit.SetTooltip(number.gameObject, tip);
+		}
+		catch (Exception ex)
+		{
+			if (!botsFailed)
+			{
+				botsFailed = true;
+				Plugin.Log.LogError("MMO card bots line: " + ex);
+			}
+		}
+	}
+
+	// One line below the weekly line (two with Holy's Pirates line there).
+	private static void Place(RectTransform panel, string templateName, Transform line, bool belowHoly)
+	{
+		Transform template = panel.Find(templateName);
+		if (!template)
+		{
+			return;
+		}
+		Vector2 pos = ((RectTransform)template).anchoredPosition - new Vector2(0f, belowHoly ? 28f : 14f);
+		RectTransform rt = (RectTransform)line;
+		if ((rt.anchoredPosition - pos).sqrMagnitude > 0.25f)
+		{
+			rt.anchoredPosition = pos;
+		}
+	}
+
+	private static bool MakeBotsLine(RectTransform panel, out Transform label, out Transform number)
+	{
+		label = (number = null);
+		Transform text = panel.Find("TextWoche");
+		Transform num = panel.Find("NumWoche");
+		if (!text || !num)
+		{
+			return false;
+		}
+		label = CopyLine(text, BotsLabel);
+		number = CopyLine(num, BotsNumber);
+		label.GetComponent<Text>().text = "Bots";
+		number.GetComponent<Text>().color = BotsPurple;
+		return true;
+	}
+
+	private static Transform CopyLine(Transform template, string name)
+	{
+		GameObject go = UnityEngine.Object.Instantiate(template.gameObject, template.parent, worldPositionStays: false);
+		go.name = name;
+		setText[] setters = go.GetComponentsInChildren<setText>(includeInactive: true);
+		for (int i = 0; i < setters.Length; i++)
+		{
+			UnityEngine.Object.DestroyImmediate(setters[i]);
+		}
+		go.GetComponent<Text>().raycastTarget = true;
+		go.SetActive(value: false);
+		return go.transform;
+	}
+
+	private static string BotsTip(gameScript g, MmoGame m)
+	{
+		string text = "<color=#8e44ad>Bot accounts: " + MmoBots.BotsText(g, m) + "</color>";
+		if (m.TrialBots > 0)
+		{
+			text = text + "\n" + MmoUiText.Num(m.Bots) + " pay a subscription, " + MmoUiText.Num(m.TrialBots) + " use free trial accounts.";
+		}
+		text = text + "\nThey drive real players away: " + Mathf.RoundToInt(MmoBots.ChurnFromBots(g, m) * 100f) + "% more leave each week, " + Mathf.RoundToInt((1f - MmoBots.JoinFactor(g, m)) * 100f) + "% fewer join.";
+		text = text + "\nAnti-bot protection: " + MmoBots.ProtectionText(g) + ".";
+		return text + "\nUpdates and ban waves remove them; a strong anti-bot system keeps them out (MMO Management).";
 	}
 
 	// MMO addons stay off the list (MMO Management shows them with their MMO).

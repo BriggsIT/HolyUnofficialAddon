@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 namespace HolyAddon.UI;
 
-// The new-game screen's "Timed exclusive" button: a copy of its "Buy DevKits" button, in the free space to its left
+// The new-game screen's "Timed Exclusive" button: a copy of its "Buy DevKits" button, in the free space to its left
 // on the platform page (there's no room for more rows between the platform type dropdown and the platform cards).
 // Shown for multiplatform games with two or more platforms picked; it opens a small chooser (TimedExclusivePage)
 // over the screen. The choice is attached to the game when development starts (Menu_DevGame.BUTTON_Start creates
@@ -102,7 +102,7 @@ internal static class TimedExclusiveMenu
 			{
 				PickedFirst = -1;
 			}
-			string text = ((PickedFirst < 0) ? "Timed exclusive" : ("Timed: " + PickedMonths + " months"));
+			string text = ((PickedFirst < 0) ? "Timed Exclusive" : ("Timed: " + PickedMonths + " months"));
 			if (text != shownLabel)
 			{
 				shownLabel = text;

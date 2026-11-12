@@ -684,9 +684,16 @@ internal static class CopyProtectDev
 	// ---- Rooms ----
 
 	// Development rooms, found directly (the game's cached room list can lag behind right after loading).
+	// Development rooms, from the game's room list (it refreshes the list the frame after rooms change). Searching
+	// the whole scene with FindObjectsOfType took ~14 ms in a big save.
 	public static List<roomScript> Rooms()
 	{
-		return UnityEngine.Object.FindObjectsOfType<roomScript>().Where((roomScript r) => (bool)r && r.typ == 1).ToList();
+		roomScript[] all = (G.MS ? G.MS.arrayRoomScripts : null);
+		if (all == null)
+		{
+			all = UnityEngine.Object.FindObjectsOfType<roomScript>();
+		}
+		return all.Where((roomScript r) => (bool)r && r.typ == 1).ToList();
 	}
 
 	public static roomScript FindRoom(int id)
@@ -974,7 +981,7 @@ internal static class CopyProtectDev
 		S.Products.Add(p);
 		ClearCache();
 		Version++;
-		string text = "<b>" + p.FullName + "</b> is finished! Strength: " + Mathf.RoundToInt(s.effekt) + "%. Nobody has cracked it yet: it holds that for the first " + UncrackedWeeks(p.Licensing) + " weeks.\n\nPick it for your games like any copy protection: it's free to use. Keep it strong with updates, or license it to other studios, in Management > Your copy protection.";
+		string text = "<b>" + p.FullName + "</b> is finished! Strength: " + Mathf.RoundToInt(s.effekt) + "%. Nobody has cracked it yet: it holds that for the first " + UncrackedWeeks(p.Licensing) + " weeks.\n\nPick it for your games like any copy protection: it's free to use. Keep it strong with updates, or license it to other studios, in Management > Your Copy Protection.";
 		if (pr.Tech == 4)
 		{
 			G.MS.AddStudioPoints(-2);
@@ -1103,7 +1110,7 @@ internal static class CopyProtectDev
 			if (On && Researched && !S.Announced)
 			{
 				S.Announced = true;
-				News("You can now develop your own copy protection: open a development room's menu, or Management > Your copy protection.");
+				News("You can now develop your own copy protection: open a development room's menu, or Management > Your Copy Protection.");
 			}
 			foreach (OwnCopyProtect p in S.Products.ToList())
 			{
@@ -1238,7 +1245,7 @@ internal static class CopyProtectDev
 				}
 				if (fee > 0)
 				{
-					G.MS.Earn(fee, 1);
+					G.MS.Earn(fee, 2);
 					p.Revenue += fee;
 					S.TotalRevenue += fee;
 				}

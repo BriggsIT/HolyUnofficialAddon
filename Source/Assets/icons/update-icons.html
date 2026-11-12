@@ -312,6 +312,157 @@ add('mmo-addon', `
 ${badge('ma', 102, 28, 'plus')}
 `);
 
+/* ---- Bots, anti-bot systems and live operations ---- */
+
+// A bot's head: grey, cyan eyes, an antenna.
+const robot = (p, x, y, s) => `<defs>${lg(p + 'rh', [[0, '#d7dde6'], [1, '#7d8896']])}${lg(p + 're', [[0, '#9ff3ff'], [1, '#14a3c7']])}</defs>
+<g transform="translate(${x} ${y}) scale(${s})">
+  <path d="M40 8 V20" stroke="${O}" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="40" cy="8" r="6" fill="#ff5a4e" stroke="${O}" stroke-width="3.5"/>
+  <rect x="6" y="38" width="8" height="20" rx="3" fill="url(#${p}rh)" stroke="${O}" stroke-width="3.5"/>
+  <rect x="66" y="38" width="8" height="20" rx="3" fill="url(#${p}rh)" stroke="${O}" stroke-width="3.5"/>
+  <rect x="12" y="20" width="56" height="52" rx="12" fill="url(#${p}rh)" stroke="${O}" stroke-width="4"/>
+  <rect x="20" y="32" width="40" height="18" rx="8" fill="#20252e"/>
+  <circle cx="31" cy="41" r="5" fill="url(#${p}re)"/><circle cx="49" cy="41" r="5" fill="url(#${p}re)"/>
+  <path d="M27 60 H53" stroke="#4a5262" stroke-width="4" stroke-linecap="round"/>
+  <path d="M18 26 Q24 22 34 22" stroke="#fff" stroke-opacity=".7" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+</g>`;
+
+// A shield, the anti-bot system.
+const shield = (p, x, y, s) => `<defs>${lg(p + 'sb', [[0, '#7cc4ff'], [1, '#1d5fb8']])}${lg(p + 'si', [[0, '#e9f4ff'], [1, '#b4d3f2']])}</defs>
+<g transform="translate(${x} ${y}) scale(${s})">
+  <path d="M50 4 L92 18 V50 C92 78 72 96 50 104 C28 96 8 78 8 50 V18 Z" fill="url(#${p}sb)" stroke="${O}" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M50 15 L82 26 V50 C82 72 67 86 50 93 C33 86 18 72 18 50 V26 Z" fill="url(#${p}si)" stroke="${O}" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M24 30 L50 21" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-opacity=".9"/>
+</g>`;
+
+// The red "no" sign.
+const ban = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${O}" stroke-width="${r * 0.42}"/>
+<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#e53935" stroke-width="${r * 0.26}"/>
+<path d="M${x - r * 0.7} ${y - r * 0.7} L${x + r * 0.7} ${y + r * 0.7}" stroke="${O}" stroke-width="${r * 0.42}" stroke-linecap="round"/>
+<path d="M${x - r * 0.7} ${y - r * 0.7} L${x + r * 0.7} ${y + r * 0.7}" stroke="#e53935" stroke-width="${r * 0.26}" stroke-linecap="round"/>`;
+
+const antibot = (p) => `${shield(p, 6, 6, 1.0)}${robot(p + 'r', 31, 30, 0.62)}${ban(88, 94, 15)}`;
+
+add('antibot', `<defs>${shadow('ab')}</defs><g filter="url(#absh)">${antibot('ab')}</g>`);
+
+add('antibot-build', `<defs>${shadow('an')}</defs><g filter="url(#ansh)">${antibot('an')}</g>${badge('an', 102, 28, 'plus')}`);
+
+add('antibot-update', `<defs>${shadow('au')}</defs><g filter="url(#aush)">${antibot('au')}</g>${badge('au', 102, 28, 'up')}`);
+
+/* Bot ban wave: a bot under the ban hammer */
+add('mmo-botbust', `
+<defs>${shadow('bb')}${lg('bbH', [[0, '#c98a4a'], [1, '#7a4a1c']])}${lg('bbM', [[0, '#f1f4f7'], [1, '#7d8896']])}</defs>
+<g filter="url(#bbsh)">
+  ${robot('bb', 4, 40, 0.92)}
+  <path d="M70 34 L78 28 M74 44 L84 42 M64 28 L66 18" stroke="#ffd24a" stroke-width="4" stroke-linecap="round"/>
+  ${ban(96, 98, 16)}
+  <g transform="translate(96 30) rotate(-35)">
+    <rect x="-5" y="-6" width="10" height="56" rx="4" fill="url(#bbH)" stroke="${O}" stroke-width="3.5"/>
+    <rect x="-22" y="-26" width="44" height="24" rx="5" fill="url(#bbM)" stroke="${O}" stroke-width="4"/>
+    <path d="M-16 -20 H8" stroke="#fff" stroke-opacity=".8" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</g>
+`);
+
+/* Stability patch: a server and a wrench */
+add('mmo-stability', `
+<defs>${shadow('st')}${lg('stS', [[0, '#6a7384'], [1, '#2b3039']])}${lg('stW', [[0, '#f1f4f7'], [1, '#8e9aa6']])}</defs>
+<g filter="url(#stsh)">
+  <rect x="14" y="26" width="58" height="84" rx="7" fill="url(#stS)" stroke="${O}" stroke-width="4"/>
+  <g fill="#15181d"><rect x="22" y="37" width="42" height="13" rx="3"/><rect x="22" y="57" width="42" height="13" rx="3"/><rect x="22" y="77" width="42" height="13" rx="3"/></g>
+  <circle cx="56" cy="43.5" r="3" fill="#7ee05a"/><circle cx="56" cy="63.5" r="3" fill="#7ee05a"/><circle cx="56" cy="83.5" r="3" fill="#7ee05a"/>
+  <path d="M28 43.5 H46 M28 63.5 H46 M28 83.5 H46" stroke="#4a5262" stroke-width="3" stroke-linecap="round"/>
+  <g transform="translate(78 82) rotate(40)">
+    <rect x="-6.5" y="-6" width="13" height="44" rx="5" fill="url(#stW)" stroke="${O}" stroke-width="3.5"/>
+    <path d="M-15 -14 A16 16 0 1 0 15 -14 L8 -6 L8 -24 L-8 -24 L-8 -6 Z" fill="url(#stW)" stroke="${O}" stroke-width="3.5" stroke-linejoin="round"/>
+  </g>
+</g>
+${badge('st', 102, 28, 'check')}
+`);
+
+/* Welcome-back campaign: a letter with a heart seal */
+add('mmo-welcome', `
+<defs>${shadow('wb')}${lg('wbE', [[0, '#ffffff'], [1, '#d4dbe4']])}${lg('wbH', [[0, '#ff7a8a'], [1, '#c4162c']])}</defs>
+<g filter="url(#wbsh)">
+  <rect x="8" y="32" width="96" height="66" rx="7" fill="url(#wbE)" stroke="${O}" stroke-width="4"/>
+  <path d="M10 36 L56 70 L102 36" fill="none" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M10 96 L44 62 M102 96 L68 62" stroke="#9aa6b2" stroke-width="3" stroke-linecap="round"/>
+  <path d="M56 92 C40 80 36 70 44 63 C49 59 54 61 56 66 C58 61 63 59 68 63 C76 70 72 80 56 92 Z" fill="url(#wbH)" stroke="${O}" stroke-width="3.5" stroke-linejoin="round"/>
+  <ellipse cx="49" cy="68" rx="4" ry="2.5" fill="#fff" fill-opacity=".6"/>
+</g>
+${badge('wb', 102, 28, 'plus')}
+`);
+
+/* Free trial: a ticket saying FREE */
+add('mmo-trial', `
+<defs>${shadow('ft')}${lg('ftT', [[0, '#ffe680'], [1, '#e0a000']])}</defs>
+<g filter="url(#ftsh)">
+  <g transform="rotate(-12 60 66)">
+    <path d="M10 38 H110 V54 A10 10 0 0 0 110 74 V90 H10 V74 A10 10 0 0 0 10 54 Z" fill="url(#ftT)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M32 42 V86" stroke="${O}" stroke-width="2.5" stroke-dasharray="5 4"/>
+    <text x="72" y="74" text-anchor="middle" font-family="'Arial Black', Bahnschrift, sans-serif" font-weight="900" font-size="24" fill="${O}">FREE</text>
+    <path d="M18 56 L24 62 L18 68" stroke="${O}" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</g>
+`);
+
+/* Classic servers: an hourglass in front of an old castle */
+add('mmo-classic', `
+<defs>${shadow('cl')}${lg('clC', [[0, '#c9ced6'], [1, '#7a8290']])}${lg('clG', [[0, '#ffe680'], [1, '#b8860b']])}${lg('clS', [[0, '#fff3c4'], [1, '#f2c14e']])}</defs>
+<g filter="url(#clsh)">
+  <path d="M8 104 V40 H20 V50 H30 V40 H42 V50 H52 V40 H64 V104 Z" fill="url(#clC)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M28 104 V80 A8 8 0 0 1 44 80 V104" fill="#2b3039" stroke="${O}" stroke-width="3"/>
+  <path d="M36 40 V20 L50 26 L36 32" fill="#e8463a" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="58" y="34" width="52" height="10" rx="4" fill="url(#clG)" stroke="${O}" stroke-width="3.5"/>
+  <rect x="58" y="106" width="52" height="10" rx="4" fill="url(#clG)" stroke="${O}" stroke-width="3.5"/>
+  <path d="M64 44 H104 C104 66 90 70 84 75 C90 80 104 84 104 106 H64 C64 84 78 80 84 75 C78 70 64 66 64 44 Z" fill="#eaf4ff" fill-opacity=".85" stroke="${O}" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M71 52 H97 C95 62 87 66 84 70 C81 66 73 62 71 52 Z" fill="url(#clS)"/>
+  <path d="M70 104 C72 92 80 88 84 86 C88 88 96 92 98 104 Z" fill="url(#clS)"/>
+  <path d="M84 72 V86" stroke="#f2c14e" stroke-width="2.5"/>
+</g>
+`);
+
+/* Autopilot: a ship's wheel */
+add('mmo-autopilot', (() => {
+  let spokes = '';
+  let knobs = '';
+  for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4;
+    const x1 = 60 + Math.cos(a) * 14, y1 = 62 + Math.sin(a) * 14;
+    const x2 = 60 + Math.cos(a) * 46, y2 = 62 + Math.sin(a) * 46;
+    const x3 = 60 + Math.cos(a) * 54, y3 = 62 + Math.sin(a) * 54;
+    spokes += `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)}" stroke="${O}" stroke-width="10" stroke-linecap="round"/><path d="M${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)}" stroke="url(#apW)" stroke-width="5" stroke-linecap="round"/>`;
+    knobs += `<circle cx="${x3.toFixed(1)}" cy="${y3.toFixed(1)}" r="7" fill="url(#apW)" stroke="${O}" stroke-width="3.5"/>`;
+  }
+  return `
+<defs>${shadow('ap')}${lg('apW', [[0, '#d8a565'], [1, '#7a4a1c']])}${lg('apC', [[0, '#ffe680'], [1, '#c48a00']])}</defs>
+<g filter="url(#apsh)">
+  ${spokes}${knobs}
+  <circle cx="60" cy="62" r="38" fill="none" stroke="${O}" stroke-width="13"/>
+  <circle cx="60" cy="62" r="38" fill="none" stroke="url(#apW)" stroke-width="7"/>
+  <circle cx="60" cy="62" r="14" fill="url(#apC)" stroke="${O}" stroke-width="4"/>
+  <text x="60" y="69" text-anchor="middle" font-family="'Arial Black', Bahnschrift, sans-serif" font-weight="900" font-size="18" fill="${O}">A</text>
+</g>`;
+})());
+
+/* Fan festival: a stage with curtains, spotlights and a star */
+add('mmo-fanfest', `
+<defs>${shadow('ff')}${lg('ffC', [[0, '#ff5a5a'], [1, '#8e0f1a']])}${lg('ffF', [[0, '#8a5a2b'], [1, '#4a2c10']])}${lg('ffS', [[0, '#fff6b0'], [1, '#f2b500']])}${lg('ffL', [[0, '#fffbe0'], [1, '#fffbe0']])}</defs>
+<g filter="url(#ffsh)">
+  <rect x="8" y="18" width="104" height="88" rx="6" fill="#2a1840" stroke="${O}" stroke-width="4"/>
+  <path d="M30 22 L18 96 H44 Z M90 22 L76 96 H102 Z" fill="url(#ffL)" fill-opacity=".28"/>
+  <path d="M8 22 H40 C34 46 34 74 22 100 H8 Z" fill="url(#ffC)" stroke="${O}" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M112 22 H80 C86 46 86 74 98 100 H112 Z" fill="url(#ffC)" stroke="${O}" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M8 14 H112 V28 Q60 40 8 28 Z" fill="url(#ffC)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <rect x="4" y="96" width="112" height="16" rx="4" fill="url(#ffF)" stroke="${O}" stroke-width="4"/>
+  <path d="M60 46 L66 60 L81 61 L69 70 L73 85 L60 77 L47 85 L51 70 L39 61 L54 60 Z" fill="url(#ffS)" stroke="${O}" stroke-width="3.5" stroke-linejoin="round"/>
+  <g fill="#7ee05a"><circle cx="46" cy="44" r="2.5"/><circle cx="78" cy="88" r="2.5"/></g>
+  <g fill="#6ec8ff"><circle cx="76" cy="42" r="2.5"/><circle cx="42" cy="88" r="2.5"/></g>
+  <g fill="#ffd24a"><circle cx="86" cy="58" r="2.2"/><circle cx="34" cy="62" r="2.2"/></g>
+</g>
+`);
+
 /* ---- Your digital store ---- */
 
 // A shopping bag with a play button: the store.
@@ -413,6 +564,104 @@ add('store-f5', `
   <rect x="53" y="82" width="24" height="16" rx="2" fill="#f6f2e4" stroke="${O}" stroke-width="2.5"/>
 </g>
 `);
+
+/* Console storefront: a console with the store's bag on its screen */
+add('store-console', `
+<defs>${shadow('sc')}${lg('scB', [[0, '#4a5262'], [1, '#1c2029']])}${lg('scS', [[0, '#2a3a5a'], [1, '#141c2e']])}</defs>
+<g filter="url(#scsh)">
+  <rect x="10" y="20" width="96" height="62" rx="7" fill="url(#scB)" stroke="${O}" stroke-width="4"/>
+  <rect x="18" y="28" width="80" height="46" rx="3" fill="url(#scS)" stroke="${O}" stroke-width="2.5"/>
+  <path d="M50 96 H66 M58 82 V96" stroke="${O}" stroke-width="5" stroke-linecap="round"/>
+  <rect x="22" y="94" width="72" height="18" rx="9" fill="url(#scB)" stroke="${O}" stroke-width="4"/>
+  <circle cx="36" cy="103" r="3.5" fill="#7ee05a"/><circle cx="80" cy="103" r="3.5" fill="#e8463a"/>
+  ${bag('scb', 40, 31, 0.4)}
+</g>
+${badge('sc', 102, 28, 'plus')}
+`);
+
+/* ---- MGH Games Awards: a trophy per category, with the category's emblem ---- */
+
+const METALS = {
+  gold: [[0, '#ffe680'], [0.55, '#f0b400'], [1, '#a86e00']],
+  silver: [[0, '#ffffff'], [0.55, '#c9d0da'], [1, '#7d8794']],
+  rust: [[0, '#c9a27a'], [0.55, '#8a5a2e'], [1, '#4e3015']]
+};
+
+// The cup, slightly left of centre so the emblem fits bottom right.
+const trophy = (p, metal, x = -8) => `<defs>${lg(p + 'G', METALS[metal])}</defs>
+<g transform="translate(${x} 0)">
+  <path d="M38 30 H20 C20 56 34 60 42 60 M90 30 H108 C108 56 94 60 86 60" stroke="${O}" stroke-width="9" fill="none"/>
+  <path d="M38 30 H20 C20 56 34 60 42 60 M90 30 H108 C108 56 94 60 86 60" stroke="url(#${p}G)" stroke-width="4.5" fill="none"/>
+  <path d="M38 20 H90 V50 C90 72 76 82 64 82 C52 82 38 72 38 50 Z" fill="url(#${p}G)" stroke="${O}" stroke-width="4" stroke-linejoin="round"/>
+  <rect x="56" y="80" width="16" height="14" fill="url(#${p}G)" stroke="${O}" stroke-width="4"/>
+  <rect x="36" y="92" width="56" height="18" rx="3" fill="#3a2a1e" stroke="${O}" stroke-width="4"/>
+  <rect x="48" y="97" width="32" height="7" rx="2" fill="url(#${p}G)" stroke="${O}" stroke-width="2"/>
+  <path d="M48 28 V54" stroke="#fff" stroke-opacity=".7" stroke-width="5" stroke-linecap="round"/>
+</g>`;
+
+// The category's round emblem, bottom right.
+const emblem = (p, col, sym) => `<defs>${lg(p + 'E', [[0, col[0]], [1, col[1]]])}</defs>
+<circle cx="98" cy="92" r="25" fill="url(#${p}E)" stroke="${O}" stroke-width="4"/>
+<ellipse cx="91" cy="80" rx="13" ry="6" fill="#fff" fill-opacity=".3"/>
+${sym}`;
+
+const awardStar = (cx, cy, r) => { let d = ''; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; d += (i ? 'L' : 'M') + (cx + rr * Math.cos(a)).toFixed(1) + ' ' + (cy + rr * Math.sin(a)).toFixed(1); } return d + 'Z'; };
+
+const award = (id, metal, col, sym) => add('award-' + id, `<defs>${shadow('a' + id)}</defs><g filter="url(#a${id}sh)">${trophy('a' + id, metal)}${emblem('a' + id, col, sym)}</g>`);
+
+/* Game of the Year: the big gold cup with a star, no emblem */
+add('award-goty', `<defs>${shadow('ag')}</defs><g filter="url(#agsh)">${trophy('ag', 'gold', 0)}
+  <path d="${awardStar(64, 46, 17)}" fill="#fff8d0" stroke="${O}" stroke-width="3" stroke-linejoin="round"/></g>`);
+
+award('gameplay', 'gold', ['#7cc4ff', '#2a6fd0'], `
+  <rect x="80" y="83" width="36" height="20" rx="10" fill="#fff" stroke="${O}" stroke-width="3"/>
+  <path d="M89 88 V98 M84 93 H94" stroke="${O}" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="105" cy="90" r="2.8" fill="#e04848"/><circle cx="110" cy="96" r="2.8" fill="#2a9a3c"/>`);
+
+award('graphics', 'gold', ['#ff9ad0', '#c0307a'], `
+  <path d="M98 74 C84 74 76 84 78 94 C80 104 90 108 96 104 C100 101 96 96 101 95 C108 94 118 96 118 88 C118 80 110 74 98 74 Z" fill="#fff" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="89" cy="86" r="3.3" fill="#e04848"/><circle cx="99" cy="82" r="3.3" fill="#ffcf3a"/><circle cx="109" cy="86" r="3.3" fill="#2a9a3c"/><circle cx="88" cy="96" r="3.3" fill="#2a6fd0"/>`);
+
+award('sound', 'gold', ['#b48cff', '#5b34c9'], `
+  <path d="M94 100 V78 L112 74 V96" stroke="#fff" stroke-width="4" fill="none" stroke-linejoin="round"/>
+  <ellipse cx="89" cy="101" rx="6" ry="5" fill="#fff" stroke="${O}" stroke-width="2"/>
+  <ellipse cx="107" cy="97" rx="6" ry="5" fill="#fff" stroke="${O}" stroke-width="2"/>`);
+
+award('controls', 'silver', ['#ffb36b', '#d0661c'], `
+  <rect x="84" y="98" width="28" height="9" rx="4" fill="#fff" stroke="${O}" stroke-width="3"/>
+  <path d="M98 98 V84" stroke="${O}" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="98" cy="80" r="7" fill="#e04848" stroke="${O}" stroke-width="3"/>`);
+
+award('players', 'gold', ['#ff8a8a', '#c62828'], `
+  <path d="M98 106 C84 96 80 90 80 84 C80 77 86 74 90 74 C94 74 97 77 98 80 C99 77 102 74 106 74 C110 74 116 77 116 84 C116 90 112 96 98 106 Z" fill="#fff" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>`);
+
+award('debut', 'silver', ['#7ee05a', '#2f9a1c'], `
+  <text x="98" y="104" text-anchor="middle" font-family="'Arial Black', Bahnschrift, sans-serif" font-weight="900" font-size="30" fill="#fff" stroke="${O}" stroke-width="2">1</text>`);
+
+award('indie', 'silver', ['#9be36a', '#3f9a22'], `
+  <path d="M98 108 V92" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  <path d="M98 94 C86 94 82 84 84 76 C94 76 100 84 98 94 Z" fill="#fff" stroke="${O}" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M98 96 C108 96 114 88 112 80 C104 80 98 88 98 96 Z" fill="#fff" stroke="${O}" stroke-width="2.5" stroke-linejoin="round"/>`);
+
+award('family', 'silver', ['#ffd166', '#e09a00'], `
+  <path d="M82 90 L98 76 L114 90 V106 H82 Z" fill="#fff" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="93" y="94" width="10" height="12" fill="#e09a00" stroke="${O}" stroke-width="2"/>`);
+
+award('ongoing', 'gold', ['#6ed0c8', '#1c8a80'], `
+  <circle cx="98" cy="92" r="14" fill="#fff" stroke="${O}" stroke-width="3"/>
+  <path d="M84 92 H112 M98 78 C90 86 90 98 98 106 M98 78 C106 86 106 98 98 106" stroke="#1c8a80" stroke-width="2.5" fill="none"/>
+  <path d="M110 74 A20 20 0 0 1 118 90" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path d="M114 86 L118 92 L121 85" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
+
+award('developer', 'gold', ['#5f6878', '#2b3039'], `
+  <text x="98" y="101" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-weight="900" font-size="22" fill="#7ee05a">&lt;/&gt;</text>`);
+
+award('publisher', 'gold', ['#a27cff', '#5b34c9'], `
+  <path d="M82 84 L98 77 L114 84 V102 L98 109 L82 102 Z" fill="#fff" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M82 84 L98 91 L114 84 M98 91 V109" stroke="${O}" stroke-width="2.5" fill="none" stroke-linejoin="round"/>`);
+
+award('worst', 'rust', ['#8a7a6a', '#4e3f30'], `
+  <path d="M98 104 V82 M88 94 L98 104 L108 94" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
 
 document.getElementById('sheet').innerHTML = ICONS.map(i => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">${i.svg}</svg>`).join('');
 document.getElementById('meta').textContent = JSON.stringify(ICONS.map(i => ({ id: i.id, name: i.name })));

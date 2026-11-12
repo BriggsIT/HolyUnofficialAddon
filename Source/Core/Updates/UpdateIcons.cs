@@ -24,11 +24,36 @@ internal static class UpdateIcons
 			UpdateKind.MmoPort => "update-port.png",
 			UpdateKind.MmoFeatures => "update-features.png",
 			UpdateKind.MmoRating => "update-rating.png",
+			UpdateKind.MmoBotBust => "mmo-botbust.png",
+			UpdateKind.MmoWelcomeBack => "mmo-welcome.png",
+			UpdateKind.MmoClassic => "mmo-classic.png",
+			UpdateKind.MmoFreeTrial => "mmo-trial.png",
+			UpdateKind.MmoStability => "mmo-stability.png",
+			UpdateKind.MmoClassicPhase => "mmo-classic.png",
 			UpdateKind.StoreBuild => "store-build.png",
 			UpdateKind.StoreFeature => "store-feature.png",
+			UpdateKind.StoreConsole => "store-console.png",
+			UpdateKind.AntiBotBuild => "antibot-build.png",
+			UpdateKind.AntiBotUpdate => "antibot-update.png",
 			_ => "update-port.png",
 		};
 		return File(file) ?? UIKit.Sprite("iconUpdate") ?? UIKit.Sprite("iconOptions");
+	}
+
+	// Anti-bot systems (the window and a system's picture).
+	public static Sprite AntiBot()
+	{
+		return File("antibot.png") ?? For(UpdateKind.AntiBotBuild);
+	}
+
+	public static Sprite Autopilot()
+	{
+		return File("mmo-autopilot.png") ?? Mmo();
+	}
+
+	public static Sprite FanFest()
+	{
+		return File("mmo-fanfest.png") ?? Mmo();
 	}
 
 	// The MMO management window's own icon.
@@ -63,6 +88,30 @@ internal static class UpdateIcons
 	public static Sprite RivalLogo(string id)
 	{
 		return UIKit.LoadSprite(Path.Combine(Path.Combine(Plugin.PluginDir, "store"), "rival-" + id + ".png")) ?? Store();
+	}
+
+	// MGH Games Awards trophies (icons/award-<category>.png).
+	public static Sprite Award(string category)
+	{
+		return File("award-" + category + ".png") ?? File("award-goty.png") ?? UIKit.Sprite("iconMadGamesAwards");
+	}
+
+	// The awards ceremony backdrop (Assets/awards/awards-art.html).
+	public static Sprite AwardsBackdrop()
+	{
+		return File("awards-bg.png");
+	}
+
+	// Banner art for the tops of windows (Assets/awards/banners.html): "store", "charts".
+	public static Sprite Banner(string id)
+	{
+		return File("banner-" + id + ".png");
+	}
+
+	// One of the game's own icons by name, or ours if the game hasn't loaded it.
+	public static Sprite Game(string name, Sprite fallback = null)
+	{
+		return UIKit.Sprite(name) ?? fallback;
 	}
 
 	private static Sprite File(string file)

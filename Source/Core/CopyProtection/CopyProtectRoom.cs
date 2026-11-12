@@ -43,7 +43,18 @@ internal static class CopyProtectRoom
 	private static readonly AccessTools.FieldRef<Menu_W_Aufgabe_Abbrechen, roomScript> CancelRoom = AccessTools.FieldRefAccess<Menu_W_Aufgabe_Abbrechen, roomScript>("rS_");
 
 	// Expected development points per week from a room's staff (programming skill, desks, crunch).
+	// The room's pace, with the rooms supporting it (their staff work on its project too).
 	public static float Rate(roomScript r)
+	{
+		float total = OwnRate(r);
+		foreach (roomScript s in RoomSupport.Supporters(r))
+		{
+			total += OwnRate(s);
+		}
+		return total;
+	}
+
+	private static float OwnRate(roomScript r)
 	{
 		if (!r || !G.MS)
 		{

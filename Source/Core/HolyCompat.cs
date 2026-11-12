@@ -28,6 +28,73 @@ internal static class HolyCompat
 		return StoreYear;
 	}
 
+	// ---- Cached lookups ----
+	// Finding a type by name (AccessTools.TypeByName) searches every loaded assembly, and reading a field through
+	// Traverse looks the field up again each time: both are far too slow for anything that runs every frame or for
+	// every room. These look each one up once.
+
+	private static readonly Dictionary<string, Type> types = new Dictionary<string, Type>();
+
+	private static readonly Dictionary<KeyValuePair<Type, string>, FieldInfo> fields = new Dictionary<KeyValuePair<Type, string>, FieldInfo>();
+
+	public static Type HolyType(string fullName)
+	{
+		if (!types.TryGetValue(fullName, out var t))
+		{
+			t = (types[fullName] = AccessTools.TypeByName(fullName));
+		}
+		return t;
+	}
+
+	// A field of Holy's save state (HolyState.Current.<name>), or null without Holy.
+	public static object HolyState(string name)
+	{
+		Type state = HolyType("HolyExpansion.Core.HolyState");
+		if (state == null)
+		{
+			return null;
+		}
+		object current = Field(state, "Current")?.GetValue(null);
+		if (current == null)
+		{
+			return null;
+		}
+		return Field(state, name)?.GetValue(current);
+	}
+
+	// A field's value on any object (Holy's state classes), with the field looked up once per type.
+	public static T Get<T>(object o, string name)
+	{
+		if (o == null)
+		{
+			return default(T);
+		}
+		object v = Field(o.GetType(), name)?.GetValue(o);
+		if (v is T t)
+		{
+			return t;
+		}
+		return default(T);
+	}
+
+	public static void Set(object o, string name, object value)
+	{
+		if (o != null)
+		{
+			Field(o.GetType(), name)?.SetValue(o, value);
+		}
+	}
+
+	private static FieldInfo Field(Type t, string name)
+	{
+		KeyValuePair<Type, string> key = new KeyValuePair<Type, string>(t, name);
+		if (!fields.TryGetValue(key, out var f))
+		{
+			f = (fields[key] = AccessTools.Field(t, name));
+		}
+		return f;
+	}
+
 	// ---- Holy's piracy (HolyExpansion.Systems.GamePiracy; its numbers live in HolyState.Current.GamePiracy) ----
 
 	private static bool piracyLooked;
@@ -170,9 +237,204 @@ internal static class HolyCompat
 		}
 	}
 
+	// ---- Holy's Seasonal Sales give way to the addon's sales events (Core/Store/SalesEvents) ----
+
+	// Our price cut goes through Holy's own price modifiers, so Holy's SellGame patch applies it once.
+	private static void SharePriceCut()
+	{
+		try
+		{
+			MethodInfo register = AccessTools.TypeByName("HolyExpansion.Systems.SalesBonus")?.GetMethod("RegisterPrice", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+			if (register == null)
+			{
+				return;
+			}
+			register.Invoke(null, new object[1] { new Func<gameScript, float>(Store.SalesEvents.PriceFactor) });
+			Store.SalesEvents.HolyPrices = true;
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Could not share the sale price cut with Holy: " + ex.Message);
+		}
+	}
+
+	// While sales events are on, Holy's Seasonal Sales count as switched off (no sale, bonus, price cut or event).
+	private static bool SeasonalOff(ref bool __result)
+	{
+		if (Plugin.MergedSales.Value)
+		{
+			__result = false;
+			return false;
+		}
+		return true;
+	}
+
+	// Holy's "Seasonal Sales" entry in the Price & Packaging menu opens the sales events instead.
+	private static void TakeOverMenu(Type seasonal)
+	{
+		Type injector = AccessTools.TypeByName("HolyExpansion.UI.MenuInjector");
+		if (!(injector?.GetField("entries", BindingFlags.Static | BindingFlags.NonPublic)?.GetValue(null) is System.Collections.IList entries))
+		{
+			return;
+		}
+		foreach (object entry in entries)
+		{
+			Traverse t = Traverse.Create(entry);
+			if (t.Field("Id").GetValue<string>() != "seasonal")
+			{
+				continue;
+			}
+			Func<string> label = t.Field("Label").GetValue<Func<string>>();
+			Action click = t.Field("Click").GetValue<Action>();
+			Func<string> locked = t.Field("LockReason").GetValue<Func<string>>();
+			Func<bool> visible = t.Field("Visible").GetValue<Func<bool>>();
+			t.Field("Label").SetValue(new Func<string>(() => Plugin.MergedSales.Value ? "Sales Events" : label?.Invoke()));
+			t.Field("Click").SetValue(new Action(() =>
+			{
+				if (Plugin.MergedSales.Value)
+				{
+					UI.EditorWindow.Sales.Open();
+				}
+				else
+				{
+					click?.Invoke();
+				}
+			}));
+			t.Field("LockReason").SetValue(new Func<string>(() => Plugin.MergedSales.Value ? Store.SalesEvents.LockReason() : locked?.Invoke()));
+			t.Field("Visible").SetValue(new Func<bool>(() => Plugin.MergedSales.Value || (visible?.Invoke() ?? true)));
+			Plugin.Log.LogInfo("Holy's Seasonal Sales menu entry opens the sales events");
+			return;
+		}
+	}
+
+	// ---- Holy's Fan Convention gives way to the yearly convention (Core/Events/StudioCon) ----
+
+	private static bool ConventionOff(ref bool __result)
+	{
+		if (Plugin.Convention.Value)
+		{
+			__result = false;
+			return false;
+		}
+		return true;
+	}
+
+	// Holy's "Fan Convention" button in Support rooms opens the yearly convention's planner for that room.
+	private static void TakeOverRoomButton()
+	{
+		Type menu = AccessTools.TypeByName("HolyExpansion.UI.RoomMenu");
+		if (!(menu?.GetField("entries", BindingFlags.Static | BindingFlags.NonPublic)?.GetValue(null) is System.Collections.IList entries))
+		{
+			return;
+		}
+		foreach (object entry in entries)
+		{
+			Traverse t = Traverse.Create(entry);
+			if (t.Field("Id").GetValue<string>() != "convention")
+			{
+				continue;
+			}
+			Func<string> label = t.Field("Label").GetValue<Func<string>>();
+			Action<roomScript> click = t.Field("Click").GetValue<Action<roomScript>>();
+			Func<string> locked = t.Field("LockReason").GetValue<Func<string>>();
+			Func<bool> visible = t.Field("Visible").GetValue<Func<bool>>();
+			t.Field("Label").SetValue(new Func<string>(() => Plugin.Convention.Value ? Events.StudioCon.Name() : label?.Invoke()));
+			t.Field("Click").SetValue(new Action<roomScript>((roomScript room) =>
+			{
+				if (Plugin.Convention.Value)
+				{
+					UI.Pages.ConventionPage.FromRoom = room;
+					UI.EditorWindow.Convention.Open();
+				}
+				else
+				{
+					click?.Invoke(room);
+				}
+			}));
+			t.Field("LockReason").SetValue(new Func<string>(() => Plugin.Convention.Value ? Events.StudioCon.LockReason() : locked?.Invoke()));
+			t.Field("Visible").SetValue(new Func<bool>(() => Plugin.Convention.Value || (visible?.Invoke() ?? true)));
+			Plugin.Log.LogInfo("Holy's Fan Convention room button opens the yearly convention");
+			return;
+		}
+	}
+
+	// One of Holy's menu entries (MenuInjector: the game's top menus; RoomMenu: room menus), by its id.
+	private static Traverse HolyEntry(string menuType, string id)
+	{
+		Type menu = AccessTools.TypeByName(menuType);
+		if (!(menu?.GetField("entries", BindingFlags.Static | BindingFlags.NonPublic)?.GetValue(null) is System.Collections.IList entries))
+		{
+			return null;
+		}
+		foreach (object entry in entries)
+		{
+			Traverse t = Traverse.Create(entry);
+			if (t.Field("Id").GetValue<string>() == id)
+			{
+				return t;
+			}
+		}
+		return null;
+	}
+
+	// Holy's "Your Anti-Cheat" (Management menu) has no lock, so it opens before anti-cheat software exists. It takes
+	// the lock of Holy's own "Develop Anti-Cheat" room button ("Anti-cheat software appears around 1990."), so it's
+	// greyed out with that tooltip like the game's locked options.
+	private static void LockAntiCheatMenu()
+	{
+		try
+		{
+			Traverse menu = HolyEntry("HolyExpansion.UI.MenuInjector", "anticheat");
+			Traverse room = HolyEntry("HolyExpansion.UI.RoomMenu", "anticheat");
+			Func<string> reason = room?.Field("LockReason").GetValue<Func<string>>();
+			if (menu != null && reason != null && menu.Field("LockReason").GetValue() == null)
+			{
+				menu.Field("LockReason").SetValue(reason);
+				Plugin.Log.LogInfo("Holy's Your Anti-Cheat menu entry is locked until anti-cheat software exists");
+			}
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Could not lock Holy's Your Anti-Cheat menu entry: " + ex.Message);
+		}
+	}
+
 	public static void Apply(Harmony harmony)
 	{
 		ShareSalesBonus();
+		SharePriceCut();
+		LockAntiCheatMenu();
+		HolyLiveService.Apply(harmony);
+		RoomSupport.Apply(harmony);
+		try
+		{
+			Type convention = AccessTools.TypeByName("HolyExpansion.Systems.Convention");
+			MethodInfo on = ((convention != null) ? AccessTools.PropertyGetter(convention, "On") : null);
+			if (on != null)
+			{
+				harmony.Patch(on, new HarmonyMethod(typeof(HolyCompat), "ConventionOff"));
+				TakeOverRoomButton();
+				Events.HolyRooms.TakeOver();
+			}
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Could not hand Holy's Fan Convention over to the yearly convention: " + ex.Message);
+		}
+		try
+		{
+			Type seasonal = AccessTools.TypeByName("HolyExpansion.Systems.SeasonalSales");
+			MethodInfo on = ((seasonal != null) ? AccessTools.PropertyGetter(seasonal, "On") : null);
+			if (on != null)
+			{
+				harmony.Patch(on, new HarmonyMethod(typeof(HolyCompat), "SeasonalOff"));
+				TakeOverMenu(seasonal);
+			}
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Could not hand Holy's Seasonal Sales over to the sales events: " + ex.Message);
+		}
 		try
 		{
 			Type seasonal = AccessTools.TypeByName("HolyExpansion.Systems.SeasonalSales");

@@ -156,10 +156,16 @@ internal static class MmoMenu
 			label.GetComponent<Text>().text = "MMO Management";
 		}
 		int count = MmoOps.MyMmos().Count;
+		string locked = MmoOps.LockReason();
 		Transform lockIcon = entry.Find("Lock");
 		if ((bool)lockIcon)
 		{
-			lockIcon.gameObject.SetActive(value: false);
+			lockIcon.gameObject.SetActive(locked != null);
+		}
+		if (locked != null)
+		{
+			UIKit.SetTooltip(entry.gameObject, locked);
+			return;
 		}
 		UIKit.SetTooltip(entry.gameObject, ((count == 0) ? "Once you have an MMO on the market: modernise it, grow it, release expansion packs and keep its players." : ("Modernise your MMOs, grow them, release expansion packs and keep their players (" + ((count == 1) ? "1 MMO" : (count + " MMOs")) + " on the market).")) + " Also the MMO subscription charts.");
 	}
@@ -202,6 +208,10 @@ internal static class MmoMenu
 	private static void Click(roomButtonScript rb)
 	{
 		UIKit.Sound();
+		if (MmoOps.LockReason() != null)
+		{
+			return;
+		}
 		roomScript room = rb.rS_;
 		if ((bool)G.Gui)
 		{

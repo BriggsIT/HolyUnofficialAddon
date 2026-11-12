@@ -126,7 +126,7 @@ internal abstract class UpdatePageBase : Page
 	protected void StartButton(EditorWindow w, float y, UpdatePlan plan, System.Func<UpdateProject> make)
 	{
 		bool ok = plan.Problem == null;
-		w.BigButton("Start the update", 14f, y, 260f, 44f, () =>
+		w.BigButton("Start the Update", 14f, y, 260f, 44f, () =>
 		{
 			gameScript g = Game;
 			UpdateProject p = make();
@@ -479,7 +479,7 @@ internal class UpdateProjectPage : Page
 			EditorWindow.KV("Back if stopped now", G.Money(GameUpdates.Refund(p)))
 		};
 		w.Facts(14f, 134f, w.Width - 28f, facts, 2);
-		w.SmallButton(confirmCancel ? "Really stop it?" : "Stop the update", 14f, w.Height - 75f - 84f, 220f, () =>
+		w.SmallButton(confirmCancel ? "Really Stop It?" : "Stop the Update", 14f, w.Height - 75f - 84f, 220f, () =>
 		{
 			if (!confirmCancel)
 			{
@@ -511,7 +511,7 @@ internal class UpdatesHomePage : Page
 
 	private float nextTick;
 
-	public override string Title => "Game updates";
+	public override string Title => "Game Updates";
 
 	public override Sprite IconSprite => UpdateIcons.For(UpdateKind.Engine);
 

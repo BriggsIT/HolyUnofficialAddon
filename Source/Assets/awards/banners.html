@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Banners</title>
+<!--
+  Banner backdrops for the addon's windows (original art). One page per banner, picked by the URL hash:
+    banners.html#store   the digital store: a dark scene with a game controller lit from the right
+    banners.html#charts  current charts: rising bars and a trophy glow
+  Render with: .\render-page.ps1 -Page "banners.html#store" -Width 1600 -Height 280 -Out ..\icons\png\banner-store.png
+-->
+<style>
+  html, body { margin: 0; padding: 0; background: #0b1424; overflow: hidden; }
+  svg { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<svg id="art" viewBox="0 0 1600 280" preserveAspectRatio="xMidYMid slice"></svg>
+<script>
+const which = (location.hash || '#store').slice(1);
+const O = '#05080f';
+const defs = `
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#0a1322"/><stop offset="0.55" stop-color="#0f2140"/><stop offset="1" stop-color="#16345e"/>
+  </linearGradient>
+  <radialGradient id="glow" cx="0.78" cy="0.45" r="0.55">
+    <stop offset="0" stop-color="#3f8cff" stop-opacity="0.55"/><stop offset="0.5" stop-color="#2a5fb8" stop-opacity="0.18"/><stop offset="1" stop-color="#0a1322" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="pad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#3b4352"/><stop offset="0.5" stop-color="#1e232d"/><stop offset="1" stop-color="#0e1118"/>
+  </linearGradient>
+  <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#6fb2ff" stop-opacity="0"/><stop offset="0.6" stop-color="#9fd0ff" stop-opacity="0.9"/><stop offset="1" stop-color="#ffffff"/>
+  </linearGradient>
+  <linearGradient id="fadeL" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#0a1322" stop-opacity="0.95"/><stop offset="0.45" stop-color="#0a1322" stop-opacity="0.55"/><stop offset="0.7" stop-color="#0a1322" stop-opacity="0"/>
+  </linearGradient>
+  <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#5aa8ff"/><stop offset="1" stop-color="#1c4a8f"/>
+  </linearGradient>
+  <linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#ffd76a"/><stop offset="1" stop-color="#b8860b"/>
+  </linearGradient>
+  <filter id="blur"><feGaussianBlur stdDeviation="6"/></filter>
+  <filter id="soft"><feGaussianBlur stdDeviation="1.2"/></filter>
+</defs>`;
+
+// Diagonal light streaks and a few drifting shapes, the same on every banner.
+function streaks() {
+  let s = '';
+  for (let i = 0; i < 7; i++) {
+    const x = 520 + i * 150;
+    s += `<path d="M${x} 300 L${x + 220} -20" stroke="#8cc4ff" stroke-opacity="${0.05 + (i % 3) * 0.025}" stroke-width="${18 + (i % 2) * 22}"/>`;
+  }
+  const dots = [[640, 60, 3], [760, 210, 2], [880, 40, 2.5], [1010, 230, 2], [1180, 30, 3], [1330, 250, 2], [1480, 70, 2.5], [1540, 190, 2]];
+  for (const [x, y, r] of dots) s += `<circle cx="${x}" cy="${y}" r="${r}" fill="#bfe0ff" fill-opacity=".55"/>`;
+  return s;
+}
+
+// An original game controller, three-quarter view, lit from the right.
+function controller(cx, cy, s) {
+  return `<g transform="translate(${cx} ${cy}) rotate(-12) scale(${s})">
+    <ellipse cx="0" cy="118" rx="210" ry="22" fill="#000" fill-opacity=".45" filter="url(#blur)"/>
+    <path d="M-150 -30 C-190 -30 -215 10 -228 70 C-238 118 -224 140 -196 140 C-166 140 -150 112 -118 100 L118 100 C150 112 166 140 196 140 C224 140 238 118 228 70 C215 10 190 -30 150 -30 Z" fill="url(#pad)" stroke="${O}" stroke-width="5"/>
+    <path d="M-150 -30 C-190 -30 -215 10 -228 70" stroke="url(#rim)" stroke-width="4" fill="none" opacity=".35"/>
+    <path d="M150 -30 C190 -30 215 10 228 70 C236 112 224 136 200 140" stroke="url(#rim)" stroke-width="5" fill="none"/>
+    <path d="M-120 -30 Q0 -48 120 -30" stroke="#9fd0ff" stroke-opacity=".5" stroke-width="3" fill="none"/>
+    <g fill="#141820" stroke="#05080f" stroke-width="3">
+      <rect x="-150" y="20" width="20" height="58" rx="5"/><rect x="-169" y="39" width="58" height="20" rx="5"/>
+    </g>
+    <circle cx="-60" cy="78" r="26" fill="#11151c" stroke="#05080f" stroke-width="4"/><circle cx="-60" cy="78" r="15" fill="#262c38"/>
+    <circle cx="60" cy="78" r="26" fill="#11151c" stroke="#05080f" stroke-width="4"/><circle cx="60" cy="78" r="15" fill="#262c38"/>
+    <circle cx="140" cy="18" r="14" fill="#3c8dff" stroke="#05080f" stroke-width="3"/>
+    <circle cx="170" cy="46" r="14" fill="#f2c14e" stroke="#05080f" stroke-width="3"/>
+    <circle cx="110" cy="46" r="14" fill="#e8463a" stroke="#05080f" stroke-width="3"/>
+    <circle cx="140" cy="74" r="14" fill="#5fd068" stroke="#05080f" stroke-width="3"/>
+    <rect x="-22" y="10" width="44" height="12" rx="6" fill="#3a4252"/>
+    <circle cx="0" cy="44" r="10" fill="#9fd0ff" fill-opacity=".85" filter="url(#soft)"/>
+  </g>`;
+}
+
+// Rising chart bars with a gold leader.
+function bars() {
+  let s = '';
+  const hs = [70, 95, 84, 120, 108, 150, 136, 182, 205];
+  hs.forEach((h, i) => {
+    const x = 1000 + i * 58;
+    const gold = i === hs.length - 1;
+    s += `<rect x="${x}" y="${250 - h}" width="40" height="${h}" rx="5" fill="url(#${gold ? 'barGold' : 'bar'})" stroke="${O}" stroke-width="3" opacity="${gold ? 1 : 0.85}"/>`;
+  });
+  s += `<path d="M990 205 L1078 170 L1136 182 L1194 140 L1252 152 L1310 108 L1368 122 L1426 80 L1484 52" stroke="#bfe0ff" stroke-width="4" fill="none" stroke-linejoin="round"/>`;
+  s += `<circle cx="1484" cy="52" r="7" fill="#ffd76a" stroke="${O}" stroke-width="3"/>`;
+  return s;
+}
+
+// Signed papers fanned out, a gold seal and a pen: contracts with other studios.
+function papers() {
+  let s = '';
+  const sheets = [[1060, 40, -10], [1150, 30, 4], [1240, 46, 14]];
+  sheets.forEach(([x, y, r], i) => {
+    s += `<g transform="translate(${x} ${y}) rotate(${r})">
+      <rect x="0" y="0" width="150" height="200" rx="6" fill="#eef3fa" stroke="${O}" stroke-width="4"/>
+      <rect x="18" y="22" width="80" height="10" rx="5" fill="#2a5fb8" opacity=".8"/>
+      ${[50, 70, 90, 110, 130].map(yy => `<rect x="18" y="${yy}" width="${i === 1 ? 114 : 100}" height="6" rx="3" fill="#9aa8bc"/>`).join('')}
+      <path d="M20 168 Q40 150 60 166 T104 160" stroke="#1c3f86" stroke-width="3" fill="none"/>
+    </g>`;
+  });
+  s += `<circle cx="1360" cy="210" r="34" fill="url(#barGold)" stroke="${O}" stroke-width="4"/>
+    <path d="M1360 186 L1366 202 L1384 203 L1370 213 L1375 230 L1360 220 L1345 230 L1350 213 L1336 203 L1354 202 Z" fill="#fff3c4" stroke="${O}" stroke-width="2"/>
+    <path d="M1340 236 L1332 268 L1348 258 L1356 272 L1360 240 M1380 236 L1388 268 L1372 258 L1364 272 L1360 240" fill="#c4161c" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+    <g transform="translate(1440 70) rotate(38)">
+      <rect x="-9" y="0" width="18" height="150" rx="8" fill="#1e232d" stroke="${O}" stroke-width="4"/>
+      <rect x="-9" y="104" width="18" height="12" fill="url(#barGold)"/>
+      <path d="M-9 150 L9 150 L0 182 Z" fill="url(#barGold)" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+    </g>`;
+  return s;
+}
+
+// Sale tags on strings: a big red one and two smaller gold and blue ones, with a percent sign each.
+function tags() {
+  const tag = (x, y, r, s, fill, text, ink) => `<g transform="translate(${x} ${y}) rotate(${r}) scale(${s})">
+      <path d="M0 -150 L0 -52" stroke="#bfe0ff" stroke-opacity=".7" stroke-width="3"/>
+      <ellipse cx="0" cy="190" rx="110" ry="14" fill="#000" fill-opacity=".35" filter="url(#blur)"/>
+      <path d="M0 -60 L70 -14 L70 160 Q70 172 58 172 L-58 172 Q-70 172 -70 160 L-70 -14 Z" fill="${fill}" stroke="${O}" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M0 -60 L70 -14 L70 0" stroke="#fff" stroke-opacity=".45" stroke-width="4" fill="none"/>
+      <circle cx="0" cy="-22" r="12" fill="#0b1424" stroke="${O}" stroke-width="4"/>
+      <text x="0" y="78" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="900" font-size="58" fill="${ink}">${text}</text>
+      <text x="0" y="128" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="700" font-size="26" fill="${ink}" fill-opacity=".85">OFF</text>
+    </g>`;
+  return tag(1090, 98, -9, 0.62, 'url(#barGold)', '25%', '#3a2a00')
+    + tag(1440, 96, 11, 0.6, 'url(#bar)', '75%', '#ffffff')
+    + tag(1262, 70, -2, 0.92, '#d83a32', '50%', '#ffffff');
+}
+
+// A stage under spotlights with a big screen, and the crowd in front of it.
+function stage() {
+  let s = '';
+  // Spotlight beams from the top.
+  const beams = [[980, '#ffd76a'], [1150, '#9fd0ff'], [1330, '#ff9fd8'], [1500, '#9fd0ff']];
+  beams.forEach(([x, c], i) => {
+    const tx = 1110 + i * 90;
+    s += `<path d="M${x} -10 L${tx - 70} 200 L${tx + 70} 200 Z" fill="${c}" fill-opacity=".13"/>`;
+    s += `<circle cx="${x}" cy="0" r="12" fill="${c}" fill-opacity=".9" filter="url(#soft)"/>`;
+  });
+  // The screen and the stage.
+  s += `<rect x="1100" y="44" width="320" height="120" rx="8" fill="#0d1b33" stroke="${O}" stroke-width="5"/>
+    <rect x="1112" y="56" width="296" height="96" rx="4" fill="url(#bar)" opacity=".85"/>
+    <path d="M1170 130 L1220 84 L1250 112 L1290 70 L1350 130 Z" fill="#bfe0ff" fill-opacity=".55"/>
+    <circle cx="1370" cy="82" r="12" fill="#ffd76a" fill-opacity=".9"/>
+    <rect x="1010" y="176" width="500" height="22" rx="4" fill="#2a3242" stroke="${O}" stroke-width="4"/>
+    <rect x="1010" y="176" width="500" height="5" fill="#ffd76a" fill-opacity=".7"/>`;
+  // The crowd: rows of heads and raised hands, darkest at the front.
+  for (let row = 0; row < 3; row++) {
+    const y = 214 + row * 24;
+    const shade = ['#24304a', '#18213a', '#0c1222'][row];
+    for (let x = 900 + (row % 2) * 18; x < 1620; x += 36) {
+      const r = 14 + row * 2;
+      s += `<circle cx="${x}" cy="${y}" r="${r}" fill="${shade}"/>`;
+      s += `<rect x="${x - r}" y="${y + 6}" width="${r * 2}" height="40" rx="${r}" fill="${shade}"/>`;
+      if ((x / 36 + row) % 5 === 0) s += `<path d="M${x + 8} ${y - 6} L${x + 18} ${y - 40}" stroke="${shade}" stroke-width="9" stroke-linecap="round"/>`;
+    }
+  }
+  return s;
+}
+
+// A newspaper with a big headline, a rising arrow and studio "logos" as small coloured tiles: industry news.
+function newspaper() {
+  let s = '';
+  s += `<g transform="translate(1040 34) rotate(-6)">
+    <rect x="0" y="0" width="300" height="212" rx="6" fill="#eef3fa" stroke="${O}" stroke-width="5"/>
+    <rect x="18" y="16" width="264" height="22" rx="4" fill="#1c2a44"/>
+    <rect x="18" y="50" width="264" height="14" rx="4" fill="#2a5fb8"/>
+    <rect x="18" y="70" width="190" height="14" rx="4" fill="#2a5fb8"/>
+    ${[100, 116, 132, 148, 164, 180].map(yy => `<rect x="18" y="${yy}" width="${yy % 32 === 4 ? 118 : 124}" height="7" rx="3" fill="#9aa8bc"/>`).join('')}
+    <rect x="158" y="96" width="124" height="94" rx="4" fill="#d6e2f2" stroke="#9aa8bc" stroke-width="2"/>
+    <path d="M168 176 L196 150 L218 162 L246 126 L272 112" stroke="#d83a32" stroke-width="5" fill="none" stroke-linejoin="round"/>
+    <path d="M262 106 L276 110 L270 124 Z" fill="#d83a32"/>
+  </g>`;
+  const tiles = [[1390, 46, '#ffd76a'], [1452, 92, '#5fd068'], [1404, 150, '#e8463a'], [1470, 196, '#9fd0ff'], [1530, 128, '#f29fdc']];
+  for (const [x, y, c] of tiles) s += `<rect x="${x}" y="${y}" width="44" height="44" rx="10" fill="${c}" stroke="${O}" stroke-width="4"/><rect x="${x + 10}" y="${y + 10}" width="24" height="8" rx="4" fill="${O}" opacity=".35"/>`;
+  s += `<path d="M1434 68 L1452 114 M1474 136 L1426 170 M1426 172 L1470 218 M1496 214 L1530 150" stroke="#bfe0ff" stroke-opacity=".6" stroke-width="3" stroke-dasharray="6 6"/>`;
+  return s;
+}
+
+const scene = which === 'charts' ? bars() : which === 'contracts' ? papers() : which === 'sale' ? tags() : which === 'convention' ? stage() : which === 'industry' ? newspaper() : controller(1250, 112, 0.72);
+document.getElementById('art').innerHTML = `${defs}
+<rect width="1600" height="280" fill="url(#sky)"/>
+<rect width="1600" height="280" fill="url(#glow)"/>
+${streaks()}
+${scene}
+<rect width="1600" height="280" fill="url(#fadeL)"/>`;
+</script>
+</body>
+</html>

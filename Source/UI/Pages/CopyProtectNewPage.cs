@@ -17,7 +17,7 @@ internal class CopyProtectNewPage : Page
 
 	private string status = "";
 
-	public override string Title => "New copy protection";
+	public override string Title => "New Copy Protection";
 
 	public override Sprite IconSprite => CopyProtectDev.Icon();
 
@@ -31,7 +31,7 @@ internal class CopyProtectNewPage : Page
 		w.Label(G.Money(((bool)G.MS) ? G.MS.money : 0), w.Width - 274f, 10f, 260f, 28f, TextAnchor.MiddleRight, bold: true);
 		w.Label("Name", 24f, 52f, 110f, 34f, TextAnchor.MiddleLeft, bold: true);
 		w.Input(name, "Name...", 140f, 52f, 360f, (string v) => name = v);
-		w.SmallButton("Suggest a name", 512f, 56f, 160f, () =>
+		w.SmallButton("Suggest a Name", 512f, 56f, 160f, () =>
 		{
 			name = CopyProtectDev.RandomName();
 			w.Rebuild();
@@ -68,7 +68,7 @@ internal class CopyProtectNewPage : Page
 		string reason = CopyProtectDev.FreshReason(tech, r);
 		w.Label((reason == null) ? "Starts at full strength: nobody has cracked it yet. Weekly loss is for your own games only; each game in the shops adds a little, licensing adds more." : ("Below 100% because " + reason + "."), 24f, y, w.Width - 48f, 36f, TextAnchor.UpperLeft, bold: false, null, 13);
 		y += 42f;
-		w.BigButton("Start development", 14f, y, 260f, 44f, () =>
+		w.BigButton("Start Development", 14f, y, 260f, 44f, () =>
 		{
 			string error = CopyProtectDev.StartNew(name, tech, CopyProtectDev.FindRoom(room));
 			if (error == null)

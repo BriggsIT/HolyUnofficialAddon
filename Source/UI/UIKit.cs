@@ -21,15 +21,29 @@ internal static class UIKit
 
 	private static readonly Dictionary<string, Sprite> loaded = new Dictionary<string, Sprite>();
 
-	public static readonly Color Green = new Color(0.16f, 0.62f, 0.2f);
+	public static readonly Color BaseGreen = new Color(0.16f, 0.62f, 0.2f);
 
-	public static readonly Color Red = new Color(0.8f, 0.15f, 0.12f);
+	public static readonly Color BaseRed = new Color(0.8f, 0.15f, 0.12f);
 
-	public static readonly Color Orange = new Color(0.95f, 0.55f, 0.1f);
+	public static readonly Color BaseOrange = new Color(0.95f, 0.55f, 0.1f);
 
-	public static readonly Color Blue = new Color(0.12f, 0.42f, 0.8f);
+	public static readonly Color BaseBlue = new Color(0.12f, 0.42f, 0.8f);
 
-	public static readonly Color Grey = new Color(0.45f, 0.45f, 0.45f);
+	public static readonly Color BaseGrey = new Color(0.45f, 0.45f, 0.45f);
+
+	// The skin of the window whose page is being drawn (null for the game's own look): the colours below become
+	// readable versions of themselves on its dark background.
+	public static Skin ActiveSkin;
+
+	public static Color Green => ActiveSkin?.Map(BaseGreen) ?? BaseGreen;
+
+	public static Color Red => ActiveSkin?.Map(BaseRed) ?? BaseRed;
+
+	public static Color Orange => ActiveSkin?.Map(BaseOrange) ?? BaseOrange;
+
+	public static Color Blue => ActiveSkin?.Map(BaseBlue) ?? BaseBlue;
+
+	public static Color Grey => ActiveSkin?.Map(BaseGrey) ?? BaseGrey;
 
 	public static readonly Color SelectedRow = new Color(0.62f, 0.8f, 1f);
 

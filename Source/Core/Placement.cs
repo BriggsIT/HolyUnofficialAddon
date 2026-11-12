@@ -20,6 +20,23 @@ internal static class Placement
 
 	private static float Leniency => Mathf.Clamp(Plugin.CollisionLeniency.Value, 0f, 0.5f);
 
+	// A placed object is only picked back up for a contact this much deeper than the leniency: right after
+	// loading, the physics can measure a lenient placement a little deeper than it was when placed.
+	private const float PlacedMargin = 0.3f;
+
+	// Physics time (Time.fixedTime) when the last save finished loading: placed objects are left alone while the
+	// physics settles (that picked a desk out of its room now and then).
+	private const float SettleSeconds = 4f;
+
+	private static float loadedAt = -100f;
+
+	[HarmonyPostfix]
+	[HarmonyPatch(typeof(savegameScript), "LoadHistory")]
+	private static void Loaded()
+	{
+		loadedAt = Time.fixedTime;
+	}
+
 	private static bool Relaxed
 	{
 		get
@@ -115,8 +132,13 @@ internal static class Placement
 		bool blocking = Blocking(self, collision);
 		if (!self.picked)
 		{
-			// A placed object: let the game pick it back up only for a real (deep) overlap.
-			return blocking;
+			// A placed object: let the game pick it back up only for a real (deep) overlap, and never while the
+			// physics settles after loading.
+			if (Time.fixedTime - loadedAt < SettleSeconds)
+			{
+				return false;
+			}
+			return blocking && Depth(collision) > Leniency + PlacedMargin;
 		}
 		if (!held.TryGetValue(self, out Dictionary<Collider, bool> contacts))
 		{

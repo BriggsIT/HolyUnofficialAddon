@@ -5,6 +5,7 @@ using UnityEngine.UI;
 namespace HolyAddon.UI;
 
 // A scrolling list of game-style rows. Clear() lets a page refill just the list (e.g. while typing in a search box).
+// In a skinned window (UI/Skin) the rows are drawn in the skin's colours.
 internal class ListView
 {
 	public readonly ScrollRect Scroll;
@@ -13,13 +14,16 @@ internal class ListView
 
 	private readonly float rowWidth;
 
+	private readonly Skin skin;
+
 	public int Count { get; private set; }
 
-	public ListView(ScrollRect scroll, float rowWidth)
+	public ListView(ScrollRect scroll, float rowWidth, Skin skin = null)
 	{
 		Scroll = scroll;
 		content = scroll.content;
 		this.rowWidth = rowWidth;
+		this.skin = skin;
 	}
 
 	// keepScroll: refilling after a click on a row, so the list shouldn't jump back to the top.
@@ -62,8 +66,9 @@ internal class ListView
 		{
 			UIKit.SetTooltip(go, tooltip);
 		}
+		skin?.DressRow(go);
 		Count++;
-		return new RowView(go.transform, height, rowWidth);
+		return new RowView(go.transform, height, rowWidth, skin);
 	}
 }
 
@@ -75,11 +80,14 @@ internal class RowView
 
 	public readonly float W;
 
-	public RowView(Transform t, float height, float width)
+	private readonly Skin skin;
+
+	public RowView(Transform t, float height, float width, Skin skin = null)
 	{
 		T = t;
 		h = height;
 		W = width;
+		this.skin = skin;
 	}
 
 	public Text Text(string text, float x, float w, bool bold = false, TextAnchor align = TextAnchor.MiddleLeft, float y = -1f, float th = 30f)
@@ -87,8 +95,12 @@ internal class RowView
 		GameObject go = UIKit.Make(bold ? "RowBold" : "RowText", T);
 		UIKit.Place(go, x, (y < 0f) ? ((h - th) / 2f) : y, w, th);
 		Text component = go.GetComponent<Text>();
-		component.text = text;
+		component.text = ((skin != null) ? skin.Fix(text) : text);
 		component.alignment = align;
+		if (skin != null)
+		{
+			component.color = skin.Ink;
+		}
 		return component;
 	}
 
@@ -99,7 +111,12 @@ internal class RowView
 
 	public Text Bottom(string text, float x, float w, bool bold = false, TextAnchor align = TextAnchor.MiddleLeft)
 	{
-		return Text(text, x, w, bold, align, Mathf.Min(h - 21f, h / 2f + 1f), 20f);
+		Text t = Text(text, x, w, bold, align, Mathf.Min(h - 21f, h / 2f + 1f), 20f);
+		if (skin != null)
+		{
+			t.color = skin.InkDim;
+		}
+		return t;
 	}
 
 	public Image Icon(string sprite, float x, float size = 28f, string tooltip = null)
@@ -156,11 +173,17 @@ internal class RowView
 		{
 			UIKit.SetTooltip(go, tooltip);
 		}
+		skin?.DressButton(go, primary: false);
 		return component;
 	}
 
 	public void Highlight()
 	{
+		if (skin != null)
+		{
+			skin.HighlightRow(T);
+			return;
+		}
 		Image image = T.GetComponent<Image>();
 		if ((bool)image)
 		{
@@ -170,13 +193,18 @@ internal class RowView
 
 	public void Line(float x)
 	{
-		UIKit.Place(UIKit.Make("RowLine", T), x, 2f, 2f, h - 4f);
+		GameObject go = UIKit.Make("RowLine", T);
+		UIKit.Place(go, x, 2f, 2f, h - 4f);
+		if (skin != null && (bool)go.GetComponent<Image>())
+		{
+			go.GetComponent<Image>().color = new Color(skin.Accent.r, skin.Accent.g, skin.Accent.b, 0.35f);
+		}
 	}
 
-	public void Bar(float x, float w, float bh, float value, Color color, string text = "", string tooltip = null)
+	public void Bar(float x, float w, float bh, float value, Color color, string text = "", string tooltip = null, float y = -1f)
 	{
 		GameObject go = UIKit.Make("Bar", T);
-		UIKit.Place(go, x, (h - bh) / 2f, w, bh);
+		UIKit.Place(go, x, (y < 0f) ? ((h - bh) / 2f) : y, w, bh);
 		EditorWindow.StyleBar(go, value, text, color, bh);
 		if (tooltip != null)
 		{
