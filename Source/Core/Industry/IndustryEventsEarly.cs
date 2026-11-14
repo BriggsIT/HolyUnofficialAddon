@@ -291,7 +291,7 @@ internal static partial class IndustryEvents
 			Setup = delegate(IndustryContext c)
 			{
 				gameScript g = (from x in IndustryCore.MyGamesOnMarket()
-					where Weekly(x) > 0 && x.weeksOnMarket >= 3 && x.sellsTotal > 0
+					where Weekly(x) > 0 && x.weeksOnMarket >= 3 && x.sellsTotal > 0 && SelfPublishedRetail(x)
 					orderby Weekly(x) descending
 					select x).FirstOrDefault();
 				if (!g)

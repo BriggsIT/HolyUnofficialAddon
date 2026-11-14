@@ -120,6 +120,41 @@ internal class ReleaseClash
 	public int Edge;
 
 	public int Expires;
+
+	// "clash" (both come out the same week) or "copy" (the arch-rival's copy of your hit comes out).
+	public string Kind = "clash";
+}
+
+// How a release clash or a copycat turned out, waiting to be shown in its pop-up (UI: ClashResultPage).
+internal class ClashOutcome
+{
+	public string Kind = "clash";
+
+	public int GameId;
+
+	public int TheirGameId;
+
+	public int StudioId;
+
+	public string MyName = "";
+
+	public string TheirName = "";
+
+	public int Mine;
+
+	public int Theirs;
+
+	public int Edge;
+
+	public bool Won;
+
+	public string Effect = "";
+
+	public string Quote = "";
+
+	public string OutletId = "";
+
+	public string OutletName = "";
 }
 
 // A price war's cut (Price War): the game sells for Factor of its price while it lasts (applied in
@@ -224,6 +259,24 @@ internal class IndustryState
 	public int CompetitorFightAfter = -1;
 
 	public List<ReleaseClash> Clashes = new List<ReleaseClash>();
+
+	// Results waiting for their pop-up, oldest first.
+	public List<ClashOutcome> Outcomes = new List<ClashOutcome>();
+
+	// Share a Stand?: a studio pays half your stand at this year's summer trade fair (IndustryHooks).
+	public StandShare Stand;
+
+	// Same Idea's Rush It: your game -> the competitor's. Out first, it gets the launch buzz (IndustryCompetitors).
+	public Dictionary<int, int> Rushed = new Dictionary<int, int>();
+}
+
+internal class StandShare
+{
+	public int StudioId;
+
+	public int GameId;
+
+	public int Year;
 }
 
 // Industry events: the industry around you moves (headlines in the news), and things land on your desk (pop-up
@@ -808,6 +861,7 @@ internal static class IndustryCore
 			StudioChanges();
 			IndustryRivals.Weekly();
 			IndustryCompetitors.Weekly();
+			IndustryHooks.Weekly();
 			if (S.NextHeadline < 0)
 			{
 				S.NextHeadline = Now + UnityEngine.Random.Range(2, 5);
@@ -918,10 +972,28 @@ internal static class IndustryCore
 	}
 
 	// Opens the decision's pop-up once nothing else is on screen; closing it goes the default way.
+	// The clash or copycat result on screen (it leaves the queue once its pop-up is closed).
+	private static ClashOutcome shownOutcome;
+
 	public static void Tick()
 	{
-		if (!On || S.Pending == null || !G.Gui)
+		if (!On || !G.Gui)
 		{
+			return;
+		}
+		if (shownOutcome != null && !EditorWindow.ClashResult.IsOpen)
+		{
+			S.Outcomes.Remove(shownOutcome);
+			shownOutcome = null;
+		}
+		if (S.Pending == null)
+		{
+			if (shownOutcome == null && S.Outcomes.Count > 0 && !G.Gui.menuOpen && !EditorWindow.IndustryEvent.IsOpen && !EditorWindow.ClashResult.IsOpen)
+			{
+				shownOutcome = S.Outcomes[0];
+				EditorWindow.ClashResult.Open();
+				Awards.AwardsShow.Sound(50);
+			}
 			return;
 		}
 		string key = S.Pending.Id + "@" + S.Pending.Week;
@@ -941,6 +1013,9 @@ internal static class IndustryCore
 	}
 
 	// Testing (cheats on): makes a decision pending now; it pops up once no window is open.
+	// The result the pop-up shows (null when none).
+	public static ClashOutcome ShownOutcome => shownOutcome;
+
 	public static void Force(IndustryPending p)
 	{
 		S.Pending = p;
@@ -1017,6 +1092,7 @@ internal static class IndustryCore
 	{
 		S = new IndustryState();
 		shownFor = null;
+		shownOutcome = null;
 	}
 
 	[HarmonyPostfix]
@@ -1037,6 +1113,8 @@ internal static class IndustryCore
 			S.PriceCuts = S.PriceCuts ?? new List<PriceCut>();
 			S.Competitors = S.Competitors ?? new List<int>();
 			S.Clashes = S.Clashes ?? new List<ReleaseClash>();
+			S.Outcomes = S.Outcomes ?? new List<ClashOutcome>();
+			S.Rushed = S.Rushed ?? new Dictionary<int, int>();
 			S.Feed = S.Feed ?? new List<string>();
 			// Headlines saved before 0.23.1 said "Sports Game games".
 			S.Feed = S.Feed.Select((string f) => (f ?? "").Replace("Game games", "Games")).ToList();
@@ -1058,5 +1136,6 @@ internal static class IndustryCore
 	{
 		S = new IndustryState();
 		shownFor = null;
+		shownOutcome = null;
 	}
 }

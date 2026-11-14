@@ -7,13 +7,132 @@ using UnityEngine.UI;
 
 namespace HolyAddon.Core.Industry;
 
-// Publishers Bid: the publisher you went with has paid an advance to publish your game. When the game is done, the
-// game's own publisher list shows them at the top as "Your Deal", even if your review score is below what they'd
-// normally take. Publishing with them keeps them happy; publishing with anyone else (or yourself) means paying the
-// advance back, and they remember it.
+// Publishers Bid: the publisher you went with has paid an advance to publish your game. It's binding, the way the
+// game's own exclusive publishing contract is: when the game is done, "Publish with <them>" publishes it with them
+// straight away (whatever its review score), self-publishing is greyed out with the reason, and their publisher list
+// shows only them. Signing an exclusive publishing contract with someone else ends the deal (the advance goes back).
+// Publishing elsewhere anyway (an edge case) still means paying the advance back, and they remember it.
 [HarmonyPatch]
 internal static class PublishDeals
 {
+	private static readonly AccessTools.FieldRef<Menu_DevGame_Complete, gameScript> CompleteGame = AccessTools.FieldRefAccess<Menu_DevGame_Complete, gameScript>("gS_");
+
+	// A game a publisher can take: what the game's own "find a publisher" button is offered for.
+	public static bool Publishable(gameScript g)
+	{
+		if ((bool)g && (g.typ_standard || g.typ_remaster || g.typ_nachfolger || g.typ_spinoff) && !g.arcade && !g.handy && g.gameTyp != 2 && !g.typ_addon && !g.typ_addonStandalone)
+		{
+			return !g.typ_mmoaddon;
+		}
+		return false;
+	}
+
+	// The deal that binds this game right now (null if none, or the publisher is gone, or an exclusive contract rules).
+	public static PublishDeal Binding(gameScript g)
+	{
+		if (!g || !G.MS || G.MS.exklusivVertrag_ID != -1 || !Publishable(g))
+		{
+			return null;
+		}
+		PublishDeal d = For(g.myID);
+		if (d == null || !Valid(IndustryCore.Studio(d.StudioId)))
+		{
+			return null;
+		}
+		return d;
+	}
+
+	// The finished-game screen: "Publish with <them>", and no self-publishing.
+	[HarmonyPostfix]
+	[HarmonyPatch(typeof(Menu_DevGame_Complete), "Init")]
+	private static void Completed(Menu_DevGame_Complete __instance, gameScript s1_)
+	{
+		try
+		{
+			PublishDeal d = Binding(s1_);
+			if (d == null || __instance.uiObjects == null || __instance.uiObjects.Length < 17)
+			{
+				return;
+			}
+			publisherScript p = IndustryCore.Studio(d.StudioId);
+			string why = "You promised " + s1_.GetNameSimple() + " to " + p.GetName() + " when they won the bid for it (they paid " + G.Money(d.Advance) + " up front). It's theirs to publish.";
+			GameObject self = __instance.uiObjects[11];
+			if ((bool)self)
+			{
+				self.GetComponent<Button>().interactable = false;
+				UI.UIKit.SetTooltip(self, "<b>Your deal</b>\n" + why);
+			}
+			GameObject find = __instance.uiObjects[16];
+			if ((bool)find && find.transform.childCount > 1)
+			{
+				Text label = find.transform.GetChild(1).GetComponent<Text>();
+				if ((bool)label)
+				{
+					label.text = "Publish with " + p.GetName();
+				}
+				UI.UIKit.SetTooltip(find, "<b>Publish with " + p.GetName() + "</b>\n" + why);
+			}
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogError("Publishing deal on the finished-game screen failed: " + ex);
+		}
+	}
+
+	// "Publish with <them>" goes straight to them, as the game does for an exclusive contract.
+	[HarmonyPostfix]
+	[HarmonyPatch(typeof(Menu_DevGame_Complete), "BUTTON_PublisherSuchen")]
+	private static void PublishWithThem(Menu_DevGame_Complete __instance)
+	{
+		try
+		{
+			gameScript g = CompleteGame(__instance);
+			PublishDeal d = Binding(g);
+			GameObject list = ((G.Gui && G.Gui.uiObjects != null && G.Gui.uiObjects.Length > 70) ? G.Gui.uiObjects[70] : null);
+			if (d == null || !list || !list.activeSelf || listingFor != g.myID)
+			{
+				return;
+			}
+			list.GetComponent<Menu_Dev_SelectPublisher>().SelectPublisher(d.StudioId);
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogError("Publishing with your deal publisher failed: " + ex);
+		}
+	}
+
+	// An exclusive publishing contract with someone else ends any deal: they get their advance back, and no hard feelings.
+	[HarmonyPostfix]
+	[HarmonyPatch(typeof(Menu_W_PublisherExklusiv), "BUTTON_Yes")]
+	private static void ExclusiveSigned()
+	{
+		try
+		{
+			int exclusive = (G.MS ? G.MS.exklusivVertrag_ID : (-1));
+			List<PublishDeal> deals = IndustryCore.State.Deals;
+			if (exclusive == -1 || deals == null || deals.Count == 0)
+			{
+				return;
+			}
+			foreach (PublishDeal d in deals.Where((PublishDeal x) => x.StudioId != exclusive).ToList())
+			{
+				deals.Remove(d);
+				publisherScript p = IndustryCore.Studio(d.StudioId);
+				gameScript g = Updates.GameUpdates.FindGame(d.GameId);
+				if (d.Advance > 0)
+				{
+					G.MS.Pay(d.Advance, 14);
+				}
+				string text = "Your exclusive publishing contract ends the deal with <b>" + (p ? p.GetName() : "the publisher") + "</b> for " + (g ? g.GetNameSimple() : "your game") + ": its " + G.Money(d.Advance) + " advance goes back.";
+				IndustryCore.News(text);
+				IndustryCore.Feed(text.Replace("<b>", "").Replace("</b>", ""));
+			}
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogError("Ending publishing deals for an exclusive contract failed: " + ex);
+		}
+	}
 	// The game the publisher list is open for (its items fill themselves in a frame later).
 	private static int listingFor = -1;
 
@@ -60,16 +179,12 @@ internal static class PublishDeals
 		try
 		{
 			listingFor = (game_ ? game_.myID : (-1));
-			PublishDeal deal = (game_ ? For(game_.myID) : null);
+			PublishDeal deal = Binding(game_);
 			if (deal == null)
 			{
 				return;
 			}
 			publisherScript p = IndustryCore.Studio(deal.StudioId);
-			if (!Valid(p))
-			{
-				return;
-			}
 			Transform list = __instance.uiObjects[0].transform;
 			Item_SelectPublisher item = list.GetComponentsInChildren<Item_SelectPublisher>(includeInactive: true).FirstOrDefault((Item_SelectPublisher i) => i.pS_ == p);
 			if (!item)
@@ -85,6 +200,15 @@ internal static class PublishDeals
 				G.Gui.KeinEintrag(__instance.uiObjects[0], __instance.uiObjects[4]);
 			}
 			item.transform.SetAsFirstSibling();
+			// The deal binds: they're the only publisher on offer.
+			foreach (Item_SelectPublisher other in list.GetComponentsInChildren<Item_SelectPublisher>(includeInactive: true))
+			{
+				if (other != item)
+				{
+					other.transform.SetParent(null);
+					UnityEngine.Object.Destroy(other.gameObject);
+				}
+			}
 		}
 		catch (Exception ex)
 		{

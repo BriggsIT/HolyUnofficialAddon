@@ -405,31 +405,38 @@ internal static partial class IndustryEvents
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Rush It", "Crunch to get there first", "Staff motivation -10; launch sales +10% for 8 weeks; their game slips 4 weeks", delegate(IndustryContext x)
+				Choice("Rush It", "Cut features to finish sooner", "About 20% less work, less quality; morale -5; sales +10% if yours is out first", delegate(IndustryContext x)
 				{
 					gameScript g = Game(x.GameId);
 					publisherScript p = IndustryCore.Studio(x.StudioId);
-					if (!g)
+					if (!g || !g.inDevelopment)
 					{
-						return "The game is gone.";
+						return "Too late: it's already finished.";
+					}
+					List<string> cut = CutFeatures(g, 0.2f);
+					if (cut.Count == 0)
+					{
+						return "Nothing left to cut: every feature is already being made. You carry on as planned.";
 					}
 					foreach (characterScript e in Employees.All())
 					{
 						if (e.myID != 1)
 						{
-							e.AddMotivation(-10f);
+							e.AddMotivation(-5f);
 						}
 					}
-					g.AddHype(5f);
-					IndustryCore.AddModAfterRelease(g, 0.1f, 8);
-					if ((bool)p)
-					{
-						p.newGameInWeeks += 4;
-						p.newGameInWeeksORG = Mathf.Max(p.newGameInWeeksORG, p.newGameInWeeks);
-					}
+					IndustryCore.State.Rushed[g.myID] = x.Game2;
 					Announce(x.Game2);
 					IndustryCore.Change(p, -2, "You raced them to the shelves with " + g.GetNameSimple());
-					return "The team is crunching. " + g.GetNameSimple() + " will be the first of the two in the shops.";
+					return "The team cuts " + ((cut.Count == 1) ? cut[0] : (string.Join(", ", cut.Take(cut.Count - 1)) + " and " + cut[cut.Count - 1])) + " to finish " + g.GetNameSimple() + " sooner. Out before " + Name(x.Game2) + ", it gets the launch buzz: sales +10% for 8 weeks.";
+				}, delegate(IndustryContext x)
+				{
+					gameScript g = Game(x.GameId);
+					if (!g || !CanCut(g))
+					{
+						return "Nothing left to cut: every feature is already being made.";
+					}
+					return null;
 				}),
 				Choice("Make It Stand Out", "Costs " + Money(c.Amount), "Hype +10; launch sales +6% for 12 weeks", delegate(IndustryContext x)
 				{
@@ -452,6 +459,55 @@ internal static partial class IndustryEvents
 				})
 			}
 		};
+	}
+
+	// Rush It: the gameplay features still to be made (the game makes engine features first, then gameplay features,
+	// marking each done as it starts) are cut from the end until about "share" of the remaining work is gone. They're
+	// marked done without being made, so they add none of their quality; the remaining work drops by exactly their
+	// development points, so the game finishes when its last real feature does.
+	private static bool CanCut(gameScript g)
+	{
+		if (!g || g.gameGameplayFeatures == null || g.gameplayFeatures_DevDone == null)
+		{
+			return false;
+		}
+		for (int j = 0; j < g.gameGameplayFeatures.Length && j < g.gameplayFeatures_DevDone.Length; j++)
+		{
+			if (g.gameGameplayFeatures[j] && !g.gameplayFeatures_DevDone[j])
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static List<string> CutFeatures(gameScript g, float share)
+	{
+		List<string> names = new List<string>();
+		gameplayFeatures gf = Updates.GameUpdates.GF;
+		if (!gf || !CanCut(g) || g.devPoints_Gesamt <= 0f)
+		{
+			return names;
+		}
+		float target = g.devPoints_Gesamt * share;
+		float cut = 0f;
+		for (int j = Mathf.Min(g.gameGameplayFeatures.Length, g.gameplayFeatures_DevDone.Length) - 1; j >= 0 && cut < target; j--)
+		{
+			if (!g.gameGameplayFeatures[j] || g.gameplayFeatures_DevDone[j])
+			{
+				continue;
+			}
+			float points = g.CalcPlatformComplex(gf.GetDevPoints(j));
+			if (cut > 0f && cut + points > target * 1.5f)
+			{
+				continue;
+			}
+			g.gameplayFeatures_DevDone[j] = true;
+			cut += points;
+			names.Add(gf.GetName(j));
+		}
+		g.devPoints_Gesamt = Mathf.Max(g.devPoints + 1f, g.devPoints_Gesamt - cut);
+		return names;
 	}
 
 	private static void Announce(int gameId)

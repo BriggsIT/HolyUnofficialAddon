@@ -111,7 +111,8 @@ internal static partial class IndustryEvents
 		return name + " took the offer and left for " + StudioName(c.StudioId) + ".";
 	}
 
-	// It announces a copy of your hit.
+	// It turns its next game into a copy of your hit, and brings it out within a couple of months: a real game, judged
+	// against yours by the reviews when it lands (IndustryCompetitors settles it, and its pop-up shows how it went).
 	private static IndustryEventDef RivalCopy()
 	{
 		return new IndustryEventDef
@@ -122,26 +123,28 @@ internal static partial class IndustryEvents
 			{
 				publisherScript a = IndustryRivals.Arch;
 				gameScript g = (from x in IndustryCore.MyGamesOnMarket()
-					where x.weeksOnMarket < 40 && !x.typ_addon && !x.typ_mmoaddon && x.reviewTotal >= 70
+					where x.weeksOnMarket < 40 && Standalone(x) && x.reviewTotal >= 70 && x.releaseDate <= 0
 					orderby Weekly(x) descending
 					select x).FirstOrDefault();
-				// Not in the same weeks as A Copy of Your Game (both would hit one game).
-				if (!a || !g || Fired("clone", 12))
+				gameScript theirs = TheirGame(a);
+				// Not in the same weeks as A Copy of Your Game (both would hit one game). Needs their real next game.
+				if (!a || !g || !theirs || !Standalone(theirs) || Fired("clone", 12) || IndustryCore.State.Clashes.Any((ReleaseClash k) => k.GameId == g.myID && k.Kind == "copy"))
 				{
 					return false;
 				}
 				c.StudioId = a.myID;
 				c.GameId = g.myID;
+				c.Game2 = theirs.myID;
 				c.Amount = OfRevenue(g, 0.01f, Scaled(80000.0));
 				c.Amount2 = OfRevenue(g, 0.015f, Scaled(40000.0));
 				return true;
 			},
 			Title = (IndustryContext c) => "Copycat",
-			Text = (IndustryContext c) => StudioName(c.StudioId) + " announced a game that looks a lot like " + Name(c.GameId) + ". Players are calling it a cheap clone.",
+			Text = (IndustryContext c) => StudioName(c.StudioId) + " announced " + Name(c.Game2) + ": " + AOrAn(GenreGame(Game(c.GameId))) + " that looks a lot like " + Name(c.GameId) + ", same topic and all. It's out in a couple of months, and players are calling it a cheap clone.",
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Sue Them", "Costs " + Money(c.Amount), "About 50% to stop the clone", delegate(IndustryContext x)
+				Choice("Sue Them", "Costs " + Money(c.Amount), "About 50% to stop it: they'd have to start again", delegate(IndustryContext x)
 				{
 					G.MS.Pay(x.Amount, 13);
 					publisherScript a = IndustryCore.Studio(x.StudioId);
@@ -149,28 +152,48 @@ internal static partial class IndustryEvents
 					{
 						IndustryCore.AddStars(a, -3f);
 						IndustryCore.State.RivalWins++;
+						if ((bool)a)
+						{
+							a.newGameInWeeks += 12;
+						}
 						IndustryCore.Change(a, -10, "You sued them over a copy of " + Name(x.GameId) + " and won");
-						return "The court sided with you. The clone was cancelled.";
+						return "The court sided with you. " + StudioName(x.StudioId) + " has to rework " + Name(x.Game2) + " into something else, and it's months late.";
 					}
-					IndustryCore.AddMod(Game(x.GameId), -0.15f, 12);
 					IndustryCore.State.RivalLosses++;
 					IndustryCore.Change(a, -6, "You sued them over a copy of " + Name(x.GameId) + " and lost");
-					return "You lost the case. The clone is coming anyway: " + Name(x.GameId) + " sells 15% less for 12 weeks.";
+					string lost = MakeCopy(x, 0);
+					return "You lost the case. " + lost;
 				}, (IndustryContext x) => Need(x.Amount)),
-				Choice("Out-Market Them", "Costs " + Money(c.Amount2), "Hype +15; the clone takes less (6 weeks)", delegate(IndustryContext x)
+				Choice("Out-Market Them", "Costs " + Money(c.Amount2), "Hype +15, and an 8-point edge when the reviews compare them", delegate(IndustryContext x)
 				{
 					G.MS.Pay(x.Amount2, 12);
 					Game(x.GameId)?.AddHype(15f);
-					IndustryCore.AddMod(Game(x.GameId), -0.15f, 6);
-					return "Your campaign reminded everyone who did it first.";
+					return "Your campaign reminds everyone who did it first. " + MakeCopy(x, 8);
 				}, (IndustryContext x) => Need(x.Amount2)),
-				Choice("Ignore It", "Nothing to pay", Name(c.GameId) + " sells 15% less for 12 weeks", delegate(IndustryContext x)
-				{
-					IndustryCore.AddMod(Game(x.GameId), -0.15f, 12);
-					return "The clone launched and took some of your players.";
-				})
+				Choice("Ignore It", "Nothing to pay", "The reviews will decide which one players want", (IndustryContext x) => "You let your game speak for itself. " + MakeCopy(x, 0))
 			}
 		};
+	}
+
+	// Their next game becomes a copy of your hit (genre and topic) and comes out within 4-10 weeks.
+	private static string MakeCopy(IndustryContext c, int edge)
+	{
+		gameScript mine = Game(c.GameId);
+		gameScript theirs = Game(c.Game2);
+		publisherScript a = IndustryCore.Studio(c.StudioId);
+		if (!mine || !theirs || !a || !theirs.inDevelopment || theirs.isOnMarket)
+		{
+			return "Their copy never came out.";
+		}
+		theirs.maingenre = mine.maingenre;
+		theirs.subgenre = mine.subgenre;
+		theirs.gameMainTheme = mine.gameMainTheme;
+		theirs.gameSubTheme = mine.gameSubTheme;
+		theirs.angekuendigt = true;
+		a.newGameInWeeks = Mathf.Clamp(a.newGameInWeeks, 4, 10);
+		a.newGameInWeeksORG = Mathf.Max(a.newGameInWeeksORG, a.newGameInWeeks);
+		IndustryCompetitors.AddClash(mine, theirs, a, edge, "copy");
+		return theirs.GetNameSimple() + " comes out in about " + a.newGameInWeeks + " weeks, and the reviews will compare them.";
 	}
 
 	// It moves its next big game onto your release week.
@@ -183,54 +206,60 @@ internal static partial class IndustryEvents
 			Setup = delegate(IndustryContext c)
 			{
 				publisherScript a = IndustryRivals.Arch;
-				gameScript g = IndustryCore.AllGames().FirstOrDefault((gameScript x) => x.IsMyGame() && x.isOnMarket && x.releaseDate > 0 && x.releaseDate <= 6 && !IndustryCompetitors.Clashing(x));
-				// Not in the same weeks as a competitor's release clash.
-				if (!a || !g || Fired("cp_clash", 8))
+				gameScript g = IndustryCore.AllGames().FirstOrDefault((gameScript x) => x.IsMyGame() && x.isOnMarket && x.releaseDate >= 2 && x.releaseDate <= 6 && Standalone(x) && !IndustryCompetitors.Clashing(x));
+				gameScript theirs = TheirGame(a);
+				// Needs their real next game; not in the same weeks as a competitor's release clash.
+				if (!a || !g || !theirs || !Standalone(theirs) || Fired("cp_clash", 8))
 				{
 					return false;
 				}
-				gameScript theirs = TheirGame(a);
 				c.StudioId = a.myID;
 				c.GameId = g.myID;
-				c.Game2 = (theirs ? theirs.myID : (-1));
-				c.Number = Random.Range(55, 92);
+				c.Game2 = theirs.myID;
+				c.Amount = MarketingCost(g);
 				return true;
 			},
 			Title = (IndustryContext c) => "Release Clash",
-			Text = (IndustryContext c) => StudioName(c.StudioId) + " moved " + ((c.Game2 >= 0) ? Name(c.Game2) : "its next big game") + " to the same week as " + Name(c.GameId) + ".",
+			Text = (IndustryContext c) => StudioName(c.StudioId) + " has moved " + Name(c.Game2) + " to the same week as " + Name(c.GameId) + ", on purpose. Most players will only buy one of them.",
 			// Left alone, you hold your date: ignoring a pop-up shouldn't delay your game.
 			Default = 1,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Delay Ours 3 Weeks", "Avoid the fight", Name(c.GameId) + " comes out 3 weeks later", delegate(IndustryContext x)
+				Choice("Delay Ours 3 Weeks", "Avoid the fight", Name(c.GameId) + " comes out 3 weeks later; theirs gets the week", delegate(IndustryContext x)
 				{
 					gameScript g = Game(x.GameId);
-					if ((bool)g && g.releaseDate > 0)
+					if (!g || g.releaseDate <= 0)
 					{
-						g.releaseDate += 3;
+						return "Too late: it's already out.";
 					}
-					return "You moved " + Name(x.GameId) + " three weeks back.";
+					IndustryCompetitors.SetForYourWeek(IndustryCore.Studio(x.StudioId), g.releaseDate);
+					g.releaseDate += 3;
+					return "You moved " + Name(x.GameId) + " three weeks back. " + Name(x.Game2) + " has the week to itself.";
 				}),
-				Choice("Hold the Date", "The better game wins", "Launch sales +12% if yours reviews better, -15% if not", delegate(IndustryContext x)
+				Choice("Hold the Date", "The better game wins", "Once both are out: the better-reviewed one sells 10% more for 6 weeks, the other 10% less", (IndustryContext x) => RivalHold(x, 0)),
+				Choice("Out-Market Them", "Costs " + Money(c.Amount), "Hype +12, and an 8-point edge when the reviews decide", delegate(IndustryContext x)
 				{
-					gameScript g = Game(x.GameId);
-					if (!g)
-					{
-						return "The game is gone.";
-					}
-					int weeks = Mathf.Max(1, g.releaseDate) + 3;
-					if (g.reviewTotal >= x.Number)
-					{
-						IndustryCore.AddMod(g, 0.12f, weeks);
-						IndustryCore.State.RivalWins++;
-						return "Your game reviewed better (" + g.reviewTotal + "% against " + x.Number + "%). Players picked yours: launch sales +12%.";
-					}
-					IndustryCore.AddMod(g, -0.15f, weeks);
-					IndustryCore.State.RivalLosses++;
-					return "Their game reviewed better (" + x.Number + "% against " + g.reviewTotal + "%). Launch sales -15%.";
-				})
+					G.MS.Pay(x.Amount, 12);
+					Game(x.GameId)?.AddHype(12f);
+					return RivalHold(x, 8);
+				}, (IndustryContext x) => Need(x.Amount))
 			}
 		};
+	}
+
+	// Both come out the same week: their real game is moved onto your release date, and the reviews decide.
+	private static string RivalHold(IndustryContext c, int edge)
+	{
+		gameScript g = Game(c.GameId);
+		gameScript theirs = Game(c.Game2);
+		publisherScript a = IndustryCore.Studio(c.StudioId);
+		if (!g || !theirs || !a || g.releaseDate <= 0)
+		{
+			return "The clash fizzled out.";
+		}
+		IndustryCompetitors.SetForYourWeek(a, g.releaseDate);
+		IndustryCompetitors.AddClash(g, theirs, a, edge);
+		return "You hold the date. " + Name(c.GameId) + " and " + Name(c.Game2) + " come out the same week, and the reviews will decide.";
 	}
 
 	// It mocks you in an interview.

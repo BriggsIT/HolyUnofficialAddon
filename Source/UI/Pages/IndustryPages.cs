@@ -155,7 +155,7 @@ internal class IndustryEventPage : Page
 	}
 
 	// One studio in the banner: its logo on a glow in its colour, its name, stars and your standing.
-	private static void StudioBlock(EditorWindow w, RectTransform banner, publisherScript s, float x)
+	internal static void StudioBlock(EditorWindow w, RectTransform banner, publisherScript s, float x)
 	{
 		Color c = IndustryUi.StudioColor(s);
 		Image glow = MmoUi.Rect(banner, x - 36f, -24f, 140f, 140f, new Color(c.r, c.g, c.b, 0.7f));
@@ -165,6 +165,93 @@ internal class IndustryEventPage : Page
 		w.BannerText("<b>" + s.GetName() + "</b>", tx, 30f, 230f, 26f, 17, Color.white);
 		w.BannerText(IndustryUi.Stars(s.stars) + "  ·  " + (s.publisher ? "publisher" : "developer"), tx, 58f, 230f, 22f, 13, new Color(0.84f, 0.88f, 0.94f));
 		w.BannerText("Standing: " + IndustryUi.TierText(s), tx, 82f, 230f, 22f, 13, new Color(1f, 0.85f, 0.4f), bold: true);
+	}
+}
+
+// How a release clash or the arch-rival's copycat turned out, once both games are out: the two games side by side
+// with their reviews, a press quote that says which is better, and what it does to sales.
+internal class ClashResultPage : Page
+{
+	private static ClashOutcome O => IndustryCore.ShownOutcome;
+
+	public override string Title
+	{
+		get
+		{
+			ClashOutcome o = O;
+			if (o == null || o.Kind != "copy")
+			{
+				return "Release Clash";
+			}
+			return "The Copycat";
+		}
+	}
+
+	public override Sprite IconSprite => IndustryUi.Icon;
+
+	public override float Width => 960f;
+
+	public override float Height => 520f;
+
+	public override void Build(EditorWindow w)
+	{
+		float W = w.Width;
+		ClashOutcome o = O;
+		if (o == null)
+		{
+			w.Label("That's been dealt with.", 24f, 30f, W - 48f, 40f, TextAnchor.UpperLeft, bold: false, null, 15);
+			w.BigButton("Close", 14f, 80f, 220f, 44f, w.Close);
+			return;
+		}
+		bool copy = o.Kind == "copy";
+		publisherScript them = IndustryCore.Studio(o.StudioId);
+		publisherScript me = (G.MS ? G.MS.myPubS_ : null);
+		RectTransform banner = w.Banner(UpdateIcons.Banner("industry"), 14f, 14f, W - 28f, 112f, full: true);
+		w.BannerText("<b>" + (copy ? "The copy is out" : "Both games are out") + "</b>", 30f, 22f, W - 360f, 32f, 21, Color.white);
+		w.BannerText(copy ? ((them ? them.GetName() : "Your rival") + " copied " + o.MyName + ". The reviews are in.") : (o.MyName + " and " + o.TheirName + " came out the same week. The reviews are in."), 30f, 58f, W - 360f, 24f, 14, new Color(0.84f, 0.88f, 0.94f));
+		w.BannerText(o.Won ? "You won" : "They won", 30f, 86f, W - 360f, 26f, 17, o.Won ? new Color(0.55f, 0.95f, 0.55f) : new Color(1f, 0.55f, 0.5f), bold: true);
+		float cw = (W - 28f - 70f) / 2f;
+		GameCard(w, 14f, 140f, cw, me, me ? me.GetName() : "Your studio", copy ? (o.MyName + " (the original)") : o.MyName, o.Mine, o.Won);
+		w.Label("VS", 14f + cw, 200f, 70f, 40f, TextAnchor.MiddleCenter, bold: true, null, 22).color = UIKit.Grey;
+		GameCard(w, 14f + cw + 70f, 140f, cw, them, them ? them.GetName() : "", copy ? (o.TheirName + " (the copy)") : o.TheirName, o.Theirs, !o.Won);
+		float y = 344f;
+		RectTransform quote = w.Panel(14f, y, W - 28f, 70f);
+		Core.Reviews.Outlet outlet = Core.Reviews.ReviewContent.Outlets.FirstOrDefault((Core.Reviews.Outlet x) => x.Id == o.OutletId);
+		float qx = 14f;
+		Sprite logo = outlet?.Logo;
+		if ((bool)logo)
+		{
+			StoreUi.Picture(quote, logo, 10f, 7f, 56f);
+			qx = 80f;
+		}
+		w.Label("<i>“" + o.Quote + "”</i>", qx, 6f, W - 28f - qx - 14f, 38f, TextAnchor.MiddleLeft, bold: false, quote, 15);
+		w.Label((outlet != null) ? ("— " + outlet.Name) : "— the press", qx, 44f, W - 28f - qx - 14f, 20f, TextAnchor.MiddleLeft, bold: false, quote, 12).color = UIKit.Grey;
+		y += 80f;
+		string edge = ((o.Edge > 0) ? ("  Your marketing gave you a " + o.Edge + "-point edge.") : "");
+		w.Label(o.Effect + edge, 24f, y, W - 48f, 22f, TextAnchor.MiddleLeft, bold: false, null, 13);
+		w.BigButton("Close", 14f, y + 30f, 220f, 40f, w.Close);
+		w.SmallButton("Open Industry...", 248f, y + 35f, 220f, delegate
+		{
+			w.Close();
+			EditorWindow.Industry.Open();
+		}, enabled: true, null, null, 30f);
+	}
+
+	// One game: its studio's logo and name, the game, its review score (green for the winner) and the review's word.
+	private static void GameCard(EditorWindow w, float x, float y, float cw, publisherScript studio, string studioName, string game, int review, bool winner)
+	{
+		RectTransform card = w.Panel(x, y, cw, 190f);
+		float tx = 14f;
+		if ((bool)studio)
+		{
+			StoreUi.Picture(card, studio.GetLogo(), 12f, 12f, 56f);
+			tx = 80f;
+		}
+		w.Label(studioName, tx, 12f, cw - tx - 12f, 22f, TextAnchor.MiddleLeft, bold: false, card, 13).color = UIKit.Grey;
+		w.Label("<b>" + game + "</b>", tx, 34f, cw - tx - 12f, 40f, TextAnchor.UpperLeft, bold: false, card, 16);
+		Color c = (winner ? UIKit.Green : UIKit.Red);
+		w.Label(review + "%", 14f, 90f, cw - 28f, 56f, TextAnchor.MiddleCenter, bold: true, card, 40).color = c;
+		w.Label(Core.Reviews.ReviewWriter.Band(review) + (winner ? "  ·  the winner" : ""), 14f, 148f, cw - 28f, 26f, TextAnchor.MiddleCenter, bold: false, card, 14).color = c;
 	}
 }
 

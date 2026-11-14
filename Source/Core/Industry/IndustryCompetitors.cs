@@ -61,18 +61,16 @@ internal static class IndustryCompetitors
 		return false;
 	}
 
-	// Your size: your studio's own stars where the game keeps them, else from your studio level.
+	// Your size on the studios' star scale (0-100): your studio level (0-10) x 10. The game creates your own studio
+	// with 1 star and never changes it, so measuring by that made every studio "bigger than you" and the weakest
+	// developer always the closest (Midway, in most saves).
 	public static float MyStars()
 	{
 		if (!G.MS)
 		{
 			return 20f;
 		}
-		if (!G.MS.myPubS_)
-		{
-			return G.MS.GetStudioLevel(G.MS.studioPoints) * 10;
-		}
-		return G.MS.myPubS_.stars;
+		return Mathf.Clamp(G.MS.GetStudioLevel(G.MS.studioPoints) * 10, 10, 100);
 	}
 
 	// The same players: one game's genre is the other's main or second genre.
@@ -114,6 +112,21 @@ internal static class IndustryCompetitors
 		if ((bool)__instance && __instance.IsMyGame())
 		{
 			S.CompetitorsStale = true;
+			// Rushed to beat a competitor's game in the same genre: out first, it gets the launch buzz.
+			if (S.Rushed != null && S.Rushed.TryGetValue(__instance.myID, out var theirId))
+			{
+				S.Rushed.Remove(__instance.myID);
+				gameScript theirs = GameUpdates.FindGame(theirId);
+				if (!theirs || !theirs.isOnMarket)
+				{
+					IndustryCore.AddModAfterRelease(__instance, 0.1f, 8);
+					IndustryCore.Feed(__instance.GetNameSimple() + " beat " + (theirs ? theirs.GetNameSimple() : "its rival") + " to the shops: sales +10% for 8 weeks.");
+				}
+				else
+				{
+					IndustryCore.Feed(theirs.GetNameSimple() + " got to the shops before " + __instance.GetNameSimple() + ", rush or not.");
+				}
+			}
 		}
 	}
 
@@ -306,20 +319,77 @@ internal static class IndustryCompetitors
 		}
 	}
 
-	public static void AddClash(gameScript mine, gameScript theirs, publisherScript p, int edge)
+	// kind "clash": both come out the same week. kind "copy": their copy of your released hit comes out (when their
+	// countdown runs out); it's settled once it's out.
+	public static void AddClash(gameScript mine, gameScript theirs, publisherScript p, int edge, string kind = "clash")
 	{
 		if ((bool)mine && (bool)theirs && (bool)p)
 		{
-			S.Clashes.RemoveAll((ReleaseClash c) => c.GameId == mine.myID);
+			S.Clashes.RemoveAll((ReleaseClash c) => c.GameId == mine.myID && c.Kind == kind);
 			S.Clashes.Add(new ReleaseClash
 			{
 				GameId = mine.myID,
 				TheirGameId = theirs.myID,
 				StudioId = p.myID,
 				Edge = edge,
-				Expires = Now + Mathf.Max(0, mine.releaseDate) + 12
+				Kind = kind,
+				Expires = Now + ((kind == "copy") ? (Mathf.Max(0, p.newGameInWeeks) + 16) : (Mathf.Max(0, mine.releaseDate) + 12))
 			});
 		}
+	}
+
+	private static readonly string[] WinQuotes = new string[4] { "{mine} is simply the better game. {theirs} looks tired next to it.", "Both arrived the same week. Only one deserves your money: {mine}.", "{theirs} has its moments, but {mine} does everything it does, and better.", "We played them back to back. {mine} won every round." };
+
+	private static readonly string[] LoseQuotes = new string[4] { "{theirs} raises the bar. {mine} feels a step behind.", "If you can only buy one this month, make it {theirs}.", "{mine} isn't bad, but {theirs} is the one people will remember.", "Side by side, {theirs} is the more confident game." };
+
+	private static readonly string[] OriginalQuotes = new string[3] { "The copy can't touch the original: {mine} is still the one to own.", "{theirs} borrows {mine}'s ideas and forgets what made them fun.", "Imitation is flattery, but {theirs} is a pale shadow of {mine}." };
+
+	private static readonly string[] CopyQuotes = new string[3] { "Cheeky? Yes. Better? Also yes: {theirs} improves on {mine} in nearly every way.", "{studio} took {mine}'s idea and did it better.", "It started as a copy of {mine}, but {theirs} has become the one to beat." };
+
+	// A press outlet of the day for the comparison quote (the addon's press reviews), or none.
+	private static Reviews.Outlet OutletNow(int seed)
+	{
+		try
+		{
+			if (!Reviews.ReviewContent.Ready())
+			{
+				return null;
+			}
+			List<Reviews.Outlet> active = Reviews.ReviewContent.Outlets.Where((Reviews.Outlet o) => o.ActiveIn(IndustryCore.Year)).ToList();
+			if (active.Count == 0)
+			{
+				return null;
+			}
+			return active[Math.Abs(seed) % active.Count];
+		}
+		catch
+		{
+			return null;
+		}
+	}
+
+	private static void Queue(ReleaseClash c, gameScript mine, gameScript theirs, publisherScript p, bool won, string effect)
+	{
+		string[] pool = ((c.Kind == "copy") ? (won ? OriginalQuotes : CopyQuotes) : (won ? WinQuotes : LoseQuotes));
+		string quote = pool[Math.Abs(mine.myID + theirs.myID) % pool.Length].Replace("{mine}", mine.GetNameSimple()).Replace("{theirs}", theirs.GetNameSimple()).Replace("{studio}", p.GetName());
+		Reviews.Outlet o = OutletNow(mine.myID * 31 + theirs.myID);
+		S.Outcomes.Add(new ClashOutcome
+		{
+			Kind = c.Kind,
+			GameId = mine.myID,
+			TheirGameId = theirs.myID,
+			StudioId = p.myID,
+			MyName = mine.GetNameSimple(),
+			TheirName = theirs.GetNameSimple(),
+			Mine = mine.reviewTotal,
+			Theirs = theirs.reviewTotal,
+			Edge = c.Edge,
+			Won = won,
+			Effect = effect,
+			Quote = quote,
+			OutletId = ((o != null) ? o.Id : ""),
+			OutletName = ((o != null) ? o.Name : "")
+		});
 	}
 
 	private static bool Out(gameScript g)
@@ -349,29 +419,59 @@ internal static class IndustryCompetitors
 				continue;
 			}
 			S.Clashes.Remove(c);
-			if (Mathf.Abs(mine.weeksOnMarket - theirs.weeksOnMarket) > 3)
+			bool copy = c.Kind == "copy";
+			if (!copy && Mathf.Abs(mine.weeksOnMarket - theirs.weeksOnMarket) > 3)
 			{
 				continue;
 			}
-			int ours = mine.reviewTotal + c.Edge;
-			string score = mine.reviewTotal + "%" + ((c.Edge > 0) ? (" + your marketing") : "") + " against " + theirs.reviewTotal + "%";
-			string text;
-			if (ours >= theirs.reviewTotal)
+			bool won = mine.reviewTotal + c.Edge >= theirs.reviewTotal;
+			bool rival = IndustryRivals.IsRival(p);
+			string effect;
+			if (copy)
+			{
+				if (won)
+				{
+					IndustryCore.AddMod(theirs, -0.1f, 8);
+					IndustryCore.AddMod(mine, -0.05f, 8);
+					IndustryCore.Change(p, -3, "Their copy of " + mine.GetNameSimple() + " fell flat");
+					effect = "Players stick with the original. " + theirs.GetNameSimple() + " sells 10% less for 8 weeks; " + mine.GetNameSimple() + " only loses 5% for 8 weeks to the curious.";
+				}
+				else
+				{
+					IndustryCore.AddMod(mine, -0.15f, 12);
+					IndustryCore.AddMod(theirs, 0.1f, 8);
+					IndustryCore.Change(p, -2, "Their copy of " + mine.GetNameSimple() + " beat the original");
+					effect = "The copy takes the crown. " + mine.GetNameSimple() + " sells 15% less for 12 weeks; " + theirs.GetNameSimple() + " sells 10% more for 8.";
+				}
+			}
+			else if (won)
 			{
 				IndustryCore.AddMod(mine, 0.1f, 6);
 				IndustryCore.AddMod(theirs, -0.1f, 6);
 				IndustryCore.Change(p, -3, "Lost the release clash to " + mine.GetNameSimple());
-				text = "Release clash: <b>" + mine.GetNameSimple() + "</b> beat " + p.GetName() + "'s " + theirs.GetNameSimple() + " (" + score + "). Players picked yours: sales +10% for 6 weeks.";
+				effect = "Players picked yours: " + mine.GetNameSimple() + " sells 10% more for 6 weeks, " + theirs.GetNameSimple() + " 10% less.";
 			}
 			else
 			{
 				IndustryCore.AddMod(mine, -0.1f, 6);
 				IndustryCore.AddMod(theirs, 0.1f, 6);
 				IndustryCore.Change(p, -1, "Won the release clash against " + mine.GetNameSimple());
-				text = "Release clash: " + p.GetName() + "'s <b>" + theirs.GetNameSimple() + "</b> beat " + mine.GetNameSimple() + " (" + score + "). Sales -10% for 6 weeks.";
+				effect = "Players picked theirs: " + mine.GetNameSimple() + " sells 10% less for 6 weeks, " + theirs.GetNameSimple() + " 10% more.";
 			}
-			IndustryCore.News(text);
-			IndustryCore.Feed(text.Replace("<b>", "").Replace("</b>", ""));
+			if (rival)
+			{
+				if (won)
+				{
+					S.RivalWins++;
+				}
+				else
+				{
+					S.RivalLosses++;
+				}
+			}
+			Queue(c, mine, theirs, p, won, effect);
+			string headline = (copy ? ("The copycat: " + p.GetName() + "'s " + theirs.GetNameSimple() + " against your " + mine.GetNameSimple()) : ("Release clash: " + mine.GetNameSimple() + " against " + p.GetName() + "'s " + theirs.GetNameSimple())) + " (" + mine.reviewTotal + "% against " + theirs.reviewTotal + "%). " + (won ? "You won." : "They won.");
+			IndustryCore.Feed(headline);
 		}
 	}
 }

@@ -138,7 +138,7 @@ internal static partial class IndustryEvents
 			Setup = delegate(IndustryContext c)
 			{
 				gameScript g = (from x in IndustryCore.MyGamesOnMarket()
-					where x.weeksOnMarket <= 52 && Weekly(x) > 0 && x.sellsTotal > 0 && OnConsole(x)
+					where x.weeksOnMarket <= 52 && Weekly(x) > 0 && x.sellsTotal > 0 && OnConsole(x) && SelfPublishedRetail(x)
 					orderby Weekly(x) descending
 					select x).FirstOrDefault();
 				if (!g)
@@ -185,7 +185,11 @@ internal static partial class IndustryEvents
 		};
 	}
 
-	// A film studio offers its summer film's licence for your game in development.
+	// A film studio offers its film's licence for your game in development: one of the game's own film licences (its
+	// licence list: films that are out by now, suiting the game's genre or at least not clashing with it), at the
+	// licence market's price for one game. The game applies the licence itself (better reviews, and more sales for as
+	// long as the game sells, most when the film suits the genre) and shows it on the game. A weak film is the risk.
+	// Sharing the revenue instead costs a share tied to the film's quality, for a year: the licence's boost never ends.
 	private static IndustryEventDef Film()
 	{
 		return new IndustryEventDef
@@ -196,63 +200,167 @@ internal static partial class IndustryEvents
 			Cooldown = 60,
 			Setup = delegate(IndustryContext c)
 			{
+				licences lic = Licences();
 				gameScript g = (from x in IndustryCore.MyGamesInDevelopment()
 					where x.gameTyp == 0 && x.gameLicence < 0 && DevProgress(x) <= 0.5f && !IndustryCore.State.Cooldowns.ContainsKey("film:" + x.myID)
 					orderby R(0f, 1f)
 					select x).FirstOrDefault();
-				if (!g)
+				if (!g || !lic || lic.licence_TYP == null)
 				{
 					return false;
 				}
+				List<int> films = new List<int>();
+				for (int i = 0; i < lic.licence_TYP.Length; i++)
+				{
+					if (lic.licence_TYP[i] == 0 && lic.licence_YEAR[i] <= Year && lic.licence_QUALITY[i] > 0f && lic.licence_GENREBAD[i] != g.maingenre && !string.IsNullOrEmpty(lic.licence_EN[i]))
+					{
+						films.Add(i);
+					}
+				}
+				if (films.Count == 0)
+				{
+					return false;
+				}
+				List<int> suits = films.Where((int i) => lic.licence_GENREGOOD[i] == g.maingenre).ToList();
+				int pick = ((suits.Count > 0 && Random.value < 0.7f) ? Pick(suits) : Pick(films));
+				float q = lic.licence_QUALITY[pick];
 				c.GameId = g.myID;
-				c.Number = Random.Range(0, Films.Length);
+				c.PlatformId = pick;
 				c.Number2 = Random.Range(0, FilmStudios.Length);
-				c.Amount = OfRevenue(g, 0.04f, (long)((float)Scaled(12000.0) * (1f + (float)g.gameSize * 0.5f)));
-				c.Share = 0.1f;
+				c.Amount = LicencePrice(lic, pick);
+				c.Share = Mathf.Round((0.05f + q / 500f) * 100f) / 100f;
 				IndustryCore.State.Cooldowns["film:" + g.myID] = Now;
 				return true;
 			},
 			Title = (IndustryContext c) => "The Game of the Film",
-			Text = (IndustryContext c) => FilmStudios[c.Number2] + "'s big summer film, " + Films[c.Number] + ", opens soon. It offers you the licence: " + Name(c.GameId) + " would carry the film's name and heroes on the box. Films can flop, though.",
+			Text = delegate(IndustryContext c)
+			{
+				licences lic = Licences();
+				gameScript g = Game(c.GameId);
+				if (!lic || c.PlatformId < 0 || c.PlatformId >= lic.licence_EN.Length || !g)
+				{
+					return "A film studio offered you a licence, but the offer has lapsed.";
+				}
+				return FilmStudios[c.Number2] + "'s film " + lic.GetName(c.PlatformId) + " is out, and it offers you the licence for " + Name(c.GameId) + ": the film's name and heroes on the box. It's " + FilmQuality(lic.licence_QUALITY[c.PlatformId]) + " (quality " + Mathf.RoundToInt(lic.licence_QUALITY[c.PlatformId]) + "), and " + (FilmSuits(lic, c.PlatformId, g) ? ("it suits " + IndustryCore.GenreGames(g.maingenre) + ".") : ("it isn't an obvious fit for " + IndustryCore.GenreGames(g.maingenre) + ", so it helps less."));
+			},
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Buy the Licence", "Costs " + Money(c.Amount), "If the film's a hit: hype +12, sales +25% for 12 weeks after release", delegate(IndustryContext x)
+				Choice("Buy the Licence", "Costs " + Money(c.Amount), FilmEffect(c) + " for as long as it sells; better reviews", delegate(IndustryContext x)
 				{
+					string why = AttachFilm(x);
+					if (why != null)
+					{
+						return why;
+					}
 					G.MS.Pay(x.Amount, 7);
-					gameScript g2 = Game(x.GameId);
-					if (Random.value < 0.6f)
-					{
-						g2?.AddHype(12f);
-						IndustryCore.AddModAfterRelease(g2, 0.25f, 12);
-						return Films[x.Number] + " is the hit of the summer. " + Name(x.GameId) + " will ride its wave: sales +25% for 12 weeks after release.";
-					}
-					g2?.AddHype(3f);
-					IndustryCore.AddModAfterRelease(g2, 0.05f, 12);
-					return Films[x.Number] + " flops at the box office. The licence still helps a little: sales +5% for 12 weeks after release.";
-				}, (IndustryContext x) => Need(x.Amount)),
-				Choice("Share the Revenue", "No fee; " + Mathf.RoundToInt(c.Share * 100f) + "% of its revenue", "For 26 weeks after release; hype +8, sales +15% for the same 26 weeks", delegate(IndustryContext x)
+					return Name(x.GameId) + " is now " + Licences().GetName(x.PlatformId) + ": the game. The licence shows on the game, and it does the rest.";
+				}, (IndustryContext x) => FilmProblem(x) ?? Need(x.Amount)),
+				Choice("Share the Revenue", "No fee; " + Mathf.RoundToInt(c.Share * 100f) + "% of its revenue", "For a year after release; the same licence (" + FilmEffect(c) + ")", delegate(IndustryContext x)
 				{
-					gameScript g2 = Game(x.GameId);
-					if (!g2)
+					string why = AttachFilm(x);
+					if (why != null)
 					{
-						return "The game is gone.";
+						return why;
 					}
-					g2.AddHype(8f);
-					IndustryCore.AddModAfterRelease(g2, 0.15f, 26);
 					IndustryCore.State.Streams.Add(new IncomeStream
 					{
-						Label = FilmStudios[x.Number2] + "'s share of " + g2.GetNameSimple(),
-						GameId = g2.myID,
+						Label = FilmStudios[x.Number2] + "'s share of " + Name(x.GameId),
+						GameId = x.GameId,
 						Share = x.Share,
-						WeeksLeft = 26,
+						WeeksLeft = 52,
 						Out = true
 					});
-					return FilmStudios[x.Number2] + " puts its marketing behind " + g2.GetNameSimple() + ", for " + Mathf.RoundToInt(x.Share * 100f) + "% of its revenue for 26 weeks after release.";
-				}),
+					return Name(x.GameId) + " is now " + Licences().GetName(x.PlatformId) + ": the game. " + FilmStudios[x.Number2] + " takes " + Mathf.RoundToInt(x.Share * 100f) + "% of its revenue for a year after release.";
+				}, FilmProblem),
 				Choice("No Thanks", "Nothing changes", "The film finds another studio", (IndustryContext x) => "You turn the licence down.")
 			}
 		};
+	}
+
+	private static licences Licences()
+	{
+		if (!G.MainObj)
+		{
+			return null;
+		}
+		return G.MainObj.GetComponent<licences>();
+	}
+
+	// The licence market's price for one game's worth of this licence (licences.GetPrice, for one).
+	private static long LicencePrice(licences lic, int i)
+	{
+		int years = Mathf.Clamp(Year - 1976, 1, 50);
+		float q = lic.licence_QUALITY[i];
+		float per = ((q < 33f) ? (1500f + (float)years * 50f) : ((q < 66f) ? (4000f + (float)years * 100f) : ((q < 80f) ? (7000f + (float)years * 200f) : (11000f + (float)years * 300f))));
+		return (long)Mathf.RoundToInt(q * per) / 500 * 500;
+	}
+
+	private static bool FilmSuits(licences lic, int i, gameScript g)
+	{
+		return lic.licence_GENREGOOD[i] == g.maingenre;
+	}
+
+	private static string FilmQuality(float q)
+	{
+		if (q >= 80f)
+		{
+			return "a blockbuster";
+		}
+		if (q >= 60f)
+		{
+			return "a solid hit";
+		}
+		if (q >= 35f)
+		{
+			return "a modest success";
+		}
+		return "a flop";
+	}
+
+	// The game's own licence sales effect for the game's main genre (gameScript: x0.8 of quality if it suits, x0.3 if
+	// it's neutral).
+	private static string FilmEffect(IndustryContext c)
+	{
+		licences lic = Licences();
+		gameScript g = Game(c.GameId);
+		if (!lic || !g || c.PlatformId < 0 || c.PlatformId >= lic.licence_QUALITY.Length)
+		{
+			return "the licence's sales boost";
+		}
+		float share = (FilmSuits(lic, c.PlatformId, g) ? 0.8f : 0.3f);
+		return "sales about +" + Mathf.RoundToInt(lic.licence_QUALITY[c.PlatformId] * share) + "%";
+	}
+
+	private static string FilmProblem(IndustryContext c)
+	{
+		licences lic = Licences();
+		gameScript g = Game(c.GameId);
+		if (!lic || c.PlatformId < 0 || c.PlatformId >= lic.licence_TYP.Length)
+		{
+			return "The offer has lapsed.";
+		}
+		if (!g || !g.inDevelopment)
+		{
+			return "The game is already finished.";
+		}
+		if (g.gameLicence >= 0)
+		{
+			return "The game already has a licence.";
+		}
+		return null;
+	}
+
+	// The game carries the licence from now on: the game's own licence effects apply when it's reviewed and sold.
+	private static string AttachFilm(IndustryContext c)
+	{
+		string problem = FilmProblem(c);
+		if (problem != null)
+		{
+			return problem;
+		}
+		Game(c.GameId).gameLicence = c.PlatformId;
+		return null;
 	}
 
 	// A TV studio wants a Saturday-morning cartoon of your hit.
@@ -635,6 +743,9 @@ internal static partial class IndustryEvents
 				c.Number = Random.Range(0, ParentGroups.Length);
 				c.Amount = OfRevenue(g, 0.003f, Scaled(2000.0));
 				c.Amount2 = OfRevenue(g, 0.015f, Scaled(6000.0));
+				// The milder version's rating: at most two steps down (an 18+ game can't become a 6+ without being
+				// remade), and never below what its topic allows.
+				c.Number2 = Mathf.Max(GameUpdates.MinUsk(g), g.usk - 2);
 				IndustryCore.State.Cooldowns["parents:" + g.myID] = Now;
 				return true;
 			},
@@ -659,12 +770,29 @@ internal static partial class IndustryEvents
 					G.MS.Pay(x.Amount, 13);
 					return "A bright warning sticker goes on every box, and the news moves on.";
 				}, (IndustryContext x) => Need(x.Amount)),
-				Choice("Make a Milder Version", "Costs " + Money(c.Amount2), "Shops that wouldn't stock it now do: sales +6% for 12 weeks", delegate(IndustryContext x)
+				Choice("Make a Milder Version", "Costs " + Money(c.Amount2), "Rated " + GameUpdates.UskName(c.Number2) + " instead: more shops and players; a little gameplay cut", delegate(IndustryContext x)
 				{
+					gameScript g = Game(x.GameId);
+					if (!g)
+					{
+						return "The game is gone.";
+					}
 					G.MS.Pay(x.Amount2, 4);
-					IndustryCore.AddMod(Game(x.GameId), 0.06f, 12);
-					return "A milder version goes out to the family shops.";
-				}, (IndustryContext x) => Need(x.Amount2))
+					int old = g.usk;
+					int steps = old - x.Number2;
+					g.usk = x.Number2;
+					g.points_gameplay = Mathf.Max(0f, g.points_gameplay * (1f - 0.03f * (float)steps));
+					g.userNegativ += Mathf.RoundToInt((float)(g.userPositiv + g.userNegativ) * 0.03f * (float)steps);
+					return "A milder version replaces the original in the shops: " + g.GetNameSimple() + " is now rated " + GameUpdates.UskName(g.usk) + " (was " + GameUpdates.UskName(old) + "). Some fans miss the cut content.";
+				}, delegate(IndustryContext x)
+				{
+					gameScript g = Game(x.GameId);
+					if ((bool)g && x.Number2 >= g.usk)
+					{
+						return "Its topic doesn't allow a lower age rating.";
+					}
+					return Need(x.Amount2);
+				})
 			}
 		};
 	}

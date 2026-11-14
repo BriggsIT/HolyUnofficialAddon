@@ -6,6 +6,7 @@ Newest first. Each version below lists what changed; the table is a quick way in
 
 | Version | What it brought |
 |---|---|
+| [0.28.0](#0280-events-that-follow-through) | Events that follow through |
 | [0.27.0](#0270-balance-patch) | Balance patch |
 | [0.26.0](#0260-competitors) | Competitors |
 | [0.25.1](#0251-small-screens-and-publishing-deals) | Small screens and publishing deals |
@@ -40,6 +41,44 @@ Newest first. Each version below lists what changed; the table is a quick way in
 | [0.4.0 - 0.5.x](#040---05x-contracts) | Contracts |
 | [0.3.x](#03x-press-reviews) | Press reviews |
 | [0.1.x - 0.2.x](#01x---02x-the-employee-editor-and-game-settings) | The employee editor and game settings |
+
+## 0.28.0: events that follow through
+Events now change the game's real systems, not just money and sales numbers.
+
+- **Publishers Bid is binding**, like the game's own exclusive publishing contract: when the game is done, its
+  screen offers "Publish with <them>", which publishes it with them straight away (whatever its review score), and
+  self-publishing is greyed out with the reason. The event only bids on games a publisher can take (not handheld,
+  arcade, free-to-play or add-ons). Signing an exclusive publishing contract with someone else ends the deal: the
+  advance goes back, with no hard feelings.
+- **The arch-rival's Release Clash is real:** their actual next game is moved onto your release week. Delay yours
+  (theirs gets the week), hold the date, or out-market them (an 8-point edge). Once both are out, the reviews decide.
+- **The arch-rival's Copycat is real:** their next game becomes a copy of your hit (same genre and topic) and comes
+  out within a couple of months. Win the lawsuit and they have to rework it and come out months late; otherwise
+  the reviews decide when it lands. If the copy reviews better, it takes 15% of your sales for 12 weeks.
+- **A results pop-up** for every release clash and copycat, rivals' and competitors': both games side by side with
+  their studios, review scores and verdicts, a press quote from one of that year's outlets saying which is better,
+  and what it does to sales.
+- **The Game of the Film uses the game's own film licences:** a film studio offers one of the game's film licences
+  that's out by now and suits your game's genre (or at least doesn't clash with it), at the licence market's price
+  for one game. Your game carries the licence, and the game applies it as it does any licence: better reviews and
+  more sales for as long as it sells (most when the film suits the genre), shown on the game. A weak film helps
+  little. Sharing the revenue instead costs a share tied to the film's quality (5% plus 1% for every 5 quality
+  points), for a year after release. The event no longer adds a sales boost or hype of its own.
+- **Cabinet Deal** makes the game's real arcade version: the home game gets the game's own arcade-version bonus, and
+  you can't port it to arcade yourself.
+- **Same Idea, Rush It** really finishes sooner: it cuts the last gameplay features still to be made (about a fifth
+  of the remaining work), and the game ships without their quality. Out before the competitor's game, it gets
+  +10% sales for 8 weeks.
+- **Share a Stand?** is tied to July's trade fair: book your stand as usual, and the other studio pays half and
+  shows its game next to yours. Skip the fair and the deal lapses (they're not pleased).
+- **Concerned Parents, milder version:** really lowers the age rating, up to two steps and never below what the
+  topic allows (an 18+ game can become 12+, not 6+). The game's own rating sales effect does the rest.
+- **A Cartridge Shortage** and **A Distributor in Trouble** only come up for boxed games you publish yourself.
+- **Who declares you its rival is no longer always the same studio.** "A studio your size" measured your size by your
+  studio's star rating, which the game leaves at 1 star forever, so the weakest developer always won (Midway, in
+  save after save). Your size now comes from your studio level, and the pick is a draw among every developer that
+  isn't an ally: likelier the closer it is to your size, three times as likely if it's one of your competitors, and
+  likelier the worse you get on. Competitors' "your size / bigger / smaller" uses the same measure.
 
 ## 0.27.0: balance patch
 A second balance review, covering everything added since 0.18 (sales events, the convention, industry events,

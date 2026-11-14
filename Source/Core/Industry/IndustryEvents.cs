@@ -687,7 +687,7 @@ internal static partial class IndustryEvents
 			Setup = delegate(IndustryContext c)
 			{
 				gameScript g = (from x in IndustryCore.MyGamesOnMarket()
-					where x.gameTyp == 0 && !x.arcade && !x.handy && x.reviewTotal >= 60 && x.weeksOnMarket <= 104
+					where x.gameTyp == 0 && !x.arcade && !x.handy && x.reviewTotal >= 60 && x.weeksOnMarket <= 104 && !x.ExistAutomatenspiel()
 					orderby x.reviewTotal descending
 					select x).FirstOrDefault();
 				if (!g)
@@ -700,13 +700,14 @@ internal static partial class IndustryEvents
 				return true;
 			},
 			Title = (IndustryContext c) => "Cabinet Deal",
-			Text = (IndustryContext c) => Operators[c.Number] + " wants " + Name(c.GameId) + " in its arcades: a cabinet version under its own name. It offers a fee up front, or a share of the coins.",
+			Text = (IndustryContext c) => Operators[c.Number] + " wants " + Name(c.GameId) + " in its arcades: a cabinet version under its own name. It offers a fee up front, or a share of the coins. It would be the game's arcade version: an arcade hit helps the home game sell, but you couldn't port it to arcades yourself.",
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Take the Fee", Money(c.Amount) + " now", "Some new fans", delegate(IndustryContext x)
+				Choice("Take the Fee", Money(c.Amount) + " now", "Some new fans; it's the game's arcade version", delegate(IndustryContext x)
 				{
 					G.MS.Earn(x.Amount, 2);
+					ArcadeVersion(Game(x.GameId));
 					int fans = AddFans(300f);
 					return Operators[x.Number] + " pays " + Money(x.Amount) + ". " + fans + " players discover " + Name(x.GameId) + " in the arcades.";
 				}),
@@ -721,12 +722,33 @@ internal static partial class IndustryEvents
 						WeeksLeft = 14,
 						Category = 2
 					});
+					ArcadeVersion(Game(x.GameId));
 					AddFans(300f);
 					return hit ? ("Players queue for the cabinets: about " + Money(weekly) + " a week for 14 weeks.") : ("The cabinets gather dust: only about " + Money(weekly) + " a week for 14 weeks.");
 				}),
 				Choice("Decline", "Nothing changes", "It stays a home game", (IndustryContext x) => "You turn " + Operators[x.Number] + " down.")
 			}
 		};
+	}
+
+	// Boxes in shops that you publish yourself: a publisher deals with its own chips and distributors.
+	private static bool SelfPublishedRetail(gameScript g)
+	{
+		if ((bool)g && (bool)G.MS && g.publisherID == G.MS.myID)
+		{
+			return g.retailVersion;
+		}
+		return false;
+	}
+
+	// The game counts it as having an arcade version (its "arcade port exists" flag): the home game gets the game's own
+	// arcade-version bonus, and the port menu won't offer an arcade port.
+	private static void ArcadeVersion(gameScript g)
+	{
+		if ((bool)g && g.portExist != null && g.portExist.Length > 2)
+		{
+			g.portExist[2] = true;
+		}
 	}
 
 	// A hardware maker wants games for its new machine: a free dev kit, if you release on it within a year.
@@ -825,17 +847,20 @@ internal static partial class IndustryEvents
 				return true;
 			},
 			Title = (IndustryContext c) => "Share a Stand?",
-			Text = (IndustryContext c) => StudioName(c.StudioId) + " can't afford a stand of its own at this summer's trade fair, and asks to share yours. They'd pay half and show " + Name(c.GameId) + ".",
+			Text = (IndustryContext c) => StudioName(c.StudioId) + " can't afford a stand of its own at July's trade fair, and asks to share yours. They'd pay half of whatever stand you book and show " + Name(c.GameId) + ".",
 			Default = 1,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Share the Stand", "They pay " + Money(c.Amount) + ", hype +3 for both", "Standing with them +12", delegate(IndustryContext x)
+				Choice("Share the Stand", "They pay half your stand in July", "Hype +3 for both at the fair; standing +12 (if you go)", delegate(IndustryContext x)
 				{
-					G.MS.Earn(x.Amount, 1);
-					HypeInDevelopment(3f);
-					Game(x.GameId)?.AddHype(3f);
-					IndustryCore.Change(IndustryCore.Studio(x.StudioId), 12, "Shared your trade-fair stand");
-					return "You share the stand with " + StudioName(x.StudioId) + ". The crowds like what both of you show.";
+					IndustryCore.State.Stand = new StandShare
+					{
+						StudioId = x.StudioId,
+						GameId = x.GameId,
+						Year = Year
+					};
+					IndustryCore.Change(IndustryCore.Studio(x.StudioId), 4, "Agreed to share your trade-fair stand");
+					return "Deal: book your stand at July's trade fair as usual, and " + StudioName(x.StudioId) + " pays half and shows " + Name(x.GameId) + " next to your games.";
 				}),
 				Choice("Keep It to Yourself", "Nothing changes for you", "Standing with them -3", delegate(IndustryContext x)
 				{
@@ -963,7 +988,7 @@ internal static partial class IndustryEvents
 					return false;
 				}
 				gameScript g = (from x in IndustryCore.MyGamesInDevelopment()
-					where x.developerID == G.MS.myID && (x.publisherID == -1 || x.publisherID == G.MS.myID) && !IndustryCore.State.DealtGames.Contains(x.myID) && DevProgress(x) >= 0.3f
+					where x.developerID == G.MS.myID && (x.publisherID == -1 || x.publisherID == G.MS.myID) && PublishDeals.Publishable(x) && !IndustryCore.State.DealtGames.Contains(x.myID) && DevProgress(x) >= 0.3f
 					orderby x.hype descending
 					select x).FirstOrDefault();
 				if (!g)
@@ -1053,7 +1078,7 @@ internal static partial class IndustryEvents
 		PublishDeals.Add(g, IndustryCore.Studio(winner), advance);
 		IndustryCore.Change(IndustryCore.Studio(winner), 12, "Won the bid for " + g.GetNameSimple());
 		IndustryCore.Change(IndustryCore.Studio(loser), -4, "Lost the bid for " + g.GetNameSimple());
-		return StudioName(winner) + " pays " + Money(advance) + " and starts the hype for " + g.GetNameSimple() + ". When it's done, they're at the top of the publisher list as Your Deal. Going with anyone else means paying the advance back.";
+		return StudioName(winner) + " pays " + Money(advance) + " and starts the hype for " + g.GetNameSimple() + ". When it's done, they publish it: the finished game's screen offers \"Publish with " + StudioName(winner) + "\" instead of finding a publisher or publishing it yourself.";
 	}
 
 	// A struggling studio can't finish its announced game: fund it for a share, lend a little, or decline.

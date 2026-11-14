@@ -112,6 +112,12 @@ internal class EditorWindow
 		titleOf = IndustryTitle
 	};
 
+	// How a release clash or a copycat turned out (Core/Industry/IndustryCompetitors), in the other studio's colours.
+	public static readonly EditorWindow ClashResult = new EditorWindow("Editor_ClashResultWindow", () => new ClashResultPage())
+	{
+		titleOf = () => new KeyValuePair<Color, Color>(IndustryUi.StudioColor(Core.Industry.IndustryCore.Studio(Core.Industry.IndustryCore.ShownOutcome?.StudioId ?? -1)), Color.white)
+	};
+
 	public static readonly EditorWindow Industry = new EditorWindow("Editor_IndustryWindow", () => new IndustryPage())
 	{
 		titleOf = () => new KeyValuePair<Color, Color>(IndustryUi.Navy, Color.white)

@@ -13,7 +13,7 @@ Where it overlaps with The Holy Expansion, the two are merged into one system ra
 It's a hobby project for friends: not for sale, and not affiliated with Eggcode Games or with The Holy Expansion's
 author.
 
-**Version:** 0.27.0 ([what's new in each version](CHANGELOG.md)) · **Game:** Mad Games Tycoon 2 (Steam, PC) · **Loader:** BepInEx 5
+**Version:** 0.28.0 ([what's new in each version](CHANGELOG.md)) · **Game:** Mad Games Tycoon 2 (Steam, PC) · **Loader:** BepInEx 5
 
 <img src="Screenshots/overview/bottom-bar.png" width="100%" alt="The bottom bar with the addon's buttons">
 
@@ -127,7 +127,7 @@ The industry around you moves, and things land on your desk.
     - A New Machine Wants Games;
     - Share a Stand?;
     - A Copy of Your Game;
-    - Publishers Bid (for your game in development: the winner publishes it, listed as "Your Deal");
+    - Publishers Bid (for your game in development: the winner publishes it, like an exclusive contract);
     - A Studio Needs Help (to finish its announced game).
   - **The garage and arcade years (1976-1990):**
     - Computer Club Night;

@@ -154,14 +154,29 @@ internal static class IndustryRivals
 		return G.MS.GetStudioLevel(G.MS.studioPoints) >= 2;
 	}
 
-	// Holy's pick: a developer about your size declares you its rival.
+	// Holy's rule, with a wider pool: a developer declares you its rival. Holy picked the one closest to your stars
+	// plus a little chance, but the game keeps your own studio at 1 star, so it was always the weakest developer
+	// (Midway in save after save). Now it's a draw among every developer that isn't an ally: likelier the closer it is
+	// to your size (your studio level, IndustryCompetitors.MyStars), much likelier if it's one of your competitors,
+	// and likelier the worse you get on. A studio far bigger or smaller still has a small chance.
 	private static void Declare()
 	{
-		float mine = (G.MS.myPubS_ ? G.MS.myPubS_.stars : ((float)(G.MS.GetStudioLevel(G.MS.studioPoints) * 10)));
-		publisherScript p = (from x in IndustryCore.Studios()
+		float mine = IndustryCompetitors.MyStars();
+		List<KeyValuePair<publisherScript, float>> pool = (from x in IndustryCore.Studios()
 			where x.developer && IndustryCore.Tier(IndustryCore.Standing(x)) < 3
-			orderby Mathf.Abs(x.stars - mine) + UnityEngine.Random.Range(0f, 8f)
-			select x).FirstOrDefault();
+			select new KeyValuePair<publisherScript, float>(x, DeclareWeight(x, mine))).ToList();
+		publisherScript p = null;
+		float total = pool.Sum((KeyValuePair<publisherScript, float> kv) => kv.Value);
+		float roll = UnityEngine.Random.Range(0f, total);
+		foreach (KeyValuePair<publisherScript, float> kv in pool)
+		{
+			roll -= kv.Value;
+			p = kv.Key;
+			if (roll <= 0f)
+			{
+				break;
+			}
+		}
 		if ((bool)p)
 		{
 			SetStanding(p, -40f, "Declared your studio its rival");
@@ -169,6 +184,22 @@ internal static class IndustryRivals
 			string text = "<b>" + p.GetName() + "</b> has declared your studio its rival. Expect trouble.";
 			News(text);
 		}
+	}
+
+	private static float DeclareWeight(publisherScript p, float mine)
+	{
+		// Within about a star and a half of your size counts fully; up to 4 stars away still has a small chance.
+		float w = Mathf.Clamp(1f - (Mathf.Abs(p.stars - mine) - 30f) / 50f, 0.05f, 1f);
+		if (IndustryCompetitors.IsCompetitor(p))
+		{
+			w *= 3f;
+		}
+		float standing = IndustryCore.Standing(p);
+		if (standing < 0f)
+		{
+			w *= 1f - standing / 40f;
+		}
+		return w;
 	}
 
 	private static void Become(publisherScript p)
