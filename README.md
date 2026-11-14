@@ -44,6 +44,7 @@ author.
 - [Settings](#settings)
 - [Compatibility and saves](#compatibility-and-saves)
 - [Known issues](#known-issues)
+- [Reporting a bug](#reporting-a-bug)
 - [Building from source](#building-from-source)
 - [Repository layout](#repository-layout)
 - [Credits](#credits)
@@ -487,6 +488,24 @@ saves.
   screen.
 - **Closing the game** can crash on the way out. That crash is in the game's runtime, and happened before the addon
   too.
+
+---
+
+## Reporting a bug
+
+Open an [issue](https://github.com/BriggsIT/HolyUnofficialAddon/issues) and attach your log file:
+
+1. Right after the bug, find the log: in Steam, right-click **Mad Games Tycoon 2**, choose
+   **Manage → Browse local files**, and open the **BepInEx** folder. The file is **`LogOutput.log`**.
+2. **Send it before you start the game again.** The log starts fresh every time the game starts, so the bug is
+   only in it until then. Closing the game first is fine.
+
+The one file has everything: the addon's own lines (marked `Holy Unofficial Addon`), and the errors from the game
+and The Holy Expansion. Please also say what you were doing, the in-game year, and your screen resolution
+(some layouts change below 1080p). A screenshot helps.
+
+**Lag or stutters:** switch on **Stutter finder** in the addon's game settings, play until it happens, then send
+**`StutterReport.txt`** from the same BepInEx folder as well.
 
 ---
 
