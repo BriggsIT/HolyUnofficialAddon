@@ -224,7 +224,9 @@ internal static class StudioCon
 
 	public static readonly int[] BoothCount = new int[4] { 0, 3, 8, 16 };
 
-	private static readonly double[] BoothPrice = new double[4] { 0.0, 6000.0, 15000.0, 30000.0 };
+	// Ticket, merch and booth prices are set so a sold-out event about pays for itself (balance review 2): the hype,
+	// fans and studio points are the reason to hold one, not the money.
+	private static readonly double[] BoothPrice = new double[4] { 0.0, 3000.0, 7500.0, 15000.0 };
 
 	public static readonly string[] AnnounceNames = new string[4] { "No announcement", "Next content patch", "A new expansion pack", "Classic servers" };
 
@@ -242,11 +244,11 @@ internal static class StudioCon
 
 	public const float SequelFame = 2f;
 
-	private const double TicketPrice = 20.0;
+	private const double TicketPrice = 10.0;
 
-	private const double MerchPerVisitor = 12.0;
+	private const double MerchPerVisitor = 5.0;
 
-	private const double MerchPerViewer = 0.15;
+	private const double MerchPerViewer = 0.02;
 
 	private const double MerchCost = 8000.0;
 
@@ -531,7 +533,7 @@ internal static class StudioCon
 		{
 			return null;
 		}
-		List<string> list = new List<string> { g.isOnMarket ? ("Showcase: sales +" + Mathf.RoundToInt(stageHype * ShowcaseSales * 100f) + "% for " + ShowcaseWeeks + " weeks") : ("Showcase: series fame +" + Mathf.RoundToInt(stageHype)) };
+		List<string> list = new List<string> { g.isOnMarket ? ("Showcase: up to +" + Mathf.RoundToInt(stageHype * ShowcaseSales * 100f) + "% sales, " + ShowcaseWeeks + " weeks") : ("Showcase: series fame +" + Mathf.RoundToInt(stageHype)) };
 		if (HasSeries(g))
 		{
 			list.Add("Tease a sequel: series fame +" + Mathf.RoundToInt(stageHype * SequelFame));
@@ -976,7 +978,7 @@ internal static class StudioCon
 			back = p.Paid / 2;
 			if (back > 0)
 			{
-				G.MS.Earn(back, 1);
+				G.MS.Pay(-back, 12);
 			}
 		}
 		Reset(p);

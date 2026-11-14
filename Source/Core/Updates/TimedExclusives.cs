@@ -289,7 +289,7 @@ internal static class TimedExclusives
 			return;
 		}
 		t.Deal = deal;
-		G.MS.Earn(deal, 1);
+		G.MS.Earn(deal, 2);
 		CopyProtectDev.Report("<b>" + g.GetNameWithTag() + "</b> is out as a " + t.Months + "-month " + p.GetName() + " exclusive.\n\n" + p.GetManufacturer() + " pays " + G.Money(deal) + " for it (" + Mathf.RoundToInt(rate * 100f) + "% of its development costs). It comes to " + Names(t.Later) + " when the deal ends.");
 	}
 

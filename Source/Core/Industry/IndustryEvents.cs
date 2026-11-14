@@ -218,7 +218,11 @@ internal static partial class IndustryEvents
 		{ "rv_poach", "Poaching Attempt (arch-rival)" },
 		{ "rv_copy", "Copycat (arch-rival)" },
 		{ "rv_clash", "Release Clash (arch-rival)" },
-		{ "rv_taunt", "Trash Talk (arch-rival)" }
+		{ "rv_taunt", "Trash Talk (arch-rival)" },
+		{ "cp_clash", "Release Clash (competitor)" },
+		{ "cp_talent", "Talent Race (competitor)" },
+		{ "cp_price", "Price War (competitor)" },
+		{ "cp_idea", "Same Idea (competitor)" }
 	};
 
 	// Testing (cheats on): runs one event now if its conditions are met, whatever its years and cooldown.
@@ -296,6 +300,58 @@ internal static partial class IndustryEvents
 		return "You need " + Money(cost) + " for this.";
 	}
 
+	// ---- Money that grows with your studio ----
+	// Holy's price curve rises about 5x from 1980 to 2008, but a studio's income can rise 2,000x, so an amount that
+	// matters in 1980 means nothing by 1995. Events about one of your games are priced from what such a game earns,
+	// and caps from what you earned last year; the old fixed amounts stay as the minimum (early game is unchanged).
+
+	// What a game of this size of yours usually earns over its life: the average of your last 3 released games of the
+	// same size that have had time to sell, or 3x this game's development cost if there are none yet.
+	private static long ExpectedRevenue(gameScript g)
+	{
+		if (!g)
+		{
+			return 0L;
+		}
+		List<gameScript> done = (from x in IndustryCore.AllGames()
+			where x != g && x.IsMyGame() && x.gameSize == g.gameSize && x.umsatzTotal > 0 && !x.inDevelopment && !x.typ_contractGame && Standalone(x) && (!x.isOnMarket || x.weeksOnMarket >= 20)
+			orderby x.date_year * 12 + x.date_month descending
+			select x).Take(3).ToList();
+		if (done.Count > 0)
+		{
+			return (long)done.Average((gameScript x) => (double)x.umsatzTotal);
+		}
+		return GameUpdates.DevCost(g) * 3;
+	}
+
+	// A share of what the game should earn, never below the old fixed amount.
+	private static long OfRevenue(gameScript g, float share, long floor)
+	{
+		return Math.Max(floor, Prices.Round((double)ExpectedRevenue(g) * (double)share));
+	}
+
+	// Everything you earned last year (all income types).
+	private static long LastYearIncome()
+	{
+		long[] f = (G.MS ? G.MS.finanzenJahrLast : null);
+		if (f == null || f.Length < 100)
+		{
+			return 0L;
+		}
+		long sum = 0L;
+		for (int i = 50; i < 100; i++)
+		{
+			sum += Math.Max(0L, f[i]);
+		}
+		return sum;
+	}
+
+	// A cap that grows with your studio: a share of last year's income, never below the old fixed cap.
+	private static long IncomeCap(long floor, float share = 0.02f)
+	{
+		return Math.Max(floor, (long)((double)LastYearIncome() * (double)share));
+	}
+
 	private static long Weekly(gameScript g)
 	{
 		if (g.sellsPerWeek == null || g.sellsPerWeek.Length == 0)
@@ -365,6 +421,22 @@ internal static partial class IndustryEvents
 		return Mathf.Max(0f, UI.Pages.CurrentChartsPage.DevProgress(g, out int _));
 	}
 
+	// A studio's own game in development. The game's FindGameInDevelopment() can return a game it offers you to
+	// publish, or contract work: those never come out on its own countdown, so events skip them.
+	private static gameScript TheirGame(publisherScript p)
+	{
+		if (!p)
+		{
+			return null;
+		}
+		gameScript g = p.FindGameInDevelopment();
+		if ((bool)g && !g.pubAngebot && !g.auftragsspiel)
+		{
+			return g;
+		}
+		return IndustryCore.AllGames().FirstOrDefault((gameScript x) => x.developerID == p.myID && x.inDevelopment && !x.isOnMarket && !x.pubAngebot && !x.auftragsspiel);
+	}
+
 	// ---- The events ----
 
 	private static List<IndustryEventDef> Build()
@@ -384,7 +456,7 @@ internal static partial class IndustryEvents
 			Hit(),
 			PriceCut(),
 			Delay()
-		}.Concat(Early()).Concat(Consoles()).Concat(RivalMoves()).ToList();
+		}.Concat(Early()).Concat(Consoles()).Concat(RivalMoves()).Concat(CompetitorFights()).ToList();
 	}
 
 	// Two teenagers send you their game: publish it (a gamble), hire them, or pass.
@@ -455,7 +527,7 @@ internal static partial class IndustryEvents
 			if ((bool)c)
 			{
 				c.Create(null);
-				c.beruf = i;
+				SetProfession(c, i);
 				if (i == 0)
 				{
 					c.s_gamedesign = Mathf.Max(c.s_gamedesign, R(35f, 45f));
@@ -468,6 +540,95 @@ internal static partial class IndustryEvents
 			}
 		}
 		return added;
+	}
+
+	// Create(null) rolls a random profession: its skill 30-40 and the perks that suit it. An event's applicant has a set
+	// profession, so the rolled one's skill goes back to a beginner's and perks only another job can have are dropped.
+	// A "dev legend" (a rare roll, already in the news by profession) is left as the game made it.
+	private static void SetProfession(charArbeitsmarkt c, int profession)
+	{
+		if (c.beruf == profession)
+		{
+			return;
+		}
+		if (c.beruf >= 0 && c.beruf <= 7)
+		{
+			if (MarketSkill(c, c.beruf) >= 75f)
+			{
+				return;
+			}
+			SetMarketSkill(c, c.beruf, R(10f, 20f));
+		}
+		c.beruf = profession;
+		if (c.perks == null)
+		{
+			return;
+		}
+		int[][] onlyFor = new int[5][]
+		{
+			new int[2] { 14, 0 },
+			new int[2] { 25, 0 },
+			new int[2] { 21, 1 },
+			new int[2] { 24, 1 },
+			new int[2] { 23, 2 }
+		};
+		foreach (int[] rule in onlyFor)
+		{
+			if (rule[0] < c.perks.Length && profession != rule[1])
+			{
+				c.perks[rule[0]] = false;
+			}
+		}
+		if (3 < c.perks.Length && profession > 1)
+		{
+			c.perks[3] = false;
+		}
+	}
+
+	private static float MarketSkill(charArbeitsmarkt c, int skill)
+	{
+		return skill switch
+		{
+			0 => c.s_gamedesign,
+			1 => c.s_programmieren,
+			2 => c.s_grafik,
+			3 => c.s_sound,
+			4 => c.s_pr,
+			5 => c.s_gametests,
+			6 => c.s_technik,
+			_ => c.s_forschen,
+		};
+	}
+
+	private static void SetMarketSkill(charArbeitsmarkt c, int skill, float v)
+	{
+		switch (skill)
+		{
+		case 0:
+			c.s_gamedesign = v;
+			break;
+		case 1:
+			c.s_programmieren = v;
+			break;
+		case 2:
+			c.s_grafik = v;
+			break;
+		case 3:
+			c.s_sound = v;
+			break;
+		case 4:
+			c.s_pr = v;
+			break;
+		case 5:
+			c.s_gametests = v;
+			break;
+		case 6:
+			c.s_technik = v;
+			break;
+		default:
+			c.s_forschen = v;
+			break;
+		}
 	}
 
 	// A magazine wants to print your game's code for readers to type in.
@@ -535,7 +696,7 @@ internal static partial class IndustryEvents
 				}
 				c.GameId = g.myID;
 				c.Number = UnityEngine.Random.Range(0, Operators.Length);
-				c.Amount = (long)((float)Scaled(5000.0) * (1f + (float)g.reviewTotal / 50f) * (1f + (float)g.gameSize * 0.5f));
+				c.Amount = OfRevenue(g, 0.03f, (long)((float)Scaled(5000.0) * (1f + (float)g.reviewTotal / 50f) * (1f + (float)g.gameSize * 0.5f)));
 				return true;
 			},
 			Title = (IndustryContext c) => "Cabinet Deal",
@@ -549,17 +710,19 @@ internal static partial class IndustryEvents
 					int fans = AddFans(300f);
 					return Operators[x.Number] + " pays " + Money(x.Amount) + ". " + fans + " players discover " + Name(x.GameId) + " in the arcades.";
 				}),
-				Choice("Share the Coins", "About " + Money(c.Amount / 7) + " a week for 14 weeks", "Twice the fee, spread out", delegate(IndustryContext x)
+				Choice("Share the Coins", "A gamble on the cabinets", "About 1.4x the fee over 14 weeks if players queue up, much less if not", delegate(IndustryContext x)
 				{
+					bool hit = UnityEngine.Random.value < 0.7f;
+					long weekly = x.Amount * (hit ? 14 : 3) / 140;
 					IndustryCore.State.Streams.Add(new IncomeStream
 					{
 						Label = Name(x.GameId) + " cabinets",
-						Fixed = x.Amount / 7,
+						Fixed = weekly,
 						WeeksLeft = 14,
 						Category = 2
 					});
 					AddFans(300f);
-					return "The cabinets go in: about " + Money(x.Amount / 7) + " a week for 14 weeks.";
+					return hit ? ("Players queue for the cabinets: about " + Money(weekly) + " a week for 14 weeks.") : ("The cabinets gather dust: only about " + Money(weekly) + " a week for 14 weeks.");
 				}),
 				Choice("Decline", "Nothing changes", "It stays a home game", (IndustryContext x) => "You turn " + Operators[x.Number] + " down.")
 			}
@@ -616,10 +779,15 @@ internal static partial class IndustryEvents
 		{
 			return "The offer has gone.";
 		}
+		if (p.inBesitz)
+		{
+			// Bought while the offer waited: there's nothing to give, and no promise to make.
+			return "You already have the " + p.GetName() + " dev kit, so the maker just thanks you for your support.";
+		}
 		p.inBesitz = true;
 		if (bonus > 0)
 		{
-			G.MS.Earn(bonus, 1);
+			G.MS.Earn(bonus, 2);
 		}
 		IndustryCore.State.Promises.Add(new PlatformPromise
 		{
@@ -645,14 +813,14 @@ internal static partial class IndustryEvents
 				{
 					return false;
 				}
-				List<publisherScript> small = IndustryCore.Studios().Where((publisherScript p) => p.developer && p.stars <= 60f && IndustryCore.Tier(IndustryCore.Standing(p)) > 0 && (bool)p.FindGameInDevelopment()).ToList();
+				List<publisherScript> small = IndustryCore.Studios().Where((publisherScript p) => p.developer && p.stars <= 60f && IndustryCore.Tier(IndustryCore.Standing(p)) > 0 && (bool)TheirGame(p)).ToList();
 				if (small.Count == 0)
 				{
 					return false;
 				}
 				publisherScript pick = Pick(small);
 				c.StudioId = pick.myID;
-				c.GameId = pick.FindGameInDevelopment().myID;
+				c.GameId = TheirGame(pick).myID;
 				c.Amount = Scaled(3000.0);
 				return true;
 			},
@@ -688,6 +856,11 @@ internal static partial class IndustryEvents
 			Weight = 1.2f,
 			Setup = delegate(IndustryContext c)
 			{
+				// Not in the same weeks as the arch-rival's Copycat (both would hit one game).
+				if (Fired("rv_copy", 12))
+				{
+					return false;
+				}
 				List<gameScript> mine = IndustryCore.MyGamesOnMarket().Where((gameScript g) => g.gameTyp == 0 && g.reviewTotal >= 50 && g.weeksOnMarket >= 4).ToList();
 				if (mine.Count == 0)
 				{
@@ -710,15 +883,18 @@ internal static partial class IndustryEvents
 				{
 					return false;
 				}
-				KeyValuePair<gameScript, gameScript> pair = Pick(pairs);
+				// Mostly a competitor's game, when one fits.
+				List<KeyValuePair<gameScript, gameScript>> rivalPairs = pairs.Where((KeyValuePair<gameScript, gameScript> kv) => IndustryCompetitors.IsCompetitor(IndustryCore.Studio(kv.Value.developerID))).ToList();
+				KeyValuePair<gameScript, gameScript> pair = ((rivalPairs.Count > 0 && UnityEngine.Random.value < 0.75f) ? Pick(rivalPairs) : Pick(pairs));
 				publisherScript studio = IndustryCore.Studio(pair.Value.developerID);
 				c.GameId = pair.Key.myID;
 				c.Game2 = pair.Value.myID;
 				c.StudioId = studio.myID;
-				c.Amount = Scaled(10000.0);
-				c.Amount2 = (long)((float)Scaled(25000.0) * (1f + (float)pair.Value.gameSize));
+				c.Amount = OfRevenue(pair.Key, 0.005f, Scaled(10000.0));
+				c.Amount2 = OfRevenue(pair.Key, 0.04f, (long)((float)Scaled(25000.0) * (1f + (float)pair.Value.gameSize)));
 				c.Share = Mathf.Clamp(0.55f - studio.stars * 0.0025f + ((IndustryCore.Tier(IndustryCore.Standing(studio)) == 0) ? 0.1f : 0f), 0.2f, 0.8f);
-				c.Number = (int)Scaled(6000.0) * (1 + pair.Value.gameSize);
+				c.Number = (int)Math.Min(int.MaxValue, OfRevenue(pair.Key, 0.02f, Scaled(6000.0) * (1 + pair.Value.gameSize)));
+				c.Number2 = (int)Math.Min(int.MaxValue, OfRevenue(pair.Key, 0.015f, Scaled(8000.0)));
 				return true;
 			},
 			Title = (IndustryContext c) => "A Copy of Your Game",
@@ -748,17 +924,18 @@ internal static partial class IndustryEvents
 					IndustryCore.Change(p, -20, "You sued them over " + Name(x.GameId) + " and lost");
 					return "You lose: the court says " + Name(x.Game2) + " is different enough. The lawyers still want paying.";
 				}, (IndustryContext x) => Need(x.Amount)),
-				Choice("Outsell It", "Marketing costs " + Money(Scaled(8000.0)), Name(c.GameId) + " sells 15% more for 8 weeks", delegate(IndustryContext x)
+				Choice("Outsell It", "Marketing costs " + Money(OutsellCost(c)), Name(c.GameId) + " sells 15% more for 8 weeks", delegate(IndustryContext x)
 				{
-					G.MS.Pay(Scaled(8000.0), 12);
+					G.MS.Pay(OutsellCost(x), 12);
 					IndustryCore.AddMod(Game(x.GameId), 0.15f, 8);
 					return "Your campaign reminds everyone which one came first.";
-				}, (IndustryContext x) => Need(Scaled(8000.0))),
-				Choice("License It to Them", "They pay " + Money(c.Number), "Standing with them +10", delegate(IndustryContext x)
+				}, (IndustryContext x) => Need(OutsellCost(x))),
+				Choice("License It to Them", "They pay " + Money(c.Number), "Standing +10, but their official copy sells: yours -10% for 8 weeks", delegate(IndustryContext x)
 				{
 					G.MS.Earn(x.Number, 2);
+					IndustryCore.AddMod(Game(x.GameId), -0.1f, 8);
 					IndustryCore.Change(IndustryCore.Studio(x.StudioId), 10, "Licensed " + Name(x.GameId) + " to them");
-					return StudioName(x.StudioId) + " pays " + Money(x.Number) + " for the rights, and is grateful.";
+					return StudioName(x.StudioId) + " pays " + Money(x.Number) + " for the rights, and is grateful. Their official version takes some of your buyers.";
 				}),
 				Choice("Ignore It", "Nothing to pay", Name(c.GameId) + " sells 5% less for 8 weeks", delegate(IndustryContext x)
 				{
@@ -827,9 +1004,35 @@ internal static partial class IndustryEvents
 		};
 	}
 
+	// Outsell It (A Copy of Your Game): saved with the event; older saves fall back to the old price.
+	private static long OutsellCost(IndustryContext c)
+	{
+		if (c.Number2 <= 0)
+		{
+			return Scaled(8000.0);
+		}
+		return c.Number2;
+	}
+
+	private static readonly int[] GuaranteePerPoint = new int[6] { 2000, 4000, 8000, 16000, 32000, 48000 };
+
+	// The game's own publishing guarantee for a game of this size (gameScript, pubAngebot_Garantiesumme: review points x
+	// 2,000-48,000 by size x (difficulty + 1)), with your recent reviews standing in for the unfinished game's, by the
+	// publisher's stars. The game's sum doesn't change with the years, so it's capped at a tenth of what your games of
+	// this size earn (a 1977 studio isn't handed years of income); never below the old price.
 	private static long Advance(gameScript g, publisherScript p)
 	{
-		return (long)((float)Scaled(12000.0) * (1f + (float)g.gameSize) * (0.6f + p.stars * 0.01f) * R(0.85f, 1.2f));
+		float stars = 0.6f + p.stars * 0.01f;
+		long old = (long)((float)Scaled(12000.0) * (1f + (float)g.gameSize) * stars);
+		List<int> reviews = (from x in IndustryCore.AllGames()
+			where x != g && x.IsMyGame() && x.reviewTotal > 0 && !x.inDevelopment && Standalone(x)
+			orderby x.date_year * 12 + x.date_month descending
+			select x.reviewTotal).Take(3).ToList();
+		int review = ((reviews.Count > 0) ? Mathf.RoundToInt((float)reviews.Average()) : 60);
+		int size = Mathf.Clamp(g.gameSize, 0, GuaranteePerPoint.Length - 1);
+		long guarantee = (long)((float)((long)review * (long)GuaranteePerPoint[size] * (long)((G.MS ? G.MS.difficulty : 1) + 1)) * stars);
+		long sum = Math.Max(old, Math.Min(guarantee, ExpectedRevenue(g) / 10));
+		return Prices.Round((double)((float)sum * R(0.85f, 1.2f)));
 	}
 
 	private static string Bid(IndustryContext c, int winner, int loser, long advance)
@@ -839,6 +1042,11 @@ internal static partial class IndustryEvents
 		if (!g)
 		{
 			return "The game is gone.";
+		}
+		if (!g.inDevelopment || g.isOnMarket)
+		{
+			// Answered after it came out (a decision can wait a while): there's nothing left to publish.
+			return "Too late: " + g.GetNameSimple() + " is already out, so the offers lapse.";
 		}
 		G.MS.Earn(advance, 2);
 		g.AddHype(c.Number);
@@ -866,7 +1074,8 @@ internal static partial class IndustryEvents
 				gameScript g = pick.FindAngekuendigtesGame();
 				c.StudioId = pick.myID;
 				c.GameId = g.myID;
-				c.Amount = (long)((float)Scaled(20000.0) * (1f + (float)g.gameSize));
+				// A fifth of what their games usually earn (it pays back about that, when it works); never below the old price.
+				c.Amount = Math.Max((long)((float)Scaled(20000.0) * (1f + (float)g.gameSize)), Prices.Round((double)StudioRevenue(pick) * 0.2));
 				IndustryCore.State.Cooldowns["rescue:" + pick.myID] = Now + 156;
 				return true;
 			},
@@ -875,7 +1084,7 @@ internal static partial class IndustryEvents
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Fund It", "Costs " + Money(c.Amount), "25% of its revenue for a year; standing +20", (IndustryContext x) => Fund(x, x.Amount, 0.25f, 20, 4), (IndustryContext x) => Need(x.Amount)),
+				Choice("Fund It", "Costs " + Money(c.Amount), "25% of its revenue for a year (if they finish it); standing +20", (IndustryContext x) => Fund(x, x.Amount, 0.25f, 20, 4), (IndustryContext x) => Need(x.Amount)),
 				Choice("A Smaller Loan", "Costs " + Money(c.Amount / 3), "8% of its revenue for a year; standing +8", (IndustryContext x) => Fund(x, x.Amount / 3, 0.08f, 8, 1), (IndustryContext x) => Need(x.Amount / 3)),
 				Choice("Decline", "Nothing to pay", "Standing -5; they cut back and delay it", delegate(IndustryContext x)
 				{
@@ -900,6 +1109,13 @@ internal static partial class IndustryEvents
 			return "Too late: the studio or its game is gone.";
 		}
 		G.MS.Pay(cost, 33);
+		IndustryCore.Change(p, standing, "You funded " + g.GetNameSimple());
+		// Money doesn't fix everything: sometimes they still can't finish it.
+		if (UnityEngine.Random.value < 0.25f)
+		{
+			p.newGameInWeeks += 26;
+			return p.GetName() + " takes the money, but still can't finish " + g.GetNameSimple() + ": it's shelved for half a year, and your money is gone. They won't forget you tried.";
+		}
 		IndustryCore.State.Streams.Add(new IncomeStream
 		{
 			Label = "Your share of " + g.GetNameSimple(),
@@ -911,8 +1127,25 @@ internal static partial class IndustryEvents
 		});
 		g.AddHype(5f);
 		p.newGameInWeeks = Mathf.Max(1, p.newGameInWeeks - weeksSooner);
-		IndustryCore.Change(p, standing, "You funded " + g.GetNameSimple());
 		return p.GetName() + " can finish " + g.GetNameSimple() + ". You'll get " + Mathf.RoundToInt(share * 100f) + "% of its revenue for a year after it's out.";
+	}
+
+	// What one of this studio's games usually earns: the average of its last 3 released games (0 if none).
+	private static long StudioRevenue(publisherScript p)
+	{
+		if (!p)
+		{
+			return 0L;
+		}
+		List<gameScript> done = (from x in IndustryCore.AllGames()
+			where x.developerID == p.myID && !x.IsMyGame() && x.umsatzTotal > 0 && !x.inDevelopment && Standalone(x)
+			orderby x.date_year * 12 + x.date_month descending
+			select x).Take(3).ToList();
+		if (done.Count <= 0)
+		{
+			return 0L;
+		}
+		return (long)done.Average((gameScript x) => (double)x.umsatzTotal);
 	}
 
 	// ---- Headlines ----
@@ -923,7 +1156,8 @@ internal static partial class IndustryEvents
 		{
 			Id = "craze",
 			Headline = true,
-			Cooldown = 20,
+			// The game itself moves its trend every 50-100 weeks: not much more often than that.
+			Cooldown = 40,
 			Setup = delegate(IndustryContext c)
 			{
 				genres gen = IndustryCore.Genres;
@@ -963,7 +1197,7 @@ internal static partial class IndustryEvents
 		{
 			Id = "fatigue",
 			Headline = true,
-			Cooldown = 24,
+			Cooldown = 40,
 			Weight = 0.8f,
 			Setup = delegate(IndustryContext c)
 			{
@@ -1008,11 +1242,13 @@ internal static partial class IndustryEvents
 			Weight = 1.2f,
 			Setup = delegate(IndustryContext c)
 			{
-				gameScript g = (from x in IndustryCore.AllGames()
-					where x.isOnMarket && !x.IsMyGame() && x.weeksOnMarket <= 12 && x.developerID >= 0 && (bool)IndustryCore.Studio(x.developerID)
+				// The biggest new hit, or a competitor's if one of theirs is among the top three.
+				List<gameScript> top = (from x in IndustryCore.AllGames()
+					where x.isOnMarket && !x.IsMyGame() && x.weeksOnMarket <= 12 && x.developerID >= 0 && (bool)IndustryCore.Studio(x.developerID) && Weekly(x) > 0
 					orderby Weekly(x) descending
-					select x).FirstOrDefault();
-				if (!g || Weekly(g) <= 0)
+					select x).Take(3).ToList();
+				gameScript g = top.FirstOrDefault((gameScript x) => IndustryCompetitors.IsCompetitor(IndustryCore.Studio(x.developerID))) ?? top.FirstOrDefault();
+				if (!g)
 				{
 					return false;
 				}
@@ -1032,6 +1268,10 @@ internal static partial class IndustryEvents
 				if ((bool)gen && (bool)g2 && g2.maingenre >= 0 && g2.maingenre < gen.genres_BELIEBTHEIT.Length)
 				{
 					gen.genres_BELIEBTHEIT[g2.maingenre] = Mathf.Min(100f, gen.genres_BELIEBTHEIT[g2.maingenre] + 4f);
+				}
+				if (IndustryCompetitors.IsCompetitor(p))
+				{
+					return "<b>" + StudioName(c.StudioId) + "</b>, one of your competitors, has a hit: " + Name(c.GameId) + " is flying off the shelves.";
 				}
 				return "<b>" + StudioName(c.StudioId) + "</b>'s " + Name(c.GameId) + " is flying off the shelves.";
 			}

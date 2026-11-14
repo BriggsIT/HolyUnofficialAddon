@@ -21,6 +21,13 @@ internal static partial class IndustryEvents
 		return Employees.All().FirstOrDefault((characterScript e) => e.myID == id);
 	}
 
+	// A raise on the base salary. GetGehalt() adds the sandbox salary setting on top, so raising from it compounded.
+	private static void Raise(characterScript p, float factor)
+	{
+		p.GetGehalt();
+		p.gehalt = Mathf.RoundToInt((float)p.gehalt * factor);
+	}
+
 	// Your best person (not you).
 	private static characterScript BestEmployee()
 	{
@@ -65,7 +72,7 @@ internal static partial class IndustryEvents
 						{
 							return "They've already left.";
 						}
-						p.gehalt = (int)((float)p.GetGehalt() * 1.25f);
+						Raise(p, 1.25f);
 						p.AddMotivation(15f);
 						IndustryCore.State.RivalWins++;
 						IndustryCore.Change(IndustryCore.Studio(x.StudioId), -4, "Their poaching attempt failed");
@@ -118,14 +125,15 @@ internal static partial class IndustryEvents
 					where x.weeksOnMarket < 40 && !x.typ_addon && !x.typ_mmoaddon && x.reviewTotal >= 70
 					orderby Weekly(x) descending
 					select x).FirstOrDefault();
-				if (!a || !g)
+				// Not in the same weeks as A Copy of Your Game (both would hit one game).
+				if (!a || !g || Fired("clone", 12))
 				{
 					return false;
 				}
 				c.StudioId = a.myID;
 				c.GameId = g.myID;
-				c.Amount = Scaled(80000.0);
-				c.Amount2 = Scaled(40000.0);
+				c.Amount = OfRevenue(g, 0.01f, Scaled(80000.0));
+				c.Amount2 = OfRevenue(g, 0.015f, Scaled(40000.0));
 				return true;
 			},
 			Title = (IndustryContext c) => "Copycat",
@@ -175,12 +183,13 @@ internal static partial class IndustryEvents
 			Setup = delegate(IndustryContext c)
 			{
 				publisherScript a = IndustryRivals.Arch;
-				gameScript g = IndustryCore.AllGames().FirstOrDefault((gameScript x) => x.IsMyGame() && x.isOnMarket && x.releaseDate > 0 && x.releaseDate <= 6);
-				if (!a || !g)
+				gameScript g = IndustryCore.AllGames().FirstOrDefault((gameScript x) => x.IsMyGame() && x.isOnMarket && x.releaseDate > 0 && x.releaseDate <= 6 && !IndustryCompetitors.Clashing(x));
+				// Not in the same weeks as a competitor's release clash.
+				if (!a || !g || Fired("cp_clash", 8))
 				{
 					return false;
 				}
-				gameScript theirs = a.FindGameInDevelopment();
+				gameScript theirs = TheirGame(a);
 				c.StudioId = a.myID;
 				c.GameId = g.myID;
 				c.Game2 = (theirs ? theirs.myID : (-1));
@@ -189,7 +198,8 @@ internal static partial class IndustryEvents
 			},
 			Title = (IndustryContext c) => "Release Clash",
 			Text = (IndustryContext c) => StudioName(c.StudioId) + " moved " + ((c.Game2 >= 0) ? Name(c.Game2) : "its next big game") + " to the same week as " + Name(c.GameId) + ".",
-			Default = 0,
+			// Left alone, you hold your date: ignoring a pop-up shouldn't delay your game.
+			Default = 1,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
 				Choice("Delay Ours 3 Weeks", "Avoid the fight", Name(c.GameId) + " comes out 3 weeks later", delegate(IndustryContext x)

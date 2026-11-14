@@ -84,14 +84,14 @@ internal static partial class IndustryEvents
 			Cooldown = 40,
 			Setup = delegate(IndustryContext c)
 			{
-				List<publisherScript> pool = IndustryCore.Studios().Where((publisherScript p) => p.developer && p.stars <= 70f && IndustryCore.Tier(IndustryCore.Standing(p)) > 0 && (bool)p.FindGameInDevelopment()).ToList();
+				List<publisherScript> pool = IndustryCore.Studios().Where((publisherScript p) => p.developer && p.stars <= 70f && IndustryCore.Tier(IndustryCore.Standing(p)) > 0 && (bool)TheirGame(p)).ToList();
 				if (pool.Count == 0)
 				{
 					return false;
 				}
 				publisherScript pick = Pick(pool);
 				c.StudioId = pick.myID;
-				c.GameId = pick.FindGameInDevelopment().myID;
+				c.GameId = TheirGame(pick).myID;
 				c.Number = Random.Range(0, 3);
 				c.Amount = Scaled(800.0);
 				c.Amount2 = Scaled(2000.0);
@@ -140,7 +140,7 @@ internal static partial class IndustryEvents
 			{
 				// Most likely a studio that already likes you least.
 				List<publisherScript> pool = (from p in IndustryCore.Studios()
-					where p.developer && p.stars >= 40f && (bool)p.FindGameInDevelopment()
+					where p.developer && p.stars >= 40f && (bool)TheirGame(p)
 					orderby IndustryCore.Standing(p) + R(0f, 25f)
 					select p).Take(3).ToList();
 				if (pool.Count == 0)
@@ -149,7 +149,7 @@ internal static partial class IndustryEvents
 				}
 				publisherScript pick = Pick(pool);
 				c.StudioId = pick.myID;
-				c.GameId = pick.FindGameInDevelopment().myID;
+				c.GameId = TheirGame(pick).myID;
 				c.Number = Random.Range(0, Magazines.Length);
 				c.Amount = Scaled(2500.0);
 				return true;
@@ -301,7 +301,7 @@ internal static partial class IndustryEvents
 				float perCopy = (float)g.umsatzTotal / (float)g.sellsTotal;
 				c.GameId = g.myID;
 				c.Number = Random.Range(0, Distributors.Length);
-				c.Amount = (long)Mathf.Clamp((float)Weekly(g) * 4f * perCopy, (float)Scaled(1500.0), (float)Scaled(80000.0));
+				c.Amount = (long)Mathf.Clamp((float)Weekly(g) * 4f * perCopy, (float)Scaled(1500.0), (float)IncomeCap(Scaled(80000.0)));
 				return true;
 			},
 			Title = (IndustryContext c) => "A Distributor in Trouble",
@@ -359,7 +359,7 @@ internal static partial class IndustryEvents
 				}
 				c.GameId = g.myID;
 				c.Number = Random.Range(0, ToyMakers.Length);
-				c.Amount = (long)((float)Scaled(6000.0) * (1f + (float)g.reviewTotal / 100f) * (1f + (float)g.gameSize * 0.3f));
+				c.Amount = OfRevenue(g, 0.02f, (long)((float)Scaled(6000.0) * (1f + (float)g.reviewTotal / 100f) * (1f + (float)g.gameSize * 0.3f)));
 				return true;
 			},
 			Title = (IndustryContext c) => "A Pocket Version of " + Name(c.GameId),
@@ -374,18 +374,20 @@ internal static partial class IndustryEvents
 					int fans = AddFans(250f * R(0.8f, 1.3f));
 					return ToyMakers[x.Number] + " pays " + Money(x.Amount) + ". The pocket game is in every playground: " + fans + " new fans.";
 				}),
-				Choice("Take Royalties", "About " + Money(c.Amount / 6) + " a week for 12 weeks", "Twice the fee, spread out; IP points +20", delegate(IndustryContext x)
+				Choice("Take Royalties", "A gamble on how it sells", "About 1.4x the fee over 12 weeks if it catches on, much less if not; IP points +20", delegate(IndustryContext x)
 				{
+					bool hit = Random.value < 0.7f;
+					long weekly = x.Amount * (hit ? 14 : 3) / 120;
 					IndustryCore.State.Streams.Add(new IncomeStream
 					{
 						Label = "Pocket " + Name(x.GameId),
-						Fixed = x.Amount / 6,
+						Fixed = weekly,
 						WeeksLeft = 12,
 						Category = 11
 					});
 					Game(x.GameId)?.AddIpPoints(20f);
 					AddFans(250f * R(0.8f, 1.3f));
-					return "The pocket game goes on sale: about " + Money(x.Amount / 6) + " a week for 12 weeks.";
+					return hit ? ("The pocket game is a playground hit: about " + Money(weekly) + " a week for 12 weeks.") : ("The pocket game sits on the shelves: only about " + Money(weekly) + " a week for 12 weeks.");
 				}),
 				Choice("Decline", "Nothing changes", "It stays a screen game", (IndustryContext x) => "You turn " + ToyMakers[x.Number] + " down.")
 			}

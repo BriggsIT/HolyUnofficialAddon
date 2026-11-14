@@ -13,6 +13,9 @@ internal static class IndustryUi
 {
 	public static readonly Color Navy = new Color(0.13f, 0.3f, 0.44f);
 
+	// Competitors (market fights), apart from rivals' red.
+	public static readonly Color Competitor = new Color(0.72f, 0.36f, 0f);
+
 	public static Sprite Icon => UpdateIcons.Game("iconPublisher", UpdateIcons.Game("iconNPC", UpdateIcons.Game("iconDeveloper")));
 
 	// A studio's colour (its logo's), for the pop-up's title bar and accents.
@@ -172,7 +175,7 @@ internal class IndustryPage : Page
 
 	private int filter;
 
-	private static readonly string[] Filters = new string[5] { "All", "Allies and Friends", "Rivals", "Developers", "Publishers" };
+	private static readonly string[] Filters = new string[6] { "All", "Allies and Friends", "Rivals", "Competitors", "Developers", "Publishers" };
 
 	public override string Title => "Industry";
 
@@ -190,7 +193,9 @@ internal class IndustryPage : Page
 		int friends = studios.Count((publisherScript p) => IndustryCore.Tier(IndustryCore.Standing(p)) >= 2);
 		int rivals = studios.Count((publisherScript p) => IndustryCore.Tier(IndustryCore.Standing(p)) == 0);
 		float cw = (W - 28f - 30f) / 4f;
-		w.StatCard(IndustryUi.Icon, "Studios", studios.Count.ToString(), studios.Count((publisherScript p) => p.publisher) + " publish", 14f, 14f, cw, 80f);
+		List<publisherScript> comps = IndustryCompetitors.All();
+		string compTip = ((comps.Count > 0) ? ("<b>Your competitors</b>: the studios you meet most in the market right now (picked again every year and after each of your releases). They fight you for players: release clashes, talent races, price wars.\n\n" + string.Join("\n", comps.Select((publisherScript p) => "<b>" + p.GetName() + "</b>: " + IndustryCompetitors.Why(p)))) : "Your competitors appear once you have a game out or in development: the studios making games in your genres, about your size.");
+		w.StatCard(IndustryUi.Icon, "Competitors", comps.Count.ToString(), (comps.Count > 0) ? "your genres, your market" : "none yet", 14f, 14f, cw, 80f, (comps.Count > 0) ? new Color?(IndustryUi.Competitor) : null, compTip);
 		w.StatCard(UpdateIcons.Game("iconHappy", IndustryUi.Icon), "Friends and allies", friends.ToString(), "better terms, favours", 14f + cw + 10f, 14f, cw, 80f, (friends > 0) ? new Color?(UIKit.Green) : null);
 		IndustryRivals.Ensure();
 		publisherScript arch = IndustryRivals.Arch;
@@ -244,7 +249,7 @@ internal class IndustryPage : Page
 	private void StudiosTab(EditorWindow w, List<publisherScript> studios, float y)
 	{
 		float W = w.Width;
-		float fw = (W - 28f - 40f) / 5f;
+		float fw = (W - 28f - 10f * (float)(Filters.Length - 1)) / (float)Filters.Length;
 		for (int i = 0; i < Filters.Length; i++)
 		{
 			int f = i;
@@ -278,9 +283,12 @@ internal class IndustryPage : Page
 			shown = studios.Where((publisherScript p) => IndustryCore.Tier(IndustryCore.Standing(p)) == 0);
 			break;
 		case 3:
-			shown = studios.Where((publisherScript p) => p.developer);
+			shown = studios.Where(IndustryCompetitors.IsCompetitor);
 			break;
 		case 4:
+			shown = studios.Where((publisherScript p) => p.developer);
+			break;
+		case 5:
 			shown = studios.Where((publisherScript p) => p.publisher);
 			break;
 		}
@@ -294,7 +302,19 @@ internal class IndustryPage : Page
 				w.Push(new StudioPage(id));
 			}, p2.GetTooltip());
 			row.Picture(p2.GetLogo(), 8f, 42f);
-			IndustryUi.Fixed(row.Top(p2.GetName() + "  <color=#777777>" + IndustryUi.Stars(p2.stars) + "</color>" + (IndustryRivals.IsArch(p2) ? "  <color=#c62828>arch-rival</color>" : ""), 60f, 330f), 15);
+			string tags = (IndustryRivals.IsArch(p2) ? "  <color=#c62828>arch-rival</color>" : "") + (IndustryCompetitors.IsCompetitor(p2) ? "  <color=#b85c00>competitor</color>" : "");
+			Text top = IndustryUi.Fixed(row.Top(p2.GetName() + "  <color=#777777>" + IndustryUi.Stars(p2.stars) + "</color>" + tags, 60f, 330f), 15);
+			// A long name pushed the tag onto a hidden second line: the tag matters more than the stars (on their page).
+			if (tags.Length > 0 && top.preferredWidth > 330f)
+			{
+				top.text = p2.GetName() + tags;
+			}
+			if (top.preferredWidth > 330f)
+			{
+				top.resizeTextMaxSize = 15;
+				top.resizeTextMinSize = 11;
+				top.resizeTextForBestFit = true;
+			}
 			IndustryUi.Fixed(row.Bottom((p2.publisher ? (p2.developer ? "Developer and publisher" : "Publisher") : "Developer") + ((p2.fanGenre >= 0) ? ("  ·  loves " + IndustryCore.GenreName(p2.fanGenre)) : ""), 60f, 330f), 13);
 			developing.TryGetValue(p2.myID, out var dev);
 			// Up to two lines, kept clear of the standing bar (which starts at W - 370).
@@ -448,6 +468,13 @@ internal class StudioPage : Page
 			EditorWindow.KV("Games released", p.GetAmountGames().ToString())
 		};
 		y += w.Facts(14f, y, W - 28f, facts, 2) + 12f;
+		if (IndustryCompetitors.IsCompetitor(p))
+		{
+			Text comp = w.Label("<b>One of your competitors:</b> " + IndustryCompetitors.Why(p) + ". They fight you for players: release clashes, talent races, price wars.", 24f, y, W - 48f, 24f, TextAnchor.MiddleLeft, bold: false, null, 13);
+			comp.color = IndustryUi.Competitor;
+			UIKit.SetTooltip(comp.gameObject, "Competitors are the studios you meet most in the market right now: games in your genres, about your size, something out or coming. Competing isn't hating: an ally can be a competitor. Fights that go badly cost standing, so a competitor you keep clashing with can turn into a rival.");
+			y += 30f;
+		}
 		if (IndustryRivals.On && IndustryRivals.IsRival(p))
 		{
 			y = RivalPanel(w, p, y);

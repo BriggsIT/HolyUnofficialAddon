@@ -528,6 +528,7 @@ internal static class HolyCompat
 		LockAntiCheatMenu();
 		FixHitBack(harmony);
 		TakeOverRival(harmony);
+		HolyLaunch.HoldThroughPreorders(harmony);
 		HolyLiveService.Apply(harmony);
 		RoomSupport.Apply(harmony);
 		try

@@ -623,6 +623,28 @@ internal static class StoreOps
 
 	// ---- Sales Events ----
 
+	// Holy's own Seasonal Sales are on right now (Holy runs them while Sales Events are switched off).
+	public static bool HolySaleRunning()
+	{
+		if (!holyLooked)
+		{
+			holyLooked = true;
+			holyRunning = AccessTools.TypeByName("HolyExpansion.Systems.SeasonalSales")?.GetProperty("Running", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+		}
+		if (holyRunning == null)
+		{
+			return false;
+		}
+		try
+		{
+			return (bool)holyRunning.GetValue(null);
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
 	// The store sales: Holy's seasonal sales when it runs them, otherwise June and December.
 	public static bool SaleRunning()
 	{

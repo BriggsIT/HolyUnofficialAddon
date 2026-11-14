@@ -13,7 +13,7 @@ Where it overlaps with The Holy Expansion, the two are merged into one system ra
 It's a hobby project for friends: not for sale, and not affiliated with Eggcode Games or with The Holy Expansion's
 author.
 
-**Version:** 0.25.1 · **Game:** Mad Games Tycoon 2 (Steam, PC) · **Loader:** BepInEx 5
+**Version:** 0.27.0 ([what's new in each version](CHANGELOG.md)) · **Game:** Mad Games Tycoon 2 (Steam, PC) · **Loader:** BepInEx 5
 
 <img src="Screenshots/overview/bottom-bar.png" width="100%" alt="The bottom bar with the addon's buttons">
 
@@ -48,6 +48,7 @@ author.
 - [Building from source](#building-from-source)
 - [Repository layout](#repository-layout)
 - [Credits](#credits)
+- [Changelog: every version](CHANGELOG.md)
 
 ---
 
@@ -159,9 +160,23 @@ The industry around you moves, and things land on your desk.
   - Once you're established, a studio your size may declare you its rival.
   - On any rival's page you can poach a developer, spread rumours, make peace, or at 100% rivalry drive them out of
     business.
+- **Competitors:** about four studios that meet you most in the market right now: games in your genres, about your
+  size, something out or coming. They're picked again every year and after each of your releases. Competing isn't
+  hating (an ally can be a competitor), but they fight you for players:
+  - **Release Clash:** their game in your genre lands with yours. With a release date set, their game really moves
+    onto your week, and the better-reviewed one wins the launch weeks. Delay yours, hold the date, or out-market it.
+  - **Talent Race:** they offer one of your good people a job. Match it, or let them go.
+  - **Price War:** they cut the price of the game fighting yours (games you publish yourself). Match it, or hold
+    your price.
+  - **Same Idea:** they announce a game in the same genre as yours in development. Rush it, make it stand out, or
+    ignore it.
+
+  At most one fight every couple of months. Fights that go badly cost standing, so a competitor you keep clashing
+  with can turn into a rival. Shelf Space, A Copy of Your Game and the hit headlines also pick competitors first.
 - **The Industry window** has three tabs:
   - **Studios:** each studio's stars, favourite genre, game in development, your standing and your last dealing.
-    Click one for its page: what happened between you, and its games.
+    Arch-rival and competitors are tagged, with filters for both. Click one for its page: what happened between
+    you, why they compete with you, and its games.
   - **Recent News:** the latest headlines and decisions. With cheats on (Game settings), a Test Events button fires
     any event on demand.
   - **Your Deals:** revenue shares, fees and promises.
@@ -169,6 +184,16 @@ The industry around you moves, and things land on your desk.
 <p>
 <img src="Screenshots/industry/news.png" width="49%" alt="Recent News">
 <img src="Screenshots/industry/deals.png" width="49%" alt="Your Deals">
+</p>
+
+<p>
+<img src="Screenshots/industry/arch-rival.png" width="49%" alt="Your arch-rival's page: the rivalry, your record and your moves">
+<img src="Screenshots/industry/competitor-page.png" width="49%" alt="A competitor's page, with why they compete with you">
+</p>
+
+<p>
+<img src="Screenshots/industry/rivals.png" width="49%" alt="The Rivals filter, with your arch-rival tagged">
+<img src="Screenshots/industry/competitors.png" width="49%" alt="The Competitors filter">
 </p>
 
 ### Rooms Overview

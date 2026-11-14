@@ -402,7 +402,7 @@ internal static class MmoLive
 		gameScript c = CreateClassicGame(g, m, classicName, p.Cost);
 		if (!c)
 		{
-			G.MS.Earn(p.Cost, 1);
+			G.MS.Pay(-p.Cost, 15);
 			return "The classic relaunch of " + name + " failed (see the log). " + G.Money(p.Cost) + " came back.";
 		}
 		long fromRealms = 0L;

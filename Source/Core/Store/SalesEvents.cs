@@ -379,13 +379,15 @@ internal static class SalesEvents
 	}
 
 	// The share of the price a buyer pays this week.
+	// Includes a price war's cut (Core/Industry: Price War), which runs with or without sales events.
 	public static float PriceFactor(gameScript g)
 	{
+		float war = Industry.IndustryCore.PriceCutFactor(g);
 		if (!On || !Running || !Eligible(g))
 		{
-			return 1f;
+			return war;
 		}
-		return 1f - (float)Discounts[S.Discount] / 100f * Reach(g, S.Wide);
+		return (1f - (float)Discounts[S.Discount] / 100f * Reach(g, S.Wide)) * war;
 	}
 
 	// Money from a sale next to a normal week, before other bonuses and Holy's cap (1 = the same).
@@ -712,17 +714,23 @@ internal static class SalesEvents
 	{
 		__state = null;
 		gameScript g = __instance;
-		if (!On || !g.isOnMarket || !Running || !Eligible(g))
+		if (!g.isOnMarket)
+		{
+			return;
+		}
+		bool sale = On && Running && Eligible(g);
+		if (!sale && Industry.IndustryCore.PriceCutFactor(g) >= 0.999f)
 		{
 			return;
 		}
 		__state = new SellState
 		{
-			Record = Current(),
+			Record = (sale ? Current() : null),
 			Sold = g.sellsTotal,
 			Money = g.umsatzTotal
 		};
-		float f = (HolyPrices ? 1f : PriceFactor(g));
+		// Holy applies the price factor to your games itself; other studios' games (a price war) are cut here.
+		float f = ((HolyPrices && g.IsMyGame()) ? 1f : PriceFactor(g));
 		if (f < 0.999f && g.verkaufspreis != null)
 		{
 			__state.Prices = (int[])g.verkaufspreis.Clone();

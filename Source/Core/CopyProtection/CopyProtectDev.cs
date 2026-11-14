@@ -902,7 +902,8 @@ internal static class CopyProtectDev
 		CopyProtectRoom.Detach(pr);
 		if (refund > 0 && (bool)G.MS)
 		{
-			G.MS.Earn(refund, 1);
+			// Back off the development cost it was paid under, not as Misc income.
+			G.MS.Pay(-refund, 4);
 		}
 		Version++;
 		return refund;

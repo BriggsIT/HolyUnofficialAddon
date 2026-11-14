@@ -73,6 +73,9 @@ internal class IncomeStream
 
 	public int Category = 2;
 
+	// Where money going out shows in the finances (mainScript.Pay; 7 = licences, 8 = misc).
+	public int PayCategory = 7;
+
 	public long LastRevenue = -1;
 
 	public bool Started;
@@ -102,6 +105,32 @@ internal class PlatformPromise
 	public int Deadline;
 
 	public long Price;
+}
+
+// A competitor's game set to come out the same week as yours (Release Clash): once both are out, the better-reviewed
+// one wins the launch weeks (IndustryCompetitors). Edge: review points your marketing adds.
+internal class ReleaseClash
+{
+	public int GameId;
+
+	public int TheirGameId;
+
+	public int StudioId;
+
+	public int Edge;
+
+	public int Expires;
+}
+
+// A price war's cut (Price War): the game sells for Factor of its price while it lasts (applied in
+// Store/SalesEvents' price path, so Holy and the store's sales handle it like a sale's discount).
+internal class PriceCut
+{
+	public int GameId;
+
+	public float Factor = 1f;
+
+	public int WeeksLeft;
 }
 
 // Publishers Bid: your game in development is promised to the publisher you went with (Core/Industry/PublishDeals).
@@ -138,6 +167,8 @@ internal class IndustryState
 	public List<PlatformPromise> Promises = new List<PlatformPromise>();
 
 	public List<PublishDeal> Deals = new List<PublishDeal>();
+
+	public List<PriceCut> PriceCuts = new List<PriceCut>();
 
 	// The latest headlines and decisions, newest first.
 	public List<string> Feed = new List<string>();
@@ -178,6 +209,21 @@ internal class IndustryState
 	public int ComebackWeek = -1;
 
 	public bool HolyRivalCarried;
+
+	// ---- Competitors (Core/Industry/IndustryCompetitors): the studios you meet most in the market ----
+
+	public List<int> Competitors = new List<int>();
+
+	// The yearly re-pick.
+	public int CompetitorsNext = -1;
+
+	// One of your games came out: pick again next week.
+	public bool CompetitorsStale;
+
+	// No competitor fight before this week (at most one every 8 weeks or so).
+	public int CompetitorFightAfter = -1;
+
+	public List<ReleaseClash> Clashes = new List<ReleaseClash>();
 }
 
 // Industry events: the industry around you moves (headlines in the news), and things land on your desk (pop-up
@@ -581,7 +627,7 @@ internal static class IndustryCore
 				Amount = amount,
 				Weeks = weeks,
 				WeeksLeft = weeks,
-				Wait = !g.isOnMarket
+				Wait = !g.isOnMarket || g.releaseDate > 0
 			});
 		}
 	}
@@ -596,22 +642,61 @@ internal static class IndustryCore
 		float total = 0f;
 		foreach (SalesMod m in S.Mods)
 		{
-			if (m.GameId == g.myID && m.WeeksLeft > 0)
+			if (m.GameId == g.myID && m.WeeksLeft > 0 && !m.Wait)
 			{
 				total += m.Amount;
 			}
 		}
-		return total;
+		// Events add at most +-40% to one game, so they can't fill Holy's whole cap (paid choices still buy something).
+		return Mathf.Clamp(total, -0.4f, 0.4f);
+	}
+
+	// The share of its price a game sells for this week because of a price war (1 = full price).
+	public static float PriceCutFactor(gameScript g)
+	{
+		if (!On || !g || S.PriceCuts == null || S.PriceCuts.Count == 0)
+		{
+			return 1f;
+		}
+		float f = 1f;
+		foreach (PriceCut c in S.PriceCuts)
+		{
+			if (c.GameId == g.myID && c.WeeksLeft > 0)
+			{
+				f *= Mathf.Clamp(c.Factor, 0.3f, 1f);
+			}
+		}
+		return f;
+	}
+
+	public static void AddPriceCut(gameScript g, float factor, int weeks)
+	{
+		if ((bool)g)
+		{
+			S.PriceCuts.RemoveAll((PriceCut c) => c.GameId == g.myID);
+			S.PriceCuts.Add(new PriceCut
+			{
+				GameId = g.myID,
+				Factor = factor,
+				WeeksLeft = weeks
+			});
+		}
 	}
 
 	private static void Effects()
 	{
+		foreach (PriceCut cut in S.PriceCuts)
+		{
+			cut.WeeksLeft--;
+		}
+		S.PriceCuts.RemoveAll((PriceCut cut) => cut.WeeksLeft <= 0);
 		foreach (SalesMod m in S.Mods)
 		{
 			if (m.Wait)
 			{
+				// Waits until the game ships: still in development, or on pre-order (on the market, release date ahead).
 				gameScript waiting = GameUpdates.FindGame(m.GameId);
-				if ((bool)waiting && waiting.inDevelopment && !waiting.isOnMarket)
+				if ((bool)waiting && ((waiting.inDevelopment && !waiting.isOnMarket) || (waiting.isOnMarket && waiting.releaseDate > 0)))
 				{
 					continue;
 				}
@@ -630,10 +715,10 @@ internal static class IndustryCore
 					S.Streams.Remove(s);
 					continue;
 				}
-				if (!g.isOnMarket)
+				if (!g.isOnMarket || g.releaseDate > 0)
 				{
-					// Not out yet: waits (a game that's gone without release ends it).
-					if (!g.inDevelopment)
+					// Not out yet, or on pre-order: waits (a game that's gone without release ends it).
+					if (!g.isOnMarket && !g.inDevelopment)
 					{
 						S.Streams.Remove(s);
 					}
@@ -694,7 +779,7 @@ internal static class IndustryCore
 		}
 		if (s.Out)
 		{
-			G.MS.Pay(amount, 7);
+			G.MS.Pay(amount, s.PayCategory);
 		}
 		else
 		{
@@ -722,6 +807,7 @@ internal static class IndustryCore
 			Effects();
 			StudioChanges();
 			IndustryRivals.Weekly();
+			IndustryCompetitors.Weekly();
 			if (S.NextHeadline < 0)
 			{
 				S.NextHeadline = Now + UnityEngine.Random.Range(2, 5);
@@ -747,6 +833,10 @@ internal static class IndustryCore
 						S.Pending = p;
 						S.LastDecision = Now;
 						S.LastFired[p.Id] = Now;
+						if (p.Id.StartsWith("cp_"))
+						{
+							S.CompetitorFightAfter = Now + IndustryCompetitors.FightGap;
+						}
 						shownFor = null;
 					}
 				}
@@ -876,6 +966,16 @@ internal static class IndustryCore
 		}
 		List<IndustryChoice> choices = def.Choices(p.C);
 		int i = ((choice < 0 || choice >= choices.Count) ? Mathf.Clamp(def.Default, 0, choices.Count - 1) : choice);
+		if (choice < 0 && choices[i].Problem != null && choices[i].Problem(p.C) != null)
+		{
+			// Going the default way (the pop-up was closed or left) never takes a choice that can't be made, such as
+			// spending money you don't have: the last one that can (usually the free "no" choice).
+			int ok = choices.FindLastIndex((IndustryChoice ch) => ch.Problem == null || ch.Problem(p.C) == null);
+			if (ok >= 0)
+			{
+				i = ok;
+			}
+		}
 		string result;
 		try
 		{
@@ -934,6 +1034,9 @@ internal static class IndustryCore
 			S.Mods = S.Mods ?? new List<SalesMod>();
 			S.Promises = S.Promises ?? new List<PlatformPromise>();
 			S.Deals = S.Deals ?? new List<PublishDeal>();
+			S.PriceCuts = S.PriceCuts ?? new List<PriceCut>();
+			S.Competitors = S.Competitors ?? new List<int>();
+			S.Clashes = S.Clashes ?? new List<ReleaseClash>();
 			S.Feed = S.Feed ?? new List<string>();
 			// Headlines saved before 0.23.1 said "Sports Game games".
 			S.Feed = S.Feed.Select((string f) => (f ?? "").Replace("Game games", "Games")).ToList();

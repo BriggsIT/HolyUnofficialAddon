@@ -266,6 +266,10 @@ internal static class BottomButton
 		{
 			nextLayout = Time.unscaledTime + 0.5f;
 			Layout();
+			if (laidOut >= 2)
+			{
+				LogBar();
+			}
 		}
 	}
 
@@ -319,11 +323,13 @@ internal static class BottomButton
 			}
 		}
 		Layout();
-		LogBar();
 		return true;
 	}
 
 	private static bool logged;
+
+	// Layout passes that found the game's row laid out (the one-off log waits for the second, after ours are placed).
+	private static int laidOut;
 
 	// One-off dump of the bottom bar's layout, so a layout problem at another screen size can be fixed from the log.
 	private static void LogBar()
@@ -537,6 +543,12 @@ internal static class BottomButton
 	private static void Layout()
 	{
 		Vector2 step = stats.anchoredPosition - publishing.anchoredPosition;
+		if (step.sqrMagnitude < 1f)
+		{
+			// The game hasn't laid out its own button row yet (every button still at 0,0): try again in half a second.
+			return;
+		}
+		laidOut++;
 		HashSet<Transform> ours = new HashSet<Transform>(from e in entries
 			where (bool)e.Button
 			select e.Button.transform);
@@ -657,8 +669,20 @@ internal static class BottomButton
 		le.ignoreLayout = true;
 	}
 
+	// Positions are the game buttons' own, so ours must share their anchors and pivot. Copied from the Statistics button
+	// before the game's row had laid itself out, ours kept its default bottom-left anchor while the game's moved to
+	// top-left, and every position put them half a button below the screen (seen at 1920x1080 on a friend's PC).
 	private static void Place(RectTransform rt, Vector2 at)
 	{
+		if (rt.anchorMin != stats.anchorMin || rt.anchorMax != stats.anchorMax)
+		{
+			rt.anchorMin = stats.anchorMin;
+			rt.anchorMax = stats.anchorMax;
+		}
+		if (rt.pivot != stats.pivot)
+		{
+			rt.pivot = stats.pivot;
+		}
 		if ((rt.anchoredPosition - at).sqrMagnitude > 0.01f)
 		{
 			rt.anchoredPosition = at;

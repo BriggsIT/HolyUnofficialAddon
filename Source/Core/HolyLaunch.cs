@@ -160,6 +160,70 @@ internal static class HolyLaunch
 		}
 	}
 
+	// ---- Pre-orders: Holy's launch boost waits for the release date ----
+
+	// The game puts a game on the market (SetOnMarket) as soon as you pick a release date, but it sells nothing until
+	// that date. Holy starts its 4-week launch boost (and the embargo's effect) at SetOnMarket and counts it down every
+	// week, so with a release date 4+ weeks out the boost was used up before the game shipped. Its weekly countdown is
+	// held for games still waiting for their release date.
+	private static readonly List<KeyValuePair<object, int[]>> held = new List<KeyValuePair<object, int[]>>();
+
+	public static void HoldThroughPreorders(Harmony harmony)
+	{
+		try
+		{
+			Type launch = HolyCompat.HolyType("HolyExpansion.Systems.Launch");
+			MethodInfo weekly = ((launch != null) ? AccessTools.Method(launch, "Weekly") : null);
+			if (weekly == null)
+			{
+				return;
+			}
+			harmony.Patch(weekly, new HarmonyMethod(typeof(HolyLaunch), "HoldBefore"), new HarmonyMethod(typeof(HolyLaunch), "HoldAfter"));
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Holy's launch boost through pre-orders: " + ex.Message);
+		}
+	}
+
+	private static void HoldBefore()
+	{
+		held.Clear();
+		try
+		{
+			foreach (gameScript g in Industry.IndustryCore.MyGamesOnMarket())
+			{
+				if (g.releaseDate > 0)
+				{
+					object l = For(g, create: false);
+					if (l != null)
+					{
+						held.Add(new KeyValuePair<object, int[]>(l, new int[2]
+						{
+							HolyCompat.Get<int>(l, "BoostWeeks"),
+							HolyCompat.Get<int>(l, "EmbargoWeeks")
+						}));
+					}
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			held.Clear();
+			Plugin.Log.LogWarning("Holy's launch boost through pre-orders: " + ex.Message);
+		}
+	}
+
+	private static void HoldAfter()
+	{
+		foreach (KeyValuePair<object, int[]> h in held)
+		{
+			HolyCompat.Set(h.Key, "BoostWeeks", h.Value[0]);
+			HolyCompat.Set(h.Key, "EmbargoWeeks", h.Value[1]);
+		}
+		held.Clear();
+	}
+
 	// A Marketing room is preparing its early access (Holy's room task).
 	public static bool Preparing(gameScript g)
 	{

@@ -175,7 +175,8 @@ internal static class ContractBook
 	{
 		if (refund > 0 && (bool)G.MS)
 		{
-			G.MS.Earn(refund, 1);
+			// Back off the cost it was paid under (Hiring.Hire), not as Misc income.
+			G.MS.Pay(-refund, (c.Kind == "research") ? 2 : 10);
 		}
 		c.Result = result;
 		State.Active.Remove(c);

@@ -339,9 +339,17 @@ internal static class IndustryRivals
 		return (float)all.Count((publisherScript x) => x != p && x.GetFirmenwert() < value) / (float)(all.Count - 1);
 	}
 
+	// Buying up their debts costs about what the studio is worth (the game's company value, which grows with the
+	// years): 1x for the smallest up to 1.25x for the biggest. Holy's fixed $20-150M cost 3x the studio's price in 1985
+	// and next to nothing by 2008.
 	public static long DriveOutCost(publisherScript p)
 	{
-		return (long)Math.Round((double)Mathf.Lerp(20000000f, 150000000f, Size(p)) / 1000000.0) * 1000000;
+		if (!p)
+		{
+			return 0L;
+		}
+		double cost = (double)Math.Max(1000000L, p.GetFirmenwert()) * (double)Mathf.Lerp(1f, 1.25f, Size(p));
+		return Prices.Round(cost);
 	}
 
 	public static float DriveOutChance(publisherScript p)

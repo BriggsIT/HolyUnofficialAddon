@@ -575,6 +575,8 @@ internal static class StorePlus
 		return Mathf.Max(5, Mathf.RoundToInt((float)StoreOps.Price(g) * 0.7f));
 	}
 
+	public const long StoreWishlistCap = 50000L;
+
 	// With Holy's Launch Planner on, your store's wishlists go into Holy's count (one set of wishlists, one launch boost
 	// and one early access: Holy's); d.Wishlists then keeps how many came from your store.
 	private static void WishWeek()
@@ -587,6 +589,12 @@ internal static class StorePlus
 			float hype = Mathf.Clamp(g.hype, 0f, 100f) / 100f;
 			long growth = (long)((float)S.Active * 0.0015f * (0.2f + hype) * pc);
 			long cap = (long)((float)S.Active * 0.6f);
+			if (holy)
+			{
+				// Holy's launch boost tops out at 150k wishlists: your store brings at most a third of that, so a big
+				// store doesn't max out every launch on its own.
+				cap = Math.Min(cap, StoreWishlistCap);
+			}
 			long before = d.Wishlists;
 			d.Wishlists = Math.Max(d.Wishlists, Math.Min(cap, d.Wishlists + growth));
 			if (holy)
@@ -688,8 +696,9 @@ internal static class StorePlus
 		{
 			f += 0.5f * SlotWeight(slot) * S.Share * pc;
 		}
-		// With sales events on, your games' own discount does this (Core/Store/SalesEvents), not the store's sale.
-		if (!SalesEvents.On)
+		// With sales events on, your games' own discount does this (Core/Store/SalesEvents), not the store's sale. With
+		// them off, Holy's Seasonal Sales discount your games: then the store's sale doesn't add a second boost.
+		if (!SalesEvents.On && !StoreOps.HolySaleRunning())
 		{
 			f += SaleOwn[DepthNow()] * S.Share * pc;
 		}
@@ -884,6 +893,13 @@ internal static class StorePlus
 				c.CommissionTotal += pay;
 				S.ConsoleMonth += pay;
 				S.ConsoleTotal += pay;
+				// Running it isn't free: servers and payment handling take about 15% of what it brings in.
+				long running = pay * 15 / 100;
+				if (running > 0)
+				{
+					G.MS.Pay(running, 34);
+					S.ServerMonth += running;
+				}
 			}
 		}
 	}
@@ -1296,8 +1312,26 @@ internal static class StorePlus
 		SaleWeek();
 		FrontWeek(monthly);
 		WishWeek();
+		PreorderWeek();
 		LauncherWeek();
 		ConsoleWeek();
+	}
+
+	// A game with a release date is "released" (SetOnMarket) the day you pick the date, but ships on the date: its
+	// launch boost starts then, not during pre-orders.
+	private static void PreorderWeek()
+	{
+		foreach (KeyValuePair<int, StoreGame> kv in S.Games)
+		{
+			if (kv.Value.Released)
+			{
+				gameScript g = GameUpdates.FindGame(kv.Key);
+				if ((bool)g && g.isOnMarket && g.releaseDate > 0)
+				{
+					kv.Value.LaunchWeek = NowWeek + g.releaseDate;
+				}
+			}
+		}
 	}
 
 	public static void NewMonth()

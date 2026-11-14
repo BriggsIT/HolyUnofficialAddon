@@ -421,7 +421,8 @@ internal static class GameUpdates
 
 	public static long DevCost(gameScript g)
 	{
-		return Math.Max(20000L, Math.Min(g.costs_entwicklung + g.costs_updates, 50000000L));
+		// The cap grows with the years from 2008 (big games already cost $44M by then).
+		return Math.Max(20000L, Math.Min(g.costs_entwicklung + g.costs_updates, Math.Max(50000000L, Prices.Anchored(50000000.0, 2008))));
 	}
 
 	// GetGesamtDevPoints includes the platform complexity factor; this is that factor.
@@ -976,7 +977,8 @@ internal static class GameUpdates
 		UpdateRoom.Detach(p);
 		if (refund > 0 && (bool)G.MS)
 		{
-			G.MS.Earn(refund, 1);
+			// Back off the development cost it was paid under, not as Misc income.
+			G.MS.Pay(-refund, 15);
 		}
 		Version++;
 		return refund;
@@ -1373,7 +1375,18 @@ internal static class GameUpdates
 	[HarmonyPatch(typeof(gameScript), "SellGame")]
 	private static void BeforeSell(gameScript __instance)
 	{
-		selling = (HolyCompat.SalesBonusShared ? 1f : OurSalesFactor(__instance));
+		gameScript g = __instance;
+		if (g.IsMyGame())
+		{
+			// With Holy, ours go into Holy's total and its cap (-50%..+250%). Without Holy, the same range here.
+			selling = (HolyCompat.SalesBonusShared ? 1f : Mathf.Clamp(OurSalesFactor(g), 0.5f, 3.5f));
+		}
+		else
+		{
+			// Other studios' games (front-page spots, sales, events against them): Holy only boosts yours, so ours
+			// apply here in both cases, kept within -40%..+100%.
+			selling = Mathf.Clamp(OurSalesFactor(g), 0.6f, 2f);
+		}
 	}
 
 	// All of the addon's sales effects on one game: update bonuses and launch boosts, MMO players, the store, and

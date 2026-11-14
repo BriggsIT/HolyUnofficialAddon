@@ -1,6 +1,126 @@
 # Changelog
 
-## 0.25.1
+Newest first. Each version below lists what changed; the table is a quick way in.
+
+## Versions at a glance
+
+| Version | What it brought |
+|---|---|
+| [0.27.0](#0270-balance-patch) | Balance patch |
+| [0.26.0](#0260-competitors) | Competitors |
+| [0.25.1](#0251-small-screens-and-publishing-deals) | Small screens and publishing deals |
+| [0.25.0](#0250-rivals-from-your-standing) | Rivals from your standing |
+| [0.24.0](#0240-holys-price-curve) | Holy's price curve |
+| [0.23.3](#0233-fixes-and-tidy-ups) | Fixes and tidy-ups |
+| [0.23.2](#0232-genre-crazes-set-the-trend) | Genre crazes set the trend |
+| [0.23.1](#0231-mmo-tab) | MMO tab |
+| [0.23.0](#0230-one-launch-system-with-holy) | One launch system with Holy |
+| [0.22.1](#0221-studio-stars-fix) | Studio stars fix |
+| [0.22.0](#0220-events-for-the-console-years) | Events for the console years |
+| [0.21.0](#0210-events-for-the-garage-and-arcade-years) | Events for the garage and arcade years |
+| [0.20.0 - 0.20.1](#0200---0201-industry-events) | Industry events |
+| [0.19.0 - 0.19.1](#0190---0191-rooms-overview) | Rooms Overview |
+| [0.18.0 - 0.18.3](#0180---0183-yearly-convention) | Yearly convention |
+| [0.17.0 - 0.17.1](#0170---0171-sales-events) | Sales Events |
+| [0.16.0 - 0.16.3](#0160---0163-new-look-and-current-charts) | New look and Current Charts |
+| [0.15.0](#0150-your-digital-store-part-2) | Your Digital Store, part 2 |
+| [0.14.0 - 0.14.3](#0140---0143-mmo-management-part-2) | MMO Management, part 2 |
+| [0.13.0 - 0.13.3](#0130---0133-awards-ceremony) | Awards ceremony |
+| [0.12.0 - 0.12.2](#0120---0122-performance-and-safer-saving) | Performance and safer saving |
+| [0.11.8](#0118-ip-fix) | IP fix |
+| [0.11.4 - 0.11.7](#0114---0117-mmo-game-cards) | MMO game cards |
+| [0.11.3](#0113-mmos-keep-their-ip-alive) | MMOs keep their IP alive |
+| [0.11.2](#0112-expansion-packs-in-mmo-management) | Expansion packs in MMO Management |
+| [0.11.0 - 0.11.1](#0110---0111-timed-exclusives) | Timed exclusives |
+| [0.10.x](#010x-your-digital-store) | Your digital store |
+| [0.9.x](#09x-mmo-management) | MMO Management |
+| [0.8.x](#08x-updates--addons) | Updates & Addons |
+| [0.7.0](#070-the-new-name-and-company-logos) | The new name and company logos |
+| [0.6.0](#060-your-own-copy-protection) | Your own copy protection |
+| [0.4.0 - 0.5.x](#040---05x-contracts) | Contracts |
+| [0.3.x](#03x-press-reviews) | Press reviews |
+| [0.1.x - 0.2.x](#01x---02x-the-employee-editor-and-game-settings) | The employee editor and game settings |
+
+## 0.27.0: balance patch
+A second balance review, covering everything added since 0.18 (sales events, the convention, industry events,
+rivals and competitors), checked against real saves from 1976 to 2008.
+
+- **Launches start when the game ships, not when you pick a release date.** The game counts a game with a release
+  date as out from the day you pick the date, but sells nothing until the date. Holy's launch boost (up to +120%
+  over 4 weeks), your store's launch boost and every "after release" event effect used to run out during
+  pre-orders. They now wait for the release date.
+- **Caps:**
+  - Industry events add at most +-40% to one game's sales, so they can't fill Holy's whole cap on their own.
+  - Without The Holy Expansion, your games' sales boosts now stay within Holy's range (-50%..+250%); before,
+    late-game boosts could multiply sales about 4.5x, and penalties could stop a game selling at all.
+  - Other studios' games: the addon's effects on them (front-page spots, sales, release clashes, price wars) now
+    apply with Holy installed too (Holy only boosts your games), within -40%..+100%.
+  - Your store adds at most 50,000 wishlists to Holy's Launch Planner per game.
+- **Event money grows with your studio.** Holy's price curve rises about 5x from 1980 to 2008; a studio's income
+  can rise 2,000x. Event amounts about one of your games are now priced from what your games of that size earn
+  (the old amounts stay as the minimum, so the early game is unchanged): the film licence, out-marketing and
+  Outsell It, adverts, guide and cabinet fees, the clone lawsuit, the Concerned Parents choices. Caps tied to a
+  game's weekly sales (shelf space, the cartridge premium, the distributor, rentals) grow with last year's income.
+- **Publishers Bid:** the advance follows the game's own publisher guarantee (review x size x difficulty), up to a
+  tenth of what your games of that size earn: about $0.5-13M late game instead of $0.2M.
+- **Drive Them Out** costs 1-1.25x the studio's company value, instead of a fixed $20-150M in every year.
+- **A Studio Needs Help:** funding costs a fifth of what their games earn, and there's a 25% chance they still
+  can't finish (it's shelved and the money is gone).
+- **The Game of the Film:** sharing the revenue now takes 10% for 26 weeks, with the sales boost lasting the same
+  26 weeks (it was 15% for a boost of only 8).
+- **Price War:** Match It is a real price cut on your game for 8 weeks (sales up by half the cut), and their price
+  really drops too. Around a 20% cut, matching and holding come out about even.
+- **Convention:** tickets, merch and booths pay about what a sold-out event costs. The hype, fans and studio points
+  are the reason to hold one, not the money (it used to make 1.6-2.4x its cost).
+- **No more one-sided choices:** royalties (pocket version, cabinets, hint line) pay about 1.3-1.4x the fee if they
+  catch on and much less if not; paid lessons train up to 5 people; licensing a copy of your game lets its official
+  version take some of your sales; renting a hit out pays about what it costs in sales.
+- **Smaller:**
+  - Genre crazes and fatigue come about every 40 weeks (twice as often as the game's own trend before).
+  - A Copy of Your Game and the arch-rival's Copycat keep 12 weeks apart.
+  - Console storefronts have running costs (15% of their commission).
+  - The development-cost cap behind updates grows with the years from 2008.
+  - Finances: refunds reduce the cost they came from instead of counting as Misc income; exclusive deals count
+    as Licenses; paid lessons as training.
+  - The convention's showcase says "up to +X%": it fades over its 4 weeks.
+  - With Sales Events off, your store's sale no longer adds a second boost while Holy's Seasonal Sale runs.
+- **Bottom bar fix:** on some PCs the addon's buttons (and the arrow) were missing. They were added a moment before
+  the game laid out its own button row, kept the wrong anchor, and ended up just below the screen. They now always
+  line up with the game's buttons, whenever the row is ready.
+- **Event fixes:**
+  - A Publishers Bid answered after the game came out pays nothing (it used to pay and leave a deal that never
+    settled).
+  - Closing or ignoring a pop-up never takes a choice you can't afford; the arch-rival's Release Clash, left
+    alone, holds your date instead of delaying your game.
+  - Raises from events no longer compound with the sandbox salary setting.
+  - Applicants from events have the profession, skills and perks they're meant to.
+  - Events no longer pick a studio's publishing offer or contract work as "their next game".
+  - A New Machine Wants Games: if you bought the kit while the offer waited, there's no promise to keep.
+  - The Game of the Film only picks games without a licence.
+
+## 0.26.0: competitors
+- **Competitors** (the rival merge, step 2): about four studios that meet you most in the market right now, picked
+  again every year and after each of your releases. They make games in your genres, are about your size, and have
+  something out or coming. Competing isn't hating: an ally can be a competitor.
+  - **Release Clash:** a competitor's game in your genre lands with yours. With a release date set (pre-orders),
+    their game really is moved onto your week, and once both are out the better-reviewed one sells 10% more for
+    6 weeks and the other 10% less. Delay yours 3 weeks, hold the date, or out-market it (an 8-point edge).
+    Released straight away, it's their game out the same fortnight: out-market it, or let the reviews decide.
+  - **Talent Race:** a competitor offers one of your good people (not your very best: that's the arch-rival's
+    move) a job. Match it with a 15% raise, or let them go.
+  - **Price War:** a competitor cuts the price of the game fighting yours. Match it (sales hold, less per copy for
+    8 weeks) or hold your price (sales -12% for 6 weeks). Only for games you publish yourself.
+  - **Same Idea:** a competitor announces a game in the same genre (sometimes the same topic) as yours in
+    development. Rush it (crunch: staff motivation down, first to the shops), make it stand out (marketing), or
+    ignore it.
+  - At most one competitor fight every 8 weeks. Fights that go badly cost standing, so a competitor you keep
+    clashing with can turn into a rival, and in time your arch-rival.
+  - The arch-rival's Release Clash and a competitor's never land in the same weeks.
+  - Shelf Space, A Copy of Your Game and the hit headlines pick a competitor first when one fits.
+  - **Industry window:** a Competitors stat card (hover it for who and why), a "competitor" tag and a Competitors
+    filter in the studio list, and a line on their page saying why they compete with you.
+
+## 0.25.1: small screens and publishing deals
 - **Small screens (below 1080p only; 1080p and up look exactly as before):**
   - A window too big for the space between the game's top and bottom bars (at 1366x768, for example) is scaled down
     to fit and sits in that space, instead of being cut off or hidden under the bars. Before, Game settings, the
@@ -17,7 +137,7 @@
   instead of the old 26-week revenue share. Running deals show under Deals in the Industry window. The event isn't
   offered while you have an exclusive publishing contract.
 
-## 0.25.0
+## 0.25.0: rivals from your standing
 - **Rivals from your standing**, in place of The Holy Expansion's Rival Studio:
   - **Your arch-rival** is the studio at Rival tier you get on worst with. Its rivalry % is how far below zero
     your standing is.
@@ -39,7 +159,7 @@
     week.
 - A studio's page: long notes in "Between you" wrap onto a second line instead of being cut off.
 
-## 0.24.0
+## 0.24.0: Holy's price curve
 - **The addon's prices follow The Holy Expansion's price curve** (x1.06 a year), like the convention and industry
   events already did. Each price stays as it was in the year it was set for, and keeps pace with Holy's after:
   - anti-bot systems, their licences and monthly fees (set for 1997; they rose 5% a year before);
@@ -51,7 +171,7 @@
 - Signing fees: the steps you pick are set for 2003, and studios pay that step on today's curve. Fees already paid
   keep their amount.
 
-## 0.23.3
+## 0.23.3: fixes and tidy-ups
 - Industry window, Studios tab: the same text size on every row (studio names, what they make, your last note).
 - Recent News: headlines saved before 0.23.1 no longer say "Sports Game games".
 - Contracts: your money no longer sits on the banner's picture, and the Research tab's hint isn't cut off.
@@ -70,12 +190,12 @@
 - Sale pop-up: the cards' second line has room for two lines, so the Deep Sale's "less trust" isn't clipped.
 - Contracts, Game Work: a studio's genre no longer runs into what the job brings ("+10 graphics · 3 weeks").
 
-## 0.23.2
+## 0.23.2: genre crazes set the trend
 - **Genre crazes set the trend.** A craze makes its genre the game's trend genre (top bar, and the game's own trend
   bonus) for the rest of the current trend period, at least 12 weeks, like the game's trendsetter hits do. Genre
   fatigue makes its genre the trend's "out of fashion" genre. The trend's timing and topics stay the game's own.
 
-## 0.23.1
+## 0.23.1: MMO tab
 - **MMO tab** in the game list on the right: only your MMOs and their expansion packs. It appears while you have one.
 - Current Charts' Coming Soon always lists your own games in development: announced ones keep their real place
   even below the top 40, and unannounced ones come last, marked "not announced yet".
@@ -84,7 +204,7 @@
 - Industry window: a studio's page no longer cuts off the publishing relation, and its notes are the same size.
 - Industry news no longer says "Sports Game games" or "a Action game".
 
-## 0.23.0
+## 0.23.0: one launch system with Holy
 - **One launch system with The Holy Expansion's Launch Planner.** Before, a game on your store could get two launch
   boosts and earn early access twice. With Holy's Launch Planner on (its default):
   - Your store adds its users' wishlists for your PC games to Holy's wishlists, instead of keeping its own.
@@ -97,7 +217,7 @@
 - Current Charts' Coming Soon shows your games' wishlists.
 - With Holy's Launch Planner off, or without Holy, the store keeps its own wishlists, early access and launch boost.
 
-## 0.22.1
+## 0.22.1: studio stars fix
 - Fixed: industry events treated studio stars as 0-5 when the game keeps them as 0-100. A rival's hit, a star changing
   studios or a staff swap could drop that studio to almost nothing, so its games came out weak and unhyped.
   Studios hit by this are put back to their stars in the game's studio data the first week after loading a save.
@@ -105,7 +225,7 @@
 - Events about small studios (A Studio Asks for a Hand, Share a Stand?, A Studio Needs Help) can happen again, and
   publishers' advances in Publishers Bid are back to their intended size.
 
-## 0.22.0
+## 0.22.0: events for the console years
 - **Industry events for the console and cartridge years (from 1985):** 16 new events. Some run on into the late 1990s
   and early 2000s.
   - Decisions:
@@ -119,7 +239,7 @@
     to leave (or hire them), swap staff with friends, fight a rival for shelf space.
 - Some effects now wait for a game's release: a film licence's sales boost starts when the game comes out.
 
-## 0.21.0
+## 0.21.0: events for the garage and arcade years
 - **Industry events for the garage and arcade years (1976-1990):** 12 new events, most of which need no released
   game, so a 1976 start is busy from the first months.
   - Decisions: Computer Club Night, A Studio Asks for a Hand, Talked Down in Print, First Look, A Guild for Game
@@ -128,7 +248,7 @@
   - More ways to win and lose standing with studios early on.
 - With cheats on, the Industry window's Recent News tab has a **Test Events** page that fires any event on demand.
 
-## 0.20.0 - 0.20.1
+## 0.20.0 - 0.20.1: industry events
 - **Industry events:**
   - News headlines that move the market: genre crazes and fatigue, hits, price cuts, delays, studios opening and
     closing.
@@ -143,12 +263,12 @@
   Overview, permanent jobs (calls, merch) have no progress bar, each support link is listed once, and the text is the
   same size on every row.
 
-## 0.19.0 - 0.19.1
+## 0.19.0 - 0.19.1: Rooms Overview
 - **Rooms Overview:** every room's job, progress, automations, support links and warnings (idle and why, staffing,
   jobs at risk). Click a room to go to it. It opens from the bottom bar and from a button in every room's menu.
 - Fixed stutter near rooms supporting other rooms, and a slow Rooms Overview that jumped back to the top.
 
-## 0.18.0 - 0.18.3
+## 0.18.0 - 0.18.3: yearly convention
 - **Yearly convention** for all your games, in place of The Holy Expansion's Fan Convention and the MMO FanFest:
   - venue, stage, extras and booths for other studios;
   - prepared in a Support room;
@@ -163,7 +283,7 @@
 - Time estimates count rooms that support the room, and supporting rooms show the progress of Holy's and the
   addon's jobs.
 
-## 0.17.0 - 0.17.1
+## 0.17.0 - 0.17.1: Sales Events
 - **Sales Events** replace The Holy Expansion's Seasonal Sales:
   - Summer and Winter Sales, plus your store's Spring and Autumn Sales;
   - a pop-up as each starts;
@@ -172,7 +292,7 @@
   - a planner.
 - Fixed explanation text being cut off at the top of some store, anti-bot and MMO pages.
 
-## 0.16.0 - 0.16.3
+## 0.16.0 - 0.16.3: new look and Current Charts
 - New look for the MMO and store windows:
   - banners and stat cards;
   - icon buttons;
@@ -186,7 +306,7 @@
   - placed furniture sometimes being picked up after loading a save;
   - "% done" showing a huge negative number for rivals' games.
 
-## 0.15.0
+## 0.15.0: Your Digital Store, part 2
 - **Your Digital Store, part 2:**
   - sale events;
   - the front page and paid spots;
@@ -194,7 +314,7 @@
   - your MMOs in the store's launcher;
   - storefronts on your consoles.
 
-## 0.14.0 - 0.14.3
+## 0.14.0 - 0.14.3: MMO Management, part 2
 - **MMO Management, part 2:**
   - bots, and anti-bot systems you build or license;
   - bot ban waves;
@@ -206,7 +326,7 @@
 - Fixed bugs that could never be fixed: under half a bug left over.
 - Fixed a crash when switching the stutter finder off.
 
-## 0.13.0 - 0.13.3
+## 0.13.0 - 0.13.3: awards ceremony
 - **MGH Games Awards ceremony:**
   - 12 awards with up to five nominees each;
   - a Worst Game of the Year;
@@ -216,35 +336,35 @@
   - faster new games;
   - a fix for a once-a-second stutter from Holy's studio support.
 
-## 0.12.0 - 0.12.2
+## 0.12.0 - 0.12.2: performance and safer saving
 - Faster new-game screen in big saves (idea from Aerin the Lion's performance patch).
 - Stutter finder (off by default): writes a report of what makes the game stutter.
 - Safer saving: the old save is kept, and put back if saving fails.
 
-## 0.11.8
+## 0.11.8: IP fix
 - Fixed: since 0.11.5, loading a save could cut some of your released games off their IP (IP showing as 0 or
   "none"). The IP points themselves were kept. Affected games are reconnected automatically when you load the save,
   and the log names them.
 
-## 0.11.4 - 0.11.7
+## 0.11.4 - 0.11.7: MMO game cards
 - MMO game cards: your MMO's place in the MMO subscription charts as a blue calendar in the card's top line.
 - MMO game cards: the bar chart shows subscribers each week instead of sales.
 
-## 0.11.3
+## 0.11.3: MMOs keep their IP alive
 - MMOs keep their IP alive while they have players, and MMO projects add IP points.
 - New yearly "Best Ongoing Game" award at the December awards, for MMOs a year old or more.
 - MMO expansion packs give the MMO a lasting boost to new players, a little more quality, and more IP points.
 
-## 0.11.2
+## 0.11.2: expansion packs in MMO Management
 - MMO expansion packs and free updates moved into MMO Management. Released expansion packs no longer clutter the
   game cards.
 - The MMO's chart place shows on its game card.
 
-## 0.11.0 - 0.11.1
+## 0.11.0 - 0.11.1: timed exclusives
 - Timed exclusives: release on one platform first, the others after 3 to 24 months, with a deal from the platform
   maker.
 
-## 0.10.x
+## 0.10.x: your digital store
 - Your digital store (from 2003), rival stores with real-life-like fees, store features, catalogue and charts.
 - MMO Management and the store on the bottom bar, greyed out until available.
 - Balance with The Holy Expansion: updates cut pirated copies, shared sales bonus limit, Holy's seasonal sales from
@@ -252,30 +372,30 @@
 - Holy's delayed platforms can be changed during development.
 - Fixed platform cards flickering on the change-platform screen.
 
-## 0.9.x
+## 0.9.x: MMO Management
 - MMO Management: dashboard, graphics overhauls, 64-bit clients, engine upgrades and migrations, world expansions,
   content patches, old-school or modern MMOs.
 - MMO versions of new platforms (past the four-platform limit), new game systems and age rating changes, plus the
   MMO Subscription Charts.
 - Fixed the game getting stuck in a menu after closing the MMO addon screen.
 
-## 0.8.x
+## 0.8.x: Updates & Addons
 - Updates & Addons: port to more platforms, engine updates, new gameplay features and age rating changes after
   release.
 - Addons are no longer blocked by features added after release.
 
-## 0.7.0
+## 0.7.0: the new name and company logos
 - Renamed from "Editor" to Holy Unofficial Addon.
 - 32 company logos that only you can use.
 
-## 0.6.0
+## 0.6.0: your own copy protection
 - Your own copy protection: research it, develop it, update it and license it to other studios.
 
-## 0.4.0 - 0.5.x
+## 0.4.0 - 0.5.x: contracts
 - Contracts: hire outside studios for research or work on your games in development, with on-screen contract cards.
 
-## 0.3.x
+## 0.3.x: press reviews
 - Press reviews from named outlets with logos, reviewers and genre-aware text.
 
-## 0.1.x - 0.2.x
+## 0.1.x - 0.2.x: the employee editor and game settings
 - Employee editor, game settings mid-game, Turbo and Ultra speeds, looser furniture placement.
