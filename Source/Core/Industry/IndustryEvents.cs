@@ -769,7 +769,9 @@ internal static partial class IndustryEvents
 		};
 	}
 
-	// Two publishers bid to market your game in development: an advance now for a share of its revenue later.
+	// Two publishers bid to publish your game in development: an advance now, and when it's done they publish it for
+	// their usual cut (PublishDeals puts them at the top of the publisher list). Not with an exclusive publishing
+	// contract: that one publishes everything.
 	private static IndustryEventDef BiddingWar()
 	{
 		return new IndustryEventDef
@@ -779,6 +781,10 @@ internal static partial class IndustryEvents
 			Weight = 1.1f,
 			Setup = delegate(IndustryContext c)
 			{
+				if (G.MS.exklusivVertrag_ID != -1)
+				{
+					return false;
+				}
 				gameScript g = (from x in IndustryCore.MyGamesInDevelopment()
 					where x.developerID == G.MS.myID && (x.publisherID == -1 || x.publisherID == G.MS.myID) && !IndustryCore.State.DealtGames.Contains(x.myID) && DevProgress(x) >= 0.3f
 					orderby x.hype descending
@@ -800,18 +806,16 @@ internal static partial class IndustryEvents
 				c.Studio2 = pubs[1].myID;
 				c.Amount = Advance(g, pubs[0]);
 				c.Amount2 = Advance(g, pubs[1]);
-				c.Share = Mathf.Round(R(0.08f, 0.2f) * 100f) / 100f;
-				c.Share2 = Mathf.Round(R(0.08f, 0.2f) * 100f) / 100f;
 				c.Number = UnityEngine.Random.Range(5, 11);
 				return true;
 			},
 			Title = (IndustryContext c) => "Publishers Bid for " + Name(c.GameId),
-			Text = (IndustryContext c) => "Word of " + Name(c.GameId) + " has got around. " + StudioName(c.StudioId) + " and " + StudioName(c.Studio2) + " both want to market it: each pays an advance now, for a share of its revenue for half a year after it comes out.",
+			Text = (IndustryContext c) => "Word of " + Name(c.GameId) + " has got around. " + StudioName(c.StudioId) + " and " + StudioName(c.Studio2) + " both want to publish it: each pays an advance now, starts the hype, and publishes it for its usual cut when it's done.",
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Go with " + StudioName(c.StudioId), "Advance " + Money(c.Amount) + ", hype +" + c.Number, Mathf.RoundToInt(c.Share * 100f) + "% of its revenue for 26 weeks after release", (IndustryContext x) => Bid(x, x.StudioId, x.Studio2, x.Amount, x.Share)),
-				Choice("Go with " + StudioName(c.Studio2), "Advance " + Money(c.Amount2) + ", hype +" + c.Number, Mathf.RoundToInt(c.Share2 * 100f) + "% of its revenue for 26 weeks after release", (IndustryContext x) => Bid(x, x.Studio2, x.StudioId, x.Amount2, x.Share2)),
+				Choice("Go with " + StudioName(c.StudioId), "Advance " + Money(c.Amount) + ", hype +" + c.Number, "They publish it when it's done", (IndustryContext x) => Bid(x, x.StudioId, x.Studio2, x.Amount)),
+				Choice("Go with " + StudioName(c.Studio2), "Advance " + Money(c.Amount2) + ", hype +" + c.Number, "They publish it when it's done", (IndustryContext x) => Bid(x, x.Studio2, x.StudioId, x.Amount2)),
 				Choice("Turn Both Down", "Keep all its revenue", "Standing with both -2", delegate(IndustryContext x)
 				{
 					IndustryCore.State.DealtGames.Add(x.GameId);
@@ -828,7 +832,7 @@ internal static partial class IndustryEvents
 		return (long)((float)Scaled(12000.0) * (1f + (float)g.gameSize) * (0.6f + p.stars * 0.01f) * R(0.85f, 1.2f));
 	}
 
-	private static string Bid(IndustryContext c, int winner, int loser, long advance, float share)
+	private static string Bid(IndustryContext c, int winner, int loser, long advance)
 	{
 		gameScript g = Game(c.GameId);
 		IndustryCore.State.DealtGames.Add(c.GameId);
@@ -838,18 +842,10 @@ internal static partial class IndustryEvents
 		}
 		G.MS.Earn(advance, 2);
 		g.AddHype(c.Number);
-		IndustryCore.State.Streams.Add(new IncomeStream
-		{
-			Label = StudioName(winner) + "'s share of " + g.GetNameSimple(),
-			StudioId = winner,
-			GameId = g.myID,
-			Share = share,
-			WeeksLeft = 26,
-			Out = true
-		});
+		PublishDeals.Add(g, IndustryCore.Studio(winner), advance);
 		IndustryCore.Change(IndustryCore.Studio(winner), 12, "Won the bid for " + g.GetNameSimple());
 		IndustryCore.Change(IndustryCore.Studio(loser), -4, "Lost the bid for " + g.GetNameSimple());
-		return StudioName(winner) + " pays " + Money(advance) + " and starts the hype for " + g.GetNameSimple() + ". It takes " + Mathf.RoundToInt(share * 100f) + "% of its revenue for 26 weeks after release.";
+		return StudioName(winner) + " pays " + Money(advance) + " and starts the hype for " + g.GetNameSimple() + ". When it's done, they're at the top of the publisher list as Your Deal. Going with anyone else means paying the advance back.";
 	}
 
 	// A struggling studio can't finish its announced game: fund it for a share, lend a little, or decline.

@@ -104,6 +104,16 @@ internal class PlatformPromise
 	public long Price;
 }
 
+// Publishers Bid: your game in development is promised to the publisher you went with (Core/Industry/PublishDeals).
+internal class PublishDeal
+{
+	public int GameId;
+
+	public int StudioId;
+
+	public long Advance;
+}
+
 internal class IndustryState
 {
 	// Your standing with each studio, -100 to 100 (0 = neutral), from what happened between you.
@@ -126,6 +136,8 @@ internal class IndustryState
 	public List<SalesMod> Mods = new List<SalesMod>();
 
 	public List<PlatformPromise> Promises = new List<PlatformPromise>();
+
+	public List<PublishDeal> Deals = new List<PublishDeal>();
 
 	// The latest headlines and decisions, newest first.
 	public List<string> Feed = new List<string>();
@@ -921,6 +933,7 @@ internal static class IndustryCore
 			S.Streams = S.Streams ?? new List<IncomeStream>();
 			S.Mods = S.Mods ?? new List<SalesMod>();
 			S.Promises = S.Promises ?? new List<PlatformPromise>();
+			S.Deals = S.Deals ?? new List<PublishDeal>();
 			S.Feed = S.Feed ?? new List<string>();
 			// Headlines saved before 0.23.1 said "Sports Game games".
 			S.Feed = S.Feed.Select((string f) => (f ?? "").Replace("Game games", "Games")).ToList();

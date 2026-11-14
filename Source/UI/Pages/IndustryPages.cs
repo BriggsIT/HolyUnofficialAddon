@@ -195,7 +195,7 @@ internal class IndustryPage : Page
 		IndustryRivals.Ensure();
 		publisherScript arch = IndustryRivals.Arch;
 		w.StatCard(UpdateIcons.Game("iconUnhappy", IndustryUi.Icon), "Rivals", rivals.ToString(), arch ? ("arch-rival: " + arch.GetName()) : ((rivals > 0) ? "they may act against you" : "none yet"), 14f + 2f * (cw + 10f), 14f, cw, 80f, (rivals > 0) ? new Color?(UIKit.Red) : null, arch ? ("Your arch-rival makes moves against you every few months. Click it in the list for your moves against it.") : null);
-		w.StatCard(UpdateIcons.Game("iconDollar", IndustryUi.Icon), "Deals running", (s.Streams.Count + s.Promises.Count).ToString(), "shares, fees, promises", 14f + 3f * (cw + 10f), 14f, cw, 80f);
+		w.StatCard(UpdateIcons.Game("iconDollar", IndustryUi.Icon), "Deals running", (s.Streams.Count + s.Promises.Count + s.Deals.Count).ToString(), "shares, fees, promises", 14f + 3f * (cw + 10f), 14f, cw, 80f);
 		string[] tabs = new string[3] { "Studios", "Recent News", "Your Deals" };
 		float tw = (W - 28f - 20f) / 3f;
 		for (int i = 0; i < 3; i++)
@@ -337,7 +337,15 @@ internal class IndustryPage : Page
 			row2.Top("Promise: a game on " + (pl ? pl.GetName() : "a new machine"), 12f, row2.W - 24f);
 			row2.Bottom(Mathf.Max(0, p.Deadline - IndustryCore.Now) + " weeks left, or pay " + G.Money(p.Price) + " for the dev kit", 12f, row2.W - 24f).color = new Color(0.8f, 0.45f, 0.05f);
 		}
-		if (s.Streams.Count == 0 && s.Promises.Count == 0)
+		foreach (PublishDeal d in s.Deals)
+		{
+			gameScript g = GameUpdates.FindGame(d.GameId);
+			publisherScript pub = IndustryCore.Studio(d.StudioId);
+			RowView row3 = list.Row(46f);
+			row3.Top((pub ? pub.GetName() : "A publisher") + " publishes " + (g ? g.GetNameSimple() : "your game"), 12f, row3.W - 24f);
+			row3.Bottom("Advance " + G.Money(d.Advance) + " paid  ·  pick them in the publisher list when it's done, or pay it back", 12f, row3.W - 24f).color = new Color(0.8f, 0.45f, 0.05f);
+		}
+		if (s.Streams.Count == 0 && s.Promises.Count == 0 && s.Deals.Count == 0)
 		{
 			RowView none = list.Row(36f);
 			none.Text("No deals running.", 12f, none.W - 24f);

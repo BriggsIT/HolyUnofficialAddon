@@ -1,11 +1,21 @@
 # Changelog
 
 ## 0.25.1
-- **Small screens:** a window too tall or wide for the screen (at 1366x768, for example) is scaled down to fit
-  instead of being cut off at the bottom. Before, Game settings, the store, Contracts, MMO Management and Current
-  Charts lost their lower part on such screens.
-- **Bottom bar:** an arrow button before the addon's buttons shows or hides them, and remembers. Where they'd cover
-  the game's pause and play buttons (1366 wide, for example), they sit in a row just above the bar instead.
+- **Small screens (below 1080p only; 1080p and up look exactly as before):**
+  - A window too big for the space between the game's top and bottom bars (at 1366x768, for example) is scaled down
+    to fit and sits in that space, instead of being cut off or hidden under the bars. Before, Game settings, the
+    store, Contracts, MMO Management and Current Charts lost their lower part on such screens.
+  - Bottom bar: an arrow button before the addon's buttons shows or hides them, and remembers. Where they'd cover
+    the game's pause and play buttons (1366 wide, for example), they sit in a row just above the bar instead.
+  - Review window: with press reviews, the window moves up so its OK button clears the bottom bar, and the strip of
+    outlet scores no longer covers the OK button.
+- **Bottom bar:** the game's own buttons keep their places, also after tabbing out and back in.
+- **Publishers Bid is a real publishing deal:** the publisher you go with pays an advance and starts the hype, and
+  when the game is done it's at the top of the game's publisher list as "Your Deal", even if your review score is
+  below what they'd normally take. Publishing with them keeps them happy; going with anyone else, or publishing it
+  yourself, means paying the advance back (and standing with them drops). They take their usual publisher's cut
+  instead of the old 26-week revenue share. Running deals show under Deals in the Industry window. The event isn't
+  offered while you have an exclusive publishing contract.
 
 ## 0.25.0
 - **Rivals from your standing**, in place of The Holy Expansion's Rival Studio:

@@ -87,8 +87,9 @@ The addon also adds entries to the game's menus:
 - **Statistics:** Current Charts.
 - **Development room:** Develop Copy Protection, MMO Management, Updates & Addons.
 
-An arrow button before them shows or hides them. On narrow screens, where they'd cover the game's speed buttons,
-they sit in a row just above the bar.
+Below 1080p, an arrow button before them shows or hides them, and where they'd cover the game's speed buttons they
+sit in a row just above the bar. Windows too big for the screen are scaled down to fit above the bar. At 1080p and
+up, everything looks as it always did.
 
 A button or entry for something you can't use yet is greyed out, and its tooltip says why, like the game's own.
 
@@ -124,7 +125,7 @@ The industry around you moves, and things land on your desk.
     - A New Machine Wants Games;
     - Share a Stand?;
     - A Copy of Your Game;
-    - Publishers Bid (for your game in development);
+    - Publishers Bid (for your game in development: the winner publishes it, listed as "Your Deal");
     - A Studio Needs Help (to finish its announced game).
   - **The garage and arcade years (1976-1990):**
     - Computer Club Night;

@@ -204,6 +204,12 @@ internal static class ReviewCard
 		if (!fullScreen)
 		{
 			growth.Grow(shift / unit, cardRect);
+			// Growing may move the whole window up (small screens, to clear the bottom bar): measure again, or the strip
+			// lands where the card used to be and covers the OK tick.
+			cardRect = WorldRect(card);
+			windowRect = WorldRect(window);
+			top = cardRect.yMin - Gap * unit;
+			bottom = top - StripHeight * unit;
 		}
 		if (!loggedLayout)
 		{
@@ -394,6 +400,35 @@ internal class WindowGrowth : MonoBehaviour
 			k.offsetMax += new Vector2(0f, (before[i].yMax - shift - now.yMax) / unit);
 		}
 		extra = amount;
+		KeepAboveBar(w, unit);
+	}
+
+	// On small screens the taller window reaches under the bottom bar (the OK tick half hidden): move the whole window
+	// up until it clears the bar (or the addon's row above it), without pushing its top off the screen.
+	private static void KeepAboveBar(RectTransform w, float unit)
+	{
+		if (!UIKit.SmallScreen)
+		{
+			return;
+		}
+		float barTop = BottomButton.BarTop;
+		if (float.IsNaN(barTop))
+		{
+			return;
+		}
+		Rect now = ReviewCard.WorldRect(w);
+		float up = barTop + 6f * unit - now.yMin;
+		if (up <= 0f)
+		{
+			return;
+		}
+		Canvas canvas = w.GetComponentInParent<Canvas>();
+		float screenTop = ((bool)canvas ? ReviewCard.WorldRect((RectTransform)canvas.rootCanvas.transform).yMax : float.MaxValue);
+		up = Mathf.Min(up, Mathf.Max(0f, screenTop - 4f * unit - now.yMax));
+		if (up > 0f)
+		{
+			w.anchoredPosition += new Vector2(0f, up / unit);
+		}
 	}
 
 	public void Restore()

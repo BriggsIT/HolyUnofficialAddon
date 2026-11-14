@@ -185,31 +185,48 @@ internal class EditorWindow
 		}
 	}
 
-	// The page's own size: pages lay out at it, and a window too big for the screen is scaled down to fit (ApplySize),
-	// so on small screens (1366x768...) nothing is cut off at the bottom.
+	// The page's own size: pages lay out at it. Below 1080p a window too big for the free space is scaled down to fit
+	// (ApplySize), so on small screens (1366x768...) nothing is cut off or hidden under the bottom bar.
 	public float Width => Current?.Width ?? 614f;
 
 	public float Height => Current?.Height ?? 640f;
 
 	private float appliedFit = 1f;
 
-	private float FitScale(Vector2 size)
-	{
-		Vector2 max = MaxSize;
-		return Mathf.Clamp(Mathf.Min(max.x / Mathf.Max(1f, size.x), max.y / Mathf.Max(1f, size.y)), 0.4f, 1f);
-	}
+	private float appliedMid = float.NaN;
 
-	private Vector2 MaxSize
+	// What WindowMain sits in. The game's open animation on WindowMain sets its scale every time the window opens, which
+	// undid the small-screen fit; so the fit (scale and place) goes on this holder instead.
+	private RectTransform fitter;
+
+	// The game's top bar (the stats panel in the middle at the top), in window units.
+	private const float TopBarUnits = 46f;
+
+	// Below 1080p only: the scale that fits the window between the game's top bar and bottom bar, plus the middle of that
+	// space in screen pixels (ppu: screen pixels per window unit). Measured in real screen pixels: the game's menu holder
+	// is laid out for 1080p, so its own size says nothing about the screen. The addon's row above the bar (narrow screens
+	// only) may be covered while a window is open.
+	// At 1080p and up: full size and centred (mid NaN), as it always was.
+	private float FitScale(Vector2 size, out float ppu, out float mid)
 	{
-		get
+		ppu = 1f;
+		mid = float.NaN;
+		if (!UIKit.SmallScreen || !(root.transform is RectTransform parent))
 		{
-			RectTransform rt = (UIKit.MenuParent as RectTransform);
-			if (!rt || rt.rect.width < 100f)
-			{
-				return new Vector2(4000f, 4000f);
-			}
-			return new Vector2(rt.rect.width - 40f, rt.rect.height - 40f);
+			return 1f;
 		}
+		float y0 = UIKit.ToScreen(parent, parent.TransformPoint(Vector3.zero)).y;
+		ppu = Mathf.Abs(UIKit.ToScreen(parent, parent.TransformPoint(new Vector3(0f, 100f, 0f))).y - y0) / 100f;
+		if (ppu < 0.01f)
+		{
+			ppu = 1f;
+			return 1f;
+		}
+		float bar = (BottomButton.BarVisible ? BottomButton.BarTopScreen : float.NaN);
+		float bottom = (float.IsNaN(bar) ? 0f : bar) + 4f;
+		float top = (float)Screen.height - 4f - TopBarUnits * ppu;
+		mid = (top + bottom) / 2f;
+		return Mathf.Clamp(Mathf.Min((top - bottom) / Mathf.Max(1f, size.y * ppu), ((float)Screen.width - 40f) / Mathf.Max(1f, size.x * ppu)), 0.4f, 1f);
 	}
 
 	private bool EnsureCreated()
@@ -225,6 +242,14 @@ internal class EditorWindow
 		root = UIKit.Make("Window", UIKit.MenuParent);
 		root.name = objectName;
 		frame = (RectTransform)root.transform.Find("WindowMain");
+		fitter = (RectTransform)new GameObject("Fit", typeof(RectTransform)).transform;
+		fitter.SetParent(root.transform, worldPositionStays: false);
+		fitter.SetSiblingIndex(frame.GetSiblingIndex());
+		fitter.anchorMin = fitter.anchorMax = fitter.pivot = new Vector2(0.5f, 0.5f);
+		fitter.sizeDelta = Vector2.zero;
+		fitter.anchoredPosition = Vector2.zero;
+		frame.SetParent(fitter, worldPositionStays: false);
+		frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(0.5f, 0.5f);
 		UIKit.Stretch(frame.Find("Fill_Window"));
 		appliedSize = Vector2.zero;
 		RectTransform titleBar = (RectTransform)frame.Find("Titelleiste");
@@ -242,16 +267,25 @@ internal class EditorWindow
 	private void ApplySize()
 	{
 		Vector2 size = new Vector2(Width, Height);
-		float fit = FitScale(size);
-		if (size == appliedSize && Mathf.Abs(fit - appliedFit) < 0.001f)
+		float fit = FitScale(size, out float ppu, out float mid);
+		bool sameMid = (float.IsNaN(mid) ? float.IsNaN(appliedMid) : (!float.IsNaN(appliedMid) && Mathf.Abs(mid - appliedMid) < 0.5f));
+		if (size == appliedSize && Mathf.Abs(fit - appliedFit) < 0.001f && sameMid)
 		{
 			return;
 		}
 		appliedSize = size;
 		appliedFit = fit;
+		appliedMid = mid;
 		frame.anchoredPosition = Vector2.zero;
 		frame.sizeDelta = size;
-		frame.localScale = new Vector3(fit, fit, 1f);
+		fitter.localScale = new Vector3(fit, fit, 1f);
+		fitter.anchoredPosition = Vector2.zero;
+		if (!float.IsNaN(mid))
+		{
+			// Centred in the free space between the bars, not on the whole screen.
+			float now = UIKit.ToScreen(fitter, fitter.position).y;
+			fitter.anchoredPosition = new Vector2(0f, (mid - now) / ppu);
+		}
 		RectTransform fill = (RectTransform)frame.Find("Fill_Titleleiste");
 		fill.anchorMin = fill.anchorMax = new Vector2(0.5f, 0.5f);
 		fill.sizeDelta = new Vector2(size.x, 75f);

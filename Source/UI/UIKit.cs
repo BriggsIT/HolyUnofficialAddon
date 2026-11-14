@@ -49,6 +49,20 @@ internal static class UIKit
 
 	public static Transform MenuParent { get; private set; }
 
+	// Below 1080p (1366x768, 1600x900, 1680x1050...): the addon's small-screen layout, with windows fitted between the
+	// bars, the bottom-bar arrow and its row above the bar, and the review window kept above the bar. At 1080p and up
+	// everything stays as it always was. A little leeway, so 1920x1080 in a window (a few pixels short) still counts as 1080p.
+	public static bool SmallScreen => Screen.width < 1800 || Screen.height < 1000;
+
+	// A world point of the UI t belongs to, in screen pixels (whatever its canvas's render mode).
+	public static Vector2 ToScreen(Transform t, Vector3 world)
+	{
+		Canvas canvas = ((bool)t ? t.GetComponentInParent<Canvas>() : null);
+		Canvas root = ((bool)canvas ? canvas.rootCanvas : null);
+		Camera cam = (((bool)root && root.renderMode != RenderMode.ScreenSpaceOverlay) ? root.worldCamera : null);
+		return RectTransformUtility.WorldToScreenPoint(cam, world);
+	}
+
 	public static bool Init()
 	{
 		if ((bool)holder)

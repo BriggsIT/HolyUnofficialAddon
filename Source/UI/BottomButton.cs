@@ -12,8 +12,9 @@ namespace HolyAddon.UI;
 // the Statistics button, placed after the last button on the bar, so they land to the right of The Holy Expansion's
 // Social Media button, or of Statistics without it. A button that isn't available yet is darkened, like Holy's: faded
 // icon, no click, and the reason in red in its tooltip.
-// An arrow button before them shows or hides them (remembered). Where they'd cover the game's speed buttons (narrow
-// screens, 1366 wide), they sit in a row just above the bar instead.
+// Below 1080p only (UIKit.SmallScreen): an arrow button before them shows or hides them (remembered), and where they'd
+// cover the game's speed buttons (1366 wide), they sit in a row just above the bar instead. At 1080p and up there's
+// no arrow and they always show on the bar, as they always did.
 internal static class BottomButton
 {
 	private static GameObject toggle;
@@ -25,6 +26,42 @@ internal static class BottomButton
 	private static RectTransform pause;
 
 	private static bool Expanded => Plugin.BottomBarExpanded.Value;
+
+	// The top of what the bottom bar covers (world y): the bar itself, or the addon's row above it when that's showing.
+	// NaN until the bar has been found.
+	public static float BarTop
+	{
+		get
+		{
+			if (!pause || !pause.parent)
+			{
+				return float.NaN;
+			}
+			Transform bg = pause.parent.Find("BG");
+			float top = SpeedButtons.WorldRect((RectTransform)(bg ? bg : pause.parent)).yMax;
+			if ((bool)tray && tray.activeInHierarchy)
+			{
+				top = Mathf.Max(top, SpeedButtons.WorldRect((RectTransform)tray.transform).yMax);
+			}
+			return top;
+		}
+	}
+
+	// The top of the bar itself (not the addon's row above it), in screen pixels.
+	public static float BarTopScreen
+	{
+		get
+		{
+			if (!pause || !pause.parent)
+			{
+				return float.NaN;
+			}
+			Transform bg = pause.parent.Find("BG");
+			float top = SpeedButtons.WorldRect((RectTransform)(bg ? bg : pause.parent)).yMax;
+			return UIKit.ToScreen(pause, new Vector3(pause.position.x, top, pause.position.z)).y;
+		}
+	}
+
 	private class Entry
 	{
 		public string Id;
@@ -175,7 +212,8 @@ internal static class BottomButton
 		}
 		bool interactable = !G.Gui.menuOpen;
 		bool slow = Time.unscaledTime >= nextLayout;
-		bool anyWanted = Available && entries.Any((Entry e) => e.Wanted());
+		bool small = UIKit.SmallScreen;
+		bool anyWanted = small && Available && entries.Any((Entry e) => e.Wanted());
 		if (toggle.activeSelf != anyWanted)
 		{
 			toggle.SetActive(anyWanted);
@@ -187,7 +225,7 @@ internal static class BottomButton
 		}
 		foreach (Entry entry in entries)
 		{
-			bool show = Available && entry.Wanted() && Expanded;
+			bool show = Available && entry.Wanted() && (Expanded || !small);
 			if (entry.Button.activeSelf != show)
 			{
 				entry.Button.SetActive(show);
@@ -281,7 +319,56 @@ internal static class BottomButton
 			}
 		}
 		Layout();
+		LogBar();
 		return true;
+	}
+
+	private static bool logged;
+
+	// One-off dump of the bottom bar's layout, so a layout problem at another screen size can be fixed from the log.
+	private static void LogBar()
+	{
+		if (logged)
+		{
+			return;
+		}
+		logged = true;
+		try
+		{
+			List<string> lines = new List<string> { "Bottom bar layout (screen " + Screen.width + "x" + Screen.height + "):" };
+			Canvas canvas = stats.GetComponentInParent<Canvas>();
+			if ((bool)canvas)
+			{
+				lines.Add("  canvas " + canvas.rootCanvas.name + " scale " + canvas.rootCanvas.scaleFactor.ToString("0.###"));
+			}
+			Transform level = stats.parent;
+			for (int i = 0; i < 3 && (bool)level; i++)
+			{
+				lines.Add("  level " + i + ": " + level.name + " [" + string.Join(", ", from c in level.GetComponents<Component>()
+					select c.GetType().Name) + "]");
+				level = level.parent;
+			}
+			foreach (Transform child in stats.parent)
+			{
+				if (child is RectTransform rt)
+				{
+					Rect w = SpeedButtons.WorldRect(rt);
+					lines.Add("  " + child.name + (child.gameObject.activeSelf ? "" : " (hidden)") + " pos " + rt.anchoredPosition.ToString("0") + " size " + rt.rect.size.ToString("0") + " anchors " + rt.anchorMin.ToString("0.##") + "-" + rt.anchorMax.ToString("0.##") + " pivot " + rt.pivot.ToString("0.##") + " screen x " + w.xMin.ToString("0") + ".." + w.xMax.ToString("0") + " [" + string.Join(", ", from c in child.GetComponents<MonoBehaviour>()
+						where (bool)c
+						select c.GetType().Name) + "]");
+				}
+			}
+			if ((bool)pause)
+			{
+				Rect p = SpeedButtons.WorldRect(pause);
+				lines.Add("  pause button: " + pause.parent.name + "/" + pause.name + " screen x " + p.xMin.ToString("0") + ".." + p.xMax.ToString("0"));
+			}
+			Plugin.Log.LogInfo(string.Join("\n", lines));
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Bottom bar layout: " + ex.Message);
+		}
 	}
 
 	// The arrow button: the game's own play arrow, pointing right to show the addon's buttons, left to hide them.
@@ -326,6 +413,7 @@ internal static class BottomButton
 			nextLayout = 0f;
 		});
 		go.transform.SetAsLastSibling();
+		OutOfRow(go);
 		RefreshToggle(go);
 		return go;
 	}
@@ -345,15 +433,25 @@ internal static class BottomButton
 	}
 
 	// The backing for the row above the bar, in the bar's own look where it can be found.
+	// It lives in the game's button row, and the game's GUI_Main.MainButtonsInteractable treats every child there as a
+	// bar button: it sets child.GetComponent<Button>().interactable and greys child.GetChild(1)'s Image while a menu is
+	// open. Anything else there throws, and the game's OpenMenu / CloseMenu break (a prompt that won't close). So the
+	// tray is built like a bar button: a Button, and its backing image as its second child.
 	private static GameObject MakeTray()
 	{
-		GameObject go = new GameObject("Editor_BarTray", typeof(RectTransform), typeof(Image));
+		GameObject go = new GameObject("Editor_BarTray", typeof(RectTransform), typeof(Button));
 		go.transform.SetParent(stats.parent, worldPositionStays: false);
 		RectTransform rt = (RectTransform)go.transform;
 		rt.anchorMin = stats.anchorMin;
 		rt.anchorMax = stats.anchorMax;
 		rt.pivot = new Vector2(0.5f, 0.5f);
-		Image image = go.GetComponent<Image>();
+		go.GetComponent<Button>().transition = Selectable.Transition.None;
+		GameObject pad = new GameObject("Pad", typeof(RectTransform));
+		pad.transform.SetParent(go.transform, worldPositionStays: false);
+		GameObject fill = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+		fill.transform.SetParent(go.transform, worldPositionStays: false);
+		UIKit.Stretch(fill.transform);
+		Image image = fill.GetComponent<Image>();
 		Image bar = null;
 		Transform level = stats.parent;
 		for (int i = 0; i < 3 && (bool)level; i++)
@@ -377,6 +475,7 @@ internal static class BottomButton
 			image.color = new Color(0.92f, 0.92f, 0.92f, 0.96f);
 		}
 		go.transform.SetAsFirstSibling();
+		OutOfRow(go);
 		go.SetActive(value: false);
 		return go;
 	}
@@ -429,6 +528,7 @@ internal static class BottomButton
 			}
 		});
 		go.transform.SetAsLastSibling();
+		OutOfRow(go);
 		Plugin.Log.LogInfo(entry.Id + " button added to the bottom bar");
 		return go;
 	}
@@ -546,6 +646,15 @@ internal static class BottomButton
 			Plugin.Log.LogInfo("Bottom bar: the addon's buttons " + (found ? "squeeze onto the bar" : "move to a row above the bar") + " when there's no room for them");
 		}
 		return clipped.Value;
+	}
+
+	// The game's button row (GUI_MainButtons) is a HorizontalLayoutGroup: anything in it gets a place in the row. Ours
+	// are placed by Layout() instead, so the row must leave them out (otherwise the tray pushed every game button along,
+	// and a resolution change shuffled them all).
+	private static void OutOfRow(GameObject go)
+	{
+		LayoutElement le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
+		le.ignoreLayout = true;
 	}
 
 	private static void Place(RectTransform rt, Vector2 at)
