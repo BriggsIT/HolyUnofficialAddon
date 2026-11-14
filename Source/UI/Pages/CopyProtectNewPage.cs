@@ -107,6 +107,11 @@ internal class CopyProtectNewPage : Page
 		Image picture = row.Picture(CopyProtectDev.TechIcon(i), 10f, 44f);
 		Text top = row.Top(CopyProtectDev.TechNames[i], 64f, 300f);
 		Text bottom = row.Bottom(ok ? CopyProtectDev.TechInfo[i] : ("Possible from " + CopyProtectDev.TechYear[i] + "."), 64f, row.W - 350f);
+		// One size on every row (best fit shrank the longest description to unreadable).
+		bottom.resizeTextForBestFit = false;
+		bottom.fontSize = 12;
+		bottom.horizontalOverflow = HorizontalWrapMode.Wrap;
+		bottom.verticalOverflow = VerticalWrapMode.Truncate;
 		bottom.horizontalOverflow = HorizontalWrapMode.Wrap;
 		if (!ok)
 		{

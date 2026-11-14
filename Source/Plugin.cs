@@ -17,7 +17,7 @@ public class Plugin : BaseUnityPlugin
 
 	public const string Name = "Holy Unofficial Addon";
 
-	public const string Version = "0.20.1";
+	public const string Version = "0.23.3";
 
 	private const string OldGuid = "mgt2.editor";
 

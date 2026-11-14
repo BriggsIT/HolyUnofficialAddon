@@ -524,6 +524,10 @@ internal static class StorePlus
 
 	public static string EarlyAccessProblem(gameScript g)
 	{
+		if (HolyLaunch.On)
+		{
+			return "Early access runs in Holy's Launch Planner (a Marketing room).";
+		}
 		if (!S.Built)
 		{
 			return "Build your store first.";
@@ -571,8 +575,11 @@ internal static class StorePlus
 		return Mathf.Max(5, Mathf.RoundToInt((float)StoreOps.Price(g) * 0.7f));
 	}
 
+	// With Holy's Launch Planner on, your store's wishlists go into Holy's count (one set of wishlists, one launch boost
+	// and one early access: Holy's); d.Wishlists then keeps how many came from your store.
 	private static void WishWeek()
 	{
+		bool holy = HolyLaunch.On;
 		foreach (gameScript g in InDevelopment())
 		{
 			StoreGame d = Data(g, create: true);
@@ -580,7 +587,19 @@ internal static class StorePlus
 			float hype = Mathf.Clamp(g.hype, 0f, 100f) / 100f;
 			long growth = (long)((float)S.Active * 0.0015f * (0.2f + hype) * pc);
 			long cap = (long)((float)S.Active * 0.6f);
+			long before = d.Wishlists;
 			d.Wishlists = Math.Max(d.Wishlists, Math.Min(cap, d.Wishlists + growth));
+			if (holy)
+			{
+				HolyLaunch.AddWishlists(g, d.Wishlists - before);
+				if (d.EarlyAccess)
+				{
+					// In early access on your store before the merge: it carries on as Holy's early access.
+					d.EarlyAccess = false;
+					HolyLaunch.ContinueEarlyAccess(g);
+				}
+				continue;
+			}
 			if (!d.EarlyAccess)
 			{
 				continue;
@@ -622,6 +641,14 @@ internal static class StorePlus
 			if (d.EaUnits > 0)
 			{
 				g.sellsTotal += d.EaUnits;
+			}
+			if (HolyLaunch.On)
+			{
+				// Holy's launch boost counts your store's wishlists; the launch news comes from Core/HolyLaunch.
+				d.LaunchBoost = 0f;
+				d.LaunchWeek = NowWeek;
+				GameUpdates.Touch();
+				return;
 			}
 			float bought = Mathf.Min(0.5f, (float)d.EaUnits / Mathf.Max(1f, d.Wishlists));
 			d.LaunchBoost = Mathf.Clamp((float)d.Wishlists / Mathf.Max(20000f, S.Active) * 0.8f * (1f - bought), 0f, 0.35f);
@@ -1249,7 +1276,9 @@ internal static class StorePlus
 
 	public static void Week()
 	{
-		bool monthly = (bool)G.MS && G.MS.week == 1;
+		// The game counts the week up at the start of its weekly update and starts a new month after it once the count
+		// reaches 5, so after the weekly update the month's last week reads 5 (it never reads 1 there).
+		bool monthly = (bool)G.MS && G.MS.week >= 5;
 		StudiosWeek(monthly);
 		SaleWeek();
 		FrontWeek(monthly);

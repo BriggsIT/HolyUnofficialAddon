@@ -34,9 +34,20 @@ internal static class IndustryUi
 	}
 
 	// "3.5 stars" (the game's font may not have star symbols).
+	// A fixed text size (the row prefab's best fit makes short lines big and long ones small), wrapping in its box.
+	public static Text Fixed(Text t, int size)
+	{
+		t.resizeTextForBestFit = false;
+		t.fontSize = size;
+		t.horizontalOverflow = HorizontalWrapMode.Wrap;
+		t.verticalOverflow = VerticalWrapMode.Truncate;
+		return t;
+	}
+
 	public static string Stars(float stars)
 	{
-		return Mathf.Clamp(stars, 0f, 5f).ToString("0.#") + " stars";
+		// The game keeps stars as 0-100: 20 per star.
+		return Mathf.Clamp(stars / 20f, 0f, 5f).ToString("0.#") + " stars";
 	}
 }
 
@@ -205,6 +216,11 @@ internal class IndustryPage : Page
 		}
 		else if (tab == 1)
 		{
+			if (Plugin.EnableCheats.Value)
+			{
+				w.SmallButton("Test Events...", W - 14f - 180f, y, 180f, () => w.Push(new IndustryTestPage()), enabled: true, "Cheats: fire any industry event now, to see how it plays.", null, 28f);
+				y += 38f;
+			}
 			ListView list = w.List(13f, y, W - 26f, w.Height - 75f - y - 10f);
 			foreach (string line in s.Feed)
 			{
@@ -276,8 +292,8 @@ internal class IndustryPage : Page
 				w.Push(new StudioPage(id));
 			}, p2.GetTooltip());
 			row.Picture(p2.GetLogo(), 8f, 42f);
-			row.Top(p2.GetName() + "  <color=#777777>" + IndustryUi.Stars(p2.stars) + "</color>", 60f, 330f);
-			row.Bottom((p2.publisher ? (p2.developer ? "Developer and publisher" : "Publisher") : "Developer") + ((p2.fanGenre >= 0) ? ("  ·  loves " + IndustryCore.GenreName(p2.fanGenre)) : ""), 60f, 330f);
+			IndustryUi.Fixed(row.Top(p2.GetName() + "  <color=#777777>" + IndustryUi.Stars(p2.stars) + "</color>", 60f, 330f), 15);
+			IndustryUi.Fixed(row.Bottom((p2.publisher ? (p2.developer ? "Developer and publisher" : "Publisher") : "Developer") + ((p2.fanGenre >= 0) ? ("  ·  loves " + IndustryCore.GenreName(p2.fanGenre)) : ""), 60f, 330f), 13);
 			developing.TryGetValue(p2.myID, out var dev);
 			// Up to two lines, kept clear of the standing bar (which starts at W - 370).
 			Text devText = row.Text((dev != null) ? ((dev.angekuendigt ? "Announced: " : "In development: ") + dev.GetNameSimple()) : "Nothing in development", 400f, row.W - 370f - 410f, bold: false, TextAnchor.MiddleLeft, 4f, 48f);
@@ -291,7 +307,7 @@ internal class IndustryPage : Page
 			row.Bar(row.W - 370f, 200f, 20f, Mathf.InverseLerp(-100f, 100f, st), IndustryCore.TierColor(tier), IndustryCore.TierNames[tier] + " " + ((st > 0f) ? "+" : "") + Mathf.RoundToInt(st));
 			IndustryCore.State.Notes.TryGetValue(p2.myID, out var notes);
 			RelationNote last = notes?.FirstOrDefault();
-			row.Text((last != null) ? last.Text : "", row.W - 160f, 150f, bold: false, TextAnchor.MiddleLeft, 4f, 48f).color = UIKit.Grey;
+			IndustryUi.Fixed(row.Text((last != null) ? last.Text : "", row.W - 160f, 150f, bold: false, TextAnchor.MiddleLeft, 4f, 48f), 12).color = UIKit.Grey;
 		}
 		if (list2.Count == 0)
 		{
@@ -328,6 +344,45 @@ internal class IndustryPage : Page
 }
 
 // One studio: who they are, where you stand, what you've been through together, and their games.
+// Cheats on: every industry event, click one to fire it now (if its conditions are met; years and cooldowns ignored).
+internal class IndustryTestPage : Page
+{
+	private string result;
+
+	public override string Title => "Test Industry Events";
+
+	public override Sprite IconSprite => IndustryUi.Icon;
+
+	public override float Width => 820f;
+
+	public override float Height => 800f;
+
+	public override void Build(EditorWindow w)
+	{
+		BackButton(w);
+		float W = w.Width;
+		w.Label("Click an event to fire it now. Its years and cooldown are ignored, but it still needs what it's about (a game on sale, a studio with a game in development...). Decisions pop up when you close this window.", 120f, 8f, W - 134f, 52f, TextAnchor.UpperLeft, bold: false, null, 12).color = UIKit.Grey;
+		Text status = w.Label(result ?? "", 14f, 64f, W - 28f, 40f, TextAnchor.MiddleLeft, bold: true, null, 13);
+		float y = 110f;
+		ListView list = w.List(13f, y, W - 26f, w.Height - 75f - y - 10f);
+		foreach (IndustryEventDef d in IndustryEvents.Defs.OrderBy((IndustryEventDef x) => x.Headline).ThenBy((IndustryEventDef x) => x.From).ThenBy((IndustryEventDef x) => x.To))
+		{
+			string id = d.Id;
+			string name = (IndustryEvents.Names.TryGetValue(id, out var n) ? n : id);
+			string years = ((d.To >= 9999) ? (d.From + " on") : (d.From + "-" + d.To));
+			bool inEra = IndustryCore.Year >= d.From && IndustryCore.Year <= d.To;
+			RowView row = list.Row(44f, delegate
+			{
+				result = IndustryEvents.Trigger(id);
+				UIKit.Sound();
+				w.Rebuild();
+			}, "Click to fire it now.");
+			row.Top(name, 12f, row.W - 24f);
+			row.Bottom((d.Headline ? "Headline" : "Decision") + "  ·  " + years + (inEra ? "" : "  ·  outside its years now"), 12f, row.W - 24f).color = (inEra ? UIKit.Grey : new Color(0.75f, 0.45f, 0.1f));
+		}
+	}
+}
+
 internal class StudioPage : Page
 {
 	private readonly int id;
@@ -379,7 +434,7 @@ internal class StudioPage : Page
 		{
 			EditorWindow.KV("Kind", p.publisher ? (p.developer ? "Developer and publisher" : "Publisher") : "Developer"),
 			EditorWindow.KV("Company value", G.Money(p.GetFirmenwert())),
-			EditorWindow.KV("Publishing relation", Mathf.RoundToInt(p.relation) + " / 100 (the game's own: better terms when you publish with them)"),
+			EditorWindow.KV("Publishing relation", Mathf.RoundToInt(p.relation) + " / 100 (sets your terms)"),
 			EditorWindow.KV("Games released", p.GetAmountGames().ToString())
 		};
 		y += w.Facts(14f, y, W - 28f, facts, 2) + 12f;
@@ -391,14 +446,14 @@ internal class StudioPage : Page
 		IndustryCore.State.Notes.TryGetValue(id, out var list);
 		foreach (RelationNote n in list ?? new List<RelationNote>())
 		{
-			RowView row = notes.Row(40f);
-			row.Text(n.Text, 10f, row.W - 70f);
-			row.Text(((n.Delta > 0) ? "+" : "") + n.Delta, row.W - 60f, 50f, bold: true, TextAnchor.MiddleRight).color = ((n.Delta > 0) ? UIKit.Green : UIKit.Red);
+			RowView row = notes.Row(44f);
+			Fixed(row.Text(n.Text, 10f, row.W - 70f, bold: false, TextAnchor.MiddleLeft, 4f, 36f));
+			Fixed(row.Text(((n.Delta > 0) ? "+" : "") + n.Delta, row.W - 60f, 50f, bold: true, TextAnchor.MiddleRight, 4f, 36f)).color = ((n.Delta > 0) ? UIKit.Green : UIKit.Red);
 		}
 		if (list == null || list.Count == 0)
 		{
 			RowView none = notes.Row(36f);
-			none.Text("Nothing yet.", 10f, none.W - 20f);
+			Fixed(none.Text("Nothing yet.", 10f, none.W - 20f, bold: false, TextAnchor.MiddleLeft, 8f, 20f)).color = UIKit.Grey;
 		}
 		ListView games = w.List(23f + half, y, half, w.Height - 75f - y - 10f);
 		foreach (gameScript g in (from x in IndustryCore.AllGames()
@@ -410,5 +465,15 @@ internal class StudioPage : Page
 			row2.Top(g.GetNameSimple(), 10f, row2.W - 20f);
 			row2.Bottom(g.inDevelopment ? (g.angekuendigt ? "Announced" : "In development") : (g.reviewTotal + "%  ·  " + MmoUi.Short(CurrentChartsPage.Week(g)) + " this week"), 10f, row2.W - 20f);
 		}
+	}
+
+	// The same text size on every row (the row prefab's best fit would blow short lines up).
+	private static Text Fixed(Text t)
+	{
+		t.resizeTextForBestFit = false;
+		t.fontSize = 14;
+		t.horizontalOverflow = HorizontalWrapMode.Wrap;
+		t.verticalOverflow = VerticalWrapMode.Truncate;
+		return t;
 	}
 }

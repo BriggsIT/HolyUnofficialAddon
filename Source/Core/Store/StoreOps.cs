@@ -292,7 +292,7 @@ internal static class StoreOps
 		new RivalStore
 		{
 			Id = "diesel", Name = "Diesel", OpenYear = 2003, OpenMonth = 9, Fee = 30, Peak = 100f, RampYears = 8f,
-			About = "The big one. Started as a way to patch one studio's games and became where most PC players buy. Huge Summer and Winter sales."
+			About = "The big one: most PC players buy here. Huge Summer and Winter sales."
 		},
 		new RivalStore
 		{
@@ -302,7 +302,7 @@ internal static class StoreOps
 		new RivalStore
 		{
 			Id = "cog", Name = "COG", OpenYear = 2008, OpenMonth = 9, Fee = 30, Peak = 18f, RampYears = 4f,
-			About = "Classic Old Games: old favourites made to run on today's PCs, and no DRM on anything."
+			About = "Old favourites made to run on today's PCs, with no DRM."
 		},
 		new RivalStore
 		{
@@ -312,7 +312,7 @@ internal static class StoreOps
 		new RivalStore
 		{
 			Id = "modest", Name = "Modest Bundle", OpenYear = 2010, OpenMonth = 5, Fee = 15, Peak = 10f, RampYears = 2f,
-			About = "Bundles of games for whatever you want to pay, with part of it going to charity."
+			About = "Pay what you want for bundles; part goes to charity."
 		},
 		new RivalStore
 		{
@@ -322,7 +322,7 @@ internal static class StoreOps
 		new RivalStore
 		{
 			Id = "scratch", Name = "scratch.io", OpenYear = 2013, OpenMonth = 3, Fee = 10, Peak = 9f, RampYears = 4f,
-			About = "The indie corner of the internet. Studios pick their own cut, most leave it at 10%."
+			About = "Indie games. Studios pick their own cut (most choose 10%)."
 		},
 		new RivalStore
 		{
@@ -332,7 +332,7 @@ internal static class StoreOps
 		new RivalStore
 		{
 			Id = "mythic", Name = "Mythic Games Store", OpenYear = 2018, OpenMonth = 12, Fee = 12, Peak = 45f, RampYears = 3f,
-			About = "Takes only 12%, pays for exclusives and gives a free game away every week."
+			About = "Takes 12%, pays for exclusives, gives a game away weekly."
 		},
 		new RivalStore
 		{

@@ -51,8 +51,9 @@ internal class IndustryEventDef
 	public Func<IndustryContext, string> Apply;
 }
 
-// The events. All names (magazines, arcade chains) are made up.
-internal static class IndustryEvents
+// The events. All names (magazines, arcade chains) are made up. The 1976-1985 pack is in IndustryEventsEarly, the
+// 1985-1994 pack in IndustryEventsConsole.
+internal static partial class IndustryEvents
 {
 	private static List<IndustryEventDef> defs;
 
@@ -165,6 +166,101 @@ internal static class IndustryEvents
 				Plugin.Log.LogWarning("Industry headline " + d2.Id + ": " + ex.Message);
 			}
 		}
+	}
+
+	// Names for the test page (cheats on).
+	public static readonly Dictionary<string, string> Names = new Dictionary<string, string>
+	{
+		{ "cassette", "A Cassette in the Post" },
+		{ "typein", "Print Your Code?" },
+		{ "arcade", "Cabinet Deal" },
+		{ "machine", "A New Machine Wants Games" },
+		{ "stand", "Share a Stand?" },
+		{ "clone", "A Copy of Your Game" },
+		{ "bidding", "Publishers Bid" },
+		{ "rescue", "A Studio Needs Help" },
+		{ "club", "Computer Club Night" },
+		{ "hand", "A Studio Asks for a Hand" },
+		{ "talkeddown", "Talked Down in Print" },
+		{ "firstlook", "First Look" },
+		{ "guild", "A Guild for Game Makers" },
+		{ "distributor", "A Distributor in Trouble" },
+		{ "handheld", "A Pocket Version" },
+		{ "highscore", "A High-Score Contest" },
+		{ "craze", "Genre craze" },
+		{ "fatigue", "Genre fatigue" },
+		{ "hit", "A rival's hit" },
+		{ "pricecut", "A machine's price cut" },
+		{ "delay", "A studio delays its game" },
+		{ "xmas", "The Christmas must-have" },
+		{ "flop", "A rival's flop" },
+		{ "starhire", "A star changes studios" },
+		{ "magazine", "A new magazine" },
+		{ "cartridge", "A Cartridge Shortage" },
+		{ "film", "The Game of the Film" },
+		{ "cartoon", "A Cartoon of Your Hit" },
+		{ "lowscore", "A Harsh Review" },
+		{ "poach", "A Star Wants to Join You" },
+		{ "rental", "Rent It Out?" },
+		{ "hintline", "Stuck on Your Game" },
+		{ "exclusive", "An Exclusive Offer" },
+		{ "parents", "Concerned Parents" },
+		{ "swap", "Swap Know-How?" },
+		{ "shelf", "Shelf Space" },
+		{ "launch", "A sell-out launch" },
+		{ "consolewar", "A console war" },
+		{ "reveal", "A big reveal" },
+		{ "budget", "Budget re-releases" },
+		{ "shops", "A new chain of shops" }
+	};
+
+	// Testing (cheats on): runs one event now if its conditions are met, whatever its years and cooldown.
+	// Returns what happened, for the test page.
+	public static string Trigger(string id)
+	{
+		IndustryEventDef d = Find(id);
+		if (d == null)
+		{
+			return "No such event.";
+		}
+		if (!d.Headline && IndustryCore.State.Pending != null)
+		{
+			return "A decision is already waiting: answer it first.";
+		}
+		IndustryContext c = new IndustryContext();
+		bool ok;
+		try
+		{
+			ok = d.Setup(c);
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Industry event " + id + ": " + ex.Message);
+			ok = false;
+		}
+		if (!ok)
+		{
+			return "It can't happen right now: its conditions aren't met (for example, it needs a game on sale or in development).";
+		}
+		if (d.Headline)
+		{
+			string text = d.Apply(c);
+			IndustryCore.State.LastFired[d.Id] = Now;
+			if (string.IsNullOrEmpty(text))
+			{
+				return "It fired, but had nothing to say.";
+			}
+			IndustryCore.News(text);
+			IndustryCore.Feed(text);
+			return "In the news: " + text;
+		}
+		IndustryCore.Force(new IndustryPending
+		{
+			Id = d.Id,
+			C = c,
+			Week = Now
+		});
+		return "It will pop up when you close this window.";
 	}
 
 	private static IndustryEventDef Weighted(List<IndustryEventDef> pool)
@@ -281,7 +377,7 @@ internal static class IndustryEvents
 			Hit(),
 			PriceCut(),
 			Delay()
-		};
+		}.Concat(Early()).Concat(Consoles()).ToList();
 	}
 
 	// Two teenagers send you their game: publish it (a gamble), hire them, or pass.
@@ -335,8 +431,9 @@ internal static class IndustryEvents
 			select (w.Length > 0) ? (char.ToUpper(w[0]) + w.Substring(1)) : w);
 	}
 
-	// Two applicants in the job market, a game designer and a programmer, a little better than usual.
-	private static int Applicants()
+	// Applicants in the job market, a little better than usual: by default a game designer and a programmer
+	// (profession 0 = game designer, 1 = programmer; "first" picks the first one's).
+	private static int Applicants(int count = 2, int first = 0)
 	{
 		arbeitsmarkt market = UnityEngine.Object.FindObjectOfType<arbeitsmarkt>();
 		if (!market)
@@ -344,8 +441,9 @@ internal static class IndustryEvents
 			return 0;
 		}
 		int added = 0;
-		for (int i = 0; i < 2; i++)
+		for (int n = 0; n < count; n++)
 		{
+			int i = (first + n) % 2;
 			charArbeitsmarkt c = market.CreateArbeitsmarktItem();
 			if ((bool)c)
 			{
@@ -540,7 +638,7 @@ internal static class IndustryEvents
 				{
 					return false;
 				}
-				List<publisherScript> small = IndustryCore.Studios().Where((publisherScript p) => p.developer && p.stars <= 3f && IndustryCore.Tier(IndustryCore.Standing(p)) > 0 && (bool)p.FindGameInDevelopment()).ToList();
+				List<publisherScript> small = IndustryCore.Studios().Where((publisherScript p) => p.developer && p.stars <= 60f && IndustryCore.Tier(IndustryCore.Standing(p)) > 0 && (bool)p.FindGameInDevelopment()).ToList();
 				if (small.Count == 0)
 				{
 					return false;
@@ -612,12 +710,12 @@ internal static class IndustryEvents
 				c.StudioId = studio.myID;
 				c.Amount = Scaled(10000.0);
 				c.Amount2 = (long)((float)Scaled(25000.0) * (1f + (float)pair.Value.gameSize));
-				c.Share = Mathf.Clamp(0.55f - studio.stars * 0.05f + ((IndustryCore.Tier(IndustryCore.Standing(studio)) == 0) ? 0.1f : 0f), 0.2f, 0.8f);
+				c.Share = Mathf.Clamp(0.55f - studio.stars * 0.0025f + ((IndustryCore.Tier(IndustryCore.Standing(studio)) == 0) ? 0.1f : 0f), 0.2f, 0.8f);
 				c.Number = (int)Scaled(6000.0) * (1 + pair.Value.gameSize);
 				return true;
 			},
 			Title = (IndustryContext c) => "A Copy of Your Game",
-			Text = (IndustryContext c) => StudioName(c.StudioId) + "'s new " + Name(c.Game2) + " is a " + IndustryCore.GenreName(Game(c.Game2)?.maingenre ?? (-1)) + " game on the same topic as your " + Name(c.GameId) + ", and players say it looks a lot like it.",
+			Text = (IndustryContext c) => StudioName(c.StudioId) + "'s new " + Name(c.Game2) + " is " + IndustryCore.AGenreGame(Game(c.Game2)?.maingenre ?? (-1)) + " on the same topic as your " + Name(c.GameId) + ", and players say it looks a lot like it.",
 			Default = 3,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
@@ -635,7 +733,7 @@ internal static class IndustryEvents
 						}
 						if ((bool)p)
 						{
-							p.stars = Mathf.Max(0f, p.stars - 0.2f);
+							IndustryCore.AddStars(p, -4f);
 						}
 						IndustryCore.Change(p, -25, "You sued them over " + Name(x.GameId) + " and won");
 						return "You win: " + StudioName(x.StudioId) + " pays " + Money(x.Amount2) + ", and players turn on " + Name(x.Game2) + ".";
@@ -684,7 +782,7 @@ internal static class IndustryEvents
 				}
 				List<publisherScript> pubs = (from p in IndustryCore.Studios()
 					where p.publisher && IndustryCore.Tier(IndustryCore.Standing(p)) > 0 && (!p.onlyMobile || g.handy)
-					orderby p.stars + IndustryCore.Standing(p) / 50f + R(0f, 1.5f) descending
+					orderby p.stars / 20f + IndustryCore.Standing(p) / 50f + R(0f, 1.5f) descending
 					select p).Take(2).ToList();
 				if (pubs.Count < 2)
 				{
@@ -720,7 +818,7 @@ internal static class IndustryEvents
 
 	private static long Advance(gameScript g, publisherScript p)
 	{
-		return (long)((float)Scaled(12000.0) * (1f + (float)g.gameSize) * (0.6f + p.stars * 0.2f) * R(0.85f, 1.2f));
+		return (long)((float)Scaled(12000.0) * (1f + (float)g.gameSize) * (0.6f + p.stars * 0.01f) * R(0.85f, 1.2f));
 	}
 
 	private static string Bid(IndustryContext c, int winner, int loser, long advance, float share)
@@ -756,7 +854,7 @@ internal static class IndustryEvents
 			Cooldown = 30,
 			Setup = delegate(IndustryContext c)
 			{
-				List<publisherScript> poor = IndustryCore.Studios().Where((publisherScript p) => p.developer && p.stars <= 2.5f && (!IndustryCore.State.Cooldowns.TryGetValue("rescue:" + p.myID, out var until) || until <= Now) && (bool)p.FindAngekuendigtesGame()).ToList();
+				List<publisherScript> poor = IndustryCore.Studios().Where((publisherScript p) => p.developer && p.stars <= 50f && (!IndustryCore.State.Cooldowns.TryGetValue("rescue:" + p.myID, out var until) || until <= Now) && (bool)p.FindAngekuendigtesGame()).ToList();
 				if (poor.Count == 0)
 				{
 					return false;
@@ -850,7 +948,8 @@ internal static class IndustryEvents
 				genres gen2 = IndustryCore.Genres;
 				gen2.genres_BELIEBTHEIT[c.Number] = Mathf.Min(100f, gen2.genres_BELIEBTHEIT[c.Number] + 12f);
 				gen2.genres_BELIEBTHEIT_SOLL[c.Number] = true;
-				return "<b>" + Cap(IndustryCore.GenreName(c.Number)) + " craze:</b> players can't get enough of " + IndustryCore.GenreName(c.Number) + " games right now.";
+				int weeks = IndustryCore.MakeTrend(c.Number);
+				return "<b>" + Cap(IndustryCore.GenreName(c.Number)) + " craze:</b> players can't get enough of " + IndustryCore.GenreGames(c.Number) + " right now" + ((weeks > 0) ? (". It's the trend for the next " + weeks + " weeks.") : ".");
 			}
 		};
 	}
@@ -890,7 +989,8 @@ internal static class IndustryEvents
 				genres gen2 = IndustryCore.Genres;
 				gen2.genres_BELIEBTHEIT[c.Number] = Mathf.Max(0f, gen2.genres_BELIEBTHEIT[c.Number] - 12f);
 				gen2.genres_BELIEBTHEIT_SOLL[c.Number] = false;
-				return "Players are growing tired of " + IndustryCore.GenreName(c.Number) + " games.";
+				bool out_ = IndustryCore.MakeAntiTrend(c.Number);
+				return "Players are growing tired of " + IndustryCore.GenreGames(c.Number) + (out_ ? ": they're out of fashion for now." : ".");
 			}
 		};
 	}
@@ -923,7 +1023,7 @@ internal static class IndustryEvents
 				publisherScript p = IndustryCore.Studio(c.StudioId);
 				if ((bool)p)
 				{
-					p.stars = Mathf.Min(5f, p.stars + 0.1f);
+					IndustryCore.AddStars(p, 2f);
 				}
 				genres gen = IndustryCore.Genres;
 				if ((bool)gen && (bool)g2 && g2.maingenre >= 0 && g2.maingenre < gen.genres_BELIEBTHEIT.Length)

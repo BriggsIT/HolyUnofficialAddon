@@ -770,7 +770,7 @@ internal class StoreChartsPage : Page
 {
 	private int seen = -1;
 
-	public override string Title => "Store Charts";
+	public override string Title => "Rival Stores";
 
 	public override Sprite IconSprite => UpdateIcons.Store();
 
@@ -809,7 +809,7 @@ internal class StoreChartsPage : Page
 		}
 		rows.Add(new KeyValuePair<float, Action<RowView>>(s.Direct, (RowView row) =>
 		{
-			Fill(row, null, "Straight from the studios", "Studios' own websites and boxed copies with a digital key. Fades as stores take over.", "no store", s.Direct, closed: false);
+			Fill(row, null, "Straight from the studios", "Studios' own websites and boxed games with a key. Fades as stores grow.", "no store", s.Direct, closed: false);
 		}));
 		ListView list = w.List(13f, 50f, w.Width - 26f, w.Height - 75f - 60f);
 		int rank = 0;
@@ -834,6 +834,11 @@ internal class StoreChartsPage : Page
 		Image img = ((bool)logo ? StoreUi.Picture(row.T, logo, 44f, 6f, 44f) : null);
 		Text top = row.Top(name, 98f, row.W - 360f);
 		Text bottom = row.Bottom(about, 98f, row.W - 360f);
+		// One size for every store (the row's best fit shrank long descriptions to unreadable).
+		bottom.resizeTextForBestFit = false;
+		bottom.fontSize = 13;
+		bottom.horizontalOverflow = HorizontalWrapMode.Wrap;
+		bottom.verticalOverflow = VerticalWrapMode.Truncate;
 		Text f = row.Text(fee, row.W - 250f, 140f, bold: false, TextAnchor.MiddleRight);
 		Text s = row.Text(closed ? "closed" : StoreUi.Pct(share), row.W - 100f, 90f, bold: true, TextAnchor.MiddleRight);
 		if (closed)

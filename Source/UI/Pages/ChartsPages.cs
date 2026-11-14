@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using HarmonyLib;
 using HolyAddon.Core;
+using HolyAddon.Core.Industry;
 using HolyAddon.Core.Mmo;
 using HolyAddon.Core.Store;
 using HolyAddon.Core.Updates;
@@ -9,6 +11,53 @@ using UnityEngine;
 using UnityEngine.UI;
 
 namespace HolyAddon.UI.Pages;
+
+// The game keeps weekly sales only for your own consoles: a rival console just adds to its total. This notes how many
+// each rival platform sold in its weekly sale, for the charts (kept for the session; it fills in after a week).
+[HarmonyPatch]
+internal static class PlatformWeeks
+{
+	private static readonly Dictionary<int, long> sold = new Dictionary<int, long>();
+
+	public static long For(platformScript p)
+	{
+		if (!p || !sold.TryGetValue(p.myID, out var n))
+		{
+			return 0L;
+		}
+		return n;
+	}
+
+	[HarmonyPrefix]
+	[HarmonyPatch(typeof(platformScript), "Sell")]
+	private static void Before(platformScript __instance, out long __state)
+	{
+		__state = __instance.units;
+	}
+
+	[HarmonyPostfix]
+	[HarmonyPatch(typeof(platformScript), "Sell")]
+	private static void After(platformScript __instance, long __state)
+	{
+		try
+		{
+			if (__instance.OwnerIsNPC())
+			{
+				sold[__instance.myID] = Math.Max(0L, (long)__instance.units - __state);
+			}
+		}
+		catch (Exception)
+		{
+		}
+	}
+
+	[HarmonyPrefix]
+	[HarmonyPatch(typeof(savegameScript), "Load")]
+	private static void Clear()
+	{
+		sold.Clear();
+	}
+}
 
 // Current charts (Statistics > Current Charts): what sells right now, where the game's own Charts menu mostly
 // keeps all-time lists. Top sellers this week, genres, consoles, studios, new releases and the games coming soon.
@@ -73,7 +122,16 @@ internal class CurrentChartsPage : Page
 
 	public static long Week(platformScript p)
 	{
-		if (!p || p.sellsPerWeek == null || p.sellsPerWeek.Length == 0)
+		if (!p)
+		{
+			return 0L;
+		}
+		// The game keeps weekly sales only for your own consoles; rival ones are noted by PlatformWeeks.
+		if (p.OwnerIsNPC())
+		{
+			return PlatformWeeks.For(p);
+		}
+		if (p.sellsPerWeek == null || p.sellsPerWeek.Length == 0)
 		{
 			return 0L;
 		}
@@ -476,34 +534,66 @@ internal class CurrentChartsPage : Page
 
 	private void ComingSoonTab(EditorWindow w, float y, float h)
 	{
-		w.Header("Announced games, most anticipated first", 14f, y, w.Width - 28f);
-		List<gameScript> games = (from g in All
+		// The 40 most anticipated, plus every game of yours: announced ones lower down keep their real place, and
+		// ones you haven't announced yet come last (they gather wishlists all the same).
+		List<gameScript> announced = (from g in All
 			where (bool)g && g.inDevelopment && g.angekuendigt && !g.isOnMarket
 			orderby g.hype descending
-			select g).Take(40).ToList();
-		ListView list = w.List(13f, y + 32f, w.Width - 26f, h - 32f);
-		int rank = 0;
-		foreach (gameScript g in games)
+			select g).ToList();
+		List<KeyValuePair<int, gameScript>> games = new List<KeyValuePair<int, gameScript>>();
+		for (int i = 0; i < announced.Count; i++)
 		{
-			rank++;
+			if (i < 40 || announced[i].IsMyGame())
+			{
+				games.Add(new KeyValuePair<int, gameScript>(i + 1, announced[i]));
+			}
+		}
+		foreach (gameScript mine in from g in IndustryCore.MyGamesInDevelopment()
+			where !g.angekuendigt && !g.isOnMarket && !g.typ_addon && !g.typ_mmoaddon
+			orderby g.hype descending
+			select g)
+		{
+			games.Add(new KeyValuePair<int, gameScript>(0, mine));
+		}
+		w.Header("Announced games, most anticipated first, and all of yours", 14f, y, w.Width - 28f);
+		ListView list = w.List(13f, y + 32f, w.Width - 26f, h - 32f);
+		bool holy = HolyLaunch.On;
+		foreach (KeyValuePair<int, gameScript> kv in games)
+		{
+			int rank = kv.Key;
+			gameScript g = kv.Value;
 			RowView row = list.Row(52f, null, g.GetTooltip());
 			if (g.IsMyGame())
 			{
 				row.Highlight();
 			}
-			EditorWindow.RankBadge(row.T, rank, 8f, 12f, 28f);
+			if (rank > 0)
+			{
+				EditorWindow.RankBadge(row.T, rank, 8f, 12f, 28f);
+			}
 			row.Picture(GenrePic(g.maingenre), 44f, 36f);
 			row.Top(g.GetNameWithTag(), 92f, row.W - 420f);
-			row.Bottom(g.GetDeveloperName() + "  ·  " + GenreName(g.maingenre), 92f, row.W - 420f);
+			row.Bottom(g.GetDeveloperName() + "  ·  " + GenreName(g.maingenre) + (g.IsMyGame() ? Wishes(g, holy) : "") + ((rank == 0) ? "  ·  not announced yet" : ""), 92f, row.W - 420f);
 			row.Bar(row.W - 310f, 300f, 20f, Mathf.Clamp01(g.hype / 100f), new Color(0.85f, 0.3f, 0.25f), "hype " + Mathf.RoundToInt(g.hype), null, 4f);
 			float done = DevProgress(g, out int weeksLeft);
 			string text = ((done < 0f) ? "progress unknown" : (Mathf.FloorToInt(done * 100f) + "% done" + ((weeksLeft > 0) ? ("  ·  out in about " + ((weeksLeft == 1) ? "1 week" : (weeksLeft + " weeks"))) : "")));
 			row.Bar(row.W - 310f, 300f, 20f, Mathf.Max(0f, done), new Color(0.2f, 0.5f, 0.88f), text, null, 28f);
 		}
-		if (rank == 0)
+		if (games.Count == 0)
 		{
 			w.Label("No games announced right now.", 24f, y + 40f, w.Width - 48f, 26f);
 		}
+	}
+
+	// Your announced games' wishlists: Holy's Launch Planner's count when it's on, otherwise your store's.
+	private static string Wishes(gameScript g, bool holy)
+	{
+		long n = (holy ? HolyLaunch.Wishlists(g) : (StorePlus.Data(g)?.Wishlists ?? 0));
+		if (n <= 0)
+		{
+			return "";
+		}
+		return "  ·  " + MmoUiText.Num(n) + " wishlists";
 	}
 
 	public override void Tick(EditorWindow w)

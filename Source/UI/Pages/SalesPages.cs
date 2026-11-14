@@ -81,7 +81,8 @@ internal static class SaleUi
 		Color ink = (own ? own.color : Color.black);
 		Text t0 = w.Label("<b>" + title + "</b>", 6f, 6f, cw - 12f, 26f, TextAnchor.MiddleCenter, bold: false, b.transform, 16);
 		Text t1 = w.Label(line1, 6f, 34f, cw - 12f, 20f, TextAnchor.MiddleCenter, bold: false, b.transform, 12);
-		Text t2 = w.Label(line2, 6f, 54f, cw - 12f, 32f, TextAnchor.UpperCenter, bold: false, b.transform, 12);
+		// Tall enough for two full lines (at 32 the second line, like the Deep Sale's "trust", was clipped).
+		Text t2 = w.Label(line2, 6f, 52f, cw - 12f, 38f, TextAnchor.UpperCenter, bold: false, b.transform, 12);
 		t0.color = ink;
 		t1.color = ink;
 		t2.color = new Color(ink.r, ink.g, ink.b, 0.75f);

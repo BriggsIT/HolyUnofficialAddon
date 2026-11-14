@@ -41,6 +41,8 @@ internal class IndustryContext
 	public float Share2;
 
 	public int Number;
+
+	public int Number2;
 }
 
 internal class IndustryPending
@@ -85,6 +87,9 @@ internal class SalesMod
 	public int Weeks;
 
 	public int WeeksLeft;
+
+	// Starts counting down only once the game is out (set for games still in development).
+	public bool Wait;
 }
 
 // "Release a game on it within a year, or pay for the kit."
@@ -132,6 +137,9 @@ internal class IndustryState
 	public bool Seeded;
 
 	public List<int> DealtGames = new List<int>();
+
+	// Studios knocked down by the 0.20-0.22 stars bug have been put back (once per save).
+	public bool StarsChecked;
 }
 
 // Industry events: the industry around you moves (headlines in the news), and things land on your desk (pop-up
@@ -226,6 +234,87 @@ internal static class IndustryCore
 
 	public static readonly string[] TierNames = new string[4] { "Rival", "Neutral", "Friendly", "Ally" };
 
+	// A studio's stars are 0-100 in the game (20 per star shown; the data's studios start at 15-100). Events nudge
+	// them by a couple of points, never below 10.
+	public static void AddStars(publisherScript p, float delta)
+	{
+		if ((bool)p)
+		{
+			p.stars = Mathf.Clamp(p.stars + delta, 10f, 100f);
+		}
+	}
+
+	// Versions 0.20.0-0.22.0 treated stars as 0-5, which dropped studios to 5 (out of 100) after a hit, a star hire or
+	// a staff swap. Puts any studio below 10 back to its stars in the game's studio data (Holy's merged list when
+	// Holy made one). Once per save.
+	private static void RepairStars()
+	{
+		publisherScript[] all = (G.MS ? G.MS.arrayPublisherScripts : null);
+		if (all == null)
+		{
+			return;
+		}
+		Dictionary<int, float> data = null;
+		foreach (publisherScript p in all)
+		{
+			if (!p || p.isPlayer || p.stars >= 10f)
+			{
+				continue;
+			}
+			data = data ?? DataStars();
+			float before = p.stars;
+			p.stars = (data.TryGetValue(p.myID, out var s) ? s : 40f);
+			Plugin.Log.LogInfo("Industry: restored " + p.GetName() + "'s stars from " + before.ToString("0.#") + " to " + p.stars.ToString("0") + " (out of 100)");
+		}
+	}
+
+	private static Dictionary<int, float> DataStars()
+	{
+		Dictionary<int, float> map = new Dictionary<int, float>();
+		string[] files = new string[2]
+		{
+			System.IO.Path.Combine(BepInEx.Paths.PluginPath, "HolyExpansion", "cache", "DATA_Publisher.txt"),
+			System.IO.Path.Combine(Application.dataPath, "Extern", "Text", "DATA", "Publisher.txt")
+		};
+		foreach (string f in files)
+		{
+			try
+			{
+				if (!System.IO.File.Exists(f))
+				{
+					continue;
+				}
+				string text = System.IO.File.ReadAllText(f);
+				if (!text.Contains("[ID]"))
+				{
+					text = System.IO.File.ReadAllText(f, System.Text.Encoding.Unicode);
+				}
+				int id = -1;
+				foreach (string raw in text.Split('\n'))
+				{
+					string line = raw.Trim();
+					if (line.StartsWith("[ID]") && int.TryParse(line.Substring(4).Trim(), out var n))
+					{
+						id = n;
+					}
+					else if (line.StartsWith("[MARKET]") && id >= 0 && float.TryParse(line.Substring(8).Trim(), out var m))
+					{
+						map[id] = Mathf.Clamp(m, 10f, 100f);
+					}
+				}
+				if (map.Count > 0)
+				{
+					return map;
+				}
+			}
+			catch (Exception ex)
+			{
+				Plugin.Log.LogWarning("Industry: could not read " + f + ": " + ex.Message);
+			}
+		}
+		return map;
+	}
+
 	public static Color TierColor(int tier)
 	{
 		return tier switch
@@ -311,6 +400,87 @@ internal static class IndustryCore
 		return gen.GetName(g);
 	}
 
+	// A craze becomes the game's trend genre (the top bar, and the game's own trend bonus), like the game's trendsetter
+	// hits do. It holds for the rest of the current trend period, at least 12 weeks. The timing and the trend topic
+	// stay the game's own, so topics keep changing as usual. Returns the weeks left (0: nothing changed).
+	public static int MakeTrend(int genre)
+	{
+		mainScript ms = G.MS;
+		genres gen = Genres;
+		if (!ms || !gen || ms.multiplayer || genre < 0 || genre >= gen.genres_UNLOCK.Length || !gen.genres_UNLOCK[genre] || ms.trendGenre == genre)
+		{
+			return 0;
+		}
+		ms.trendGenre = genre;
+		if (ms.trendAntiGenre == genre)
+		{
+			List<int> others = Enumerable.Range(0, gen.genres_UNLOCK.Length).Where((int i) => gen.genres_UNLOCK[i] && i != genre).ToList();
+			if (others.Count > 0)
+			{
+				ms.trendAntiGenre = others[UnityEngine.Random.Range(0, others.Count)];
+			}
+		}
+		ms.trendWeeks = Mathf.Max(ms.trendWeeks, 12);
+		RefreshTrend();
+		return ms.trendWeeks;
+	}
+
+	// Genre fatigue makes it the trend's "out of fashion" genre (unless it's the trend itself).
+	public static bool MakeAntiTrend(int genre)
+	{
+		mainScript ms = G.MS;
+		genres gen = Genres;
+		if (!ms || !gen || ms.multiplayer || genre < 0 || genre >= gen.genres_UNLOCK.Length || ms.trendGenre == genre || ms.trendAntiGenre == genre)
+		{
+			return false;
+		}
+		ms.trendAntiGenre = genre;
+		RefreshTrend();
+		return true;
+	}
+
+	private static void RefreshTrend()
+	{
+		try
+		{
+			if ((bool)G.Gui)
+			{
+				G.Gui.UpdateTrend();
+			}
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Industry: trend display: " + ex.Message);
+		}
+	}
+
+	// Some genres' names already end in "Game" ("Sports Game", "Role-Playing Game"): "Sports Games", "Action games".
+	public static string GenreGames(int g)
+	{
+		string n = GenreName(g);
+		if (n.EndsWith("Game") || n.EndsWith("game"))
+		{
+			return n + "s";
+		}
+		if (n.EndsWith("Games") || n.EndsWith("games"))
+		{
+			return n;
+		}
+		return n + " games";
+	}
+
+	// "a Sports Game", "an Action game".
+	public static string AGenreGame(int g)
+	{
+		string n = GenreName(g);
+		if (g < 0 || n == "games")
+		{
+			return "a game";
+		}
+		string game = ((n.EndsWith("Game") || n.EndsWith("game")) ? n : (n + " game"));
+		return (("AEIOUaeiou".IndexOf(game[0]) >= 0) ? "an " : "a ") + game;
+	}
+
 	// What a game was sent on, by year.
 	public static string Media()
 	{
@@ -362,6 +532,22 @@ internal static class IndustryCore
 		}
 	}
 
+	// A sales change that starts when the game comes out (straight away if it's already out).
+	public static void AddModAfterRelease(gameScript g, float amount, int weeks)
+	{
+		if ((bool)g)
+		{
+			S.Mods.Add(new SalesMod
+			{
+				GameId = g.myID,
+				Amount = amount,
+				Weeks = weeks,
+				WeeksLeft = weeks,
+				Wait = !g.isOnMarket
+			});
+		}
+	}
+
 	// What events add to a game's sales (into Holy's total and cap with Holy, like the addon's other bonuses).
 	public static float Bonus(gameScript g)
 	{
@@ -384,6 +570,15 @@ internal static class IndustryCore
 	{
 		foreach (SalesMod m in S.Mods)
 		{
+			if (m.Wait)
+			{
+				gameScript waiting = GameUpdates.FindGame(m.GameId);
+				if ((bool)waiting && waiting.inDevelopment && !waiting.isOnMarket)
+				{
+					continue;
+				}
+				m.Wait = false;
+			}
 			m.WeeksLeft--;
 		}
 		S.Mods.RemoveAll((SalesMod m) => m.WeeksLeft <= 0);
@@ -481,6 +676,11 @@ internal static class IndustryCore
 			{
 				return;
 			}
+			if (!S.StarsChecked)
+			{
+				S.StarsChecked = true;
+				RepairStars();
+			}
 			Effects();
 			StudioChanges();
 			if (S.NextHeadline < 0)
@@ -569,7 +769,7 @@ internal static class IndustryCore
 				S.KnownOpen.Add(p.myID);
 				if (S.Seeded)
 				{
-					string text = "<b>" + p.GetName() + "</b> opens its doors" + ((p.fanGenre >= 0) ? (": a new studio with a love of " + GenreName(p.fanGenre) + " games.") : ".");
+					string text = "<b>" + p.GetName() + "</b> opens its doors" + ((p.fanGenre >= 0) ? (": a new studio with a love of " + GenreGames(p.fanGenre) + ".") : ".");
 					News(text);
 					Feed(text);
 				}
@@ -609,6 +809,15 @@ internal static class IndustryCore
 		{
 			Decide(-1);
 		}
+	}
+
+	// Testing (cheats on): makes a decision pending now; it pops up once no window is open.
+	public static void Force(IndustryPending p)
+	{
+		S.Pending = p;
+		S.LastDecision = Now;
+		S.LastFired[p.Id] = Now;
+		shownFor = null;
 	}
 
 	// Applies a choice (-1 = the event's default) and returns what happened.
@@ -686,6 +895,8 @@ internal static class IndustryCore
 			S.Mods = S.Mods ?? new List<SalesMod>();
 			S.Promises = S.Promises ?? new List<PlatformPromise>();
 			S.Feed = S.Feed ?? new List<string>();
+			// Headlines saved before 0.23.1 said "Sports Game games".
+			S.Feed = S.Feed.Select((string f) => (f ?? "").Replace("Game games", "Games")).ToList();
 			S.KnownOpen = S.KnownOpen ?? new List<int>();
 			S.KnownClosed = S.KnownClosed ?? new List<int>();
 			S.DealtGames = S.DealtGames ?? new List<int>();

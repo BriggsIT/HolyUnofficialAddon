@@ -117,7 +117,7 @@ internal static class CopyProtectDev
 
 	public static readonly string[] TechInfo = new string[5]
 	{
-		"The game looks for a hidden mark on its own disk that copy programs can't reproduce.",
+		"The game looks for a hidden mark on its disk that copiers can't reproduce.",
 		"Players enter a code from the manual, code wheel or box before they can play.",
 		"Every disc carries a physical fingerprint that burners and copy tools can't copy.",
 		"Each copy is activated once over the internet with its own key.",

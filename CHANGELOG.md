@@ -1,5 +1,82 @@
 # Changelog
 
+## 0.23.3
+- Industry window, Studios tab: the same text size on every row (studio names, what they make, your last note).
+- Recent News: headlines saved before 0.23.1 no longer say "Sports Game games".
+- Contracts: your money no longer sits on the banner's picture, and the Research tab's hint isn't cut off.
+- Fixed: monthly store and MMO steps never ran (the month's last week was never recognised). Now:
+  - studios buy empty front-page spots on your store;
+  - studios that stop trusting your store can leave;
+  - anti-bot licences you bought charge their monthly fee;
+  - your own anti-bot system earns licence income from other studios;
+  - heavy botting slowly lowers an MMO's user reviews.
+- Current Charts, Consoles: rival consoles show their weekly sales (the game only keeps them for yours), so the
+  list and the best-selling console are right. It fills in after a week.
+- Store Studios page: "89 signed (79 with games out now)", so the two numbers no longer disagree.
+- Store Charts: rival stores' descriptions are a readable size.
+- New Copy Protection: every technology's description is the same, readable size.
+- The rival stores page is now titled Rival Stores, like its button (it shared "Store Charts" with your top sellers).
+- Sale pop-up: the cards' second line has room for two lines, so the Deep Sale's "less trust" isn't clipped.
+- Contracts, Game Work: a studio's genre no longer runs into what the job brings ("+10 graphics · 3 weeks").
+
+## 0.23.2
+- **Genre crazes set the trend.** A craze makes its genre the game's trend genre (top bar, and the game's own trend
+  bonus) for the rest of the current trend period, at least 12 weeks, like the game's trendsetter hits do. Genre
+  fatigue makes its genre the trend's "out of fashion" genre. The trend's timing and topics stay the game's own.
+
+## 0.23.1
+- **MMO tab** in the game list on the right: only your MMOs and their expansion packs. It appears while you have one.
+- Current Charts' Coming Soon always lists your own games in development: announced ones keep their real place
+  even below the top 40, and unannounced ones come last, marked "not announced yet".
+- The Holy Expansion's cracked-console and emulator pop-ups give the real reason when a move isn't possible (for
+  example "They already work for you"), instead of "You can't afford that."
+- Industry window: a studio's page no longer cuts off the publishing relation, and its notes are the same size.
+- Industry news no longer says "Sports Game games" or "a Action game".
+
+## 0.23.0
+- **One launch system with The Holy Expansion's Launch Planner.** Before, a game on your store could get two launch
+  boosts and earn early access twice. With Holy's Launch Planner on (its default):
+  - Your store adds its users' wishlists for your PC games to Holy's wishlists, instead of keeping its own.
+  - Early access is Holy's. The store's Wishlists page starts it in the fastest free Marketing room, or says why
+    it can't yet. A game already in early access on your store carries on in Holy's.
+  - There's one launch boost: Holy's, up to +120% fading over 4 weeks, now counting your store's wishlists.
+- Launches with wishlists make the news (Holy only wrote them to its own log): how many wishlists, how many came
+  from your store, and the launch boost.
+- The store's Wishlists page shows Holy's numbers: wishlists, early-access players and income, and launch boosts.
+- Current Charts' Coming Soon shows your games' wishlists.
+- With Holy's Launch Planner off, or without Holy, the store keeps its own wishlists, early access and launch boost.
+
+## 0.22.1
+- Fixed: industry events treated studio stars as 0-5 when the game keeps them as 0-100. A rival's hit, a star changing
+  studios or a staff swap could drop that studio to almost nothing, so its games came out weak and unhyped.
+  Studios hit by this are put back to their stars in the game's studio data the first week after loading a save.
+- The Industry window shows the right number of stars.
+- Events about small studios (A Studio Asks for a Hand, Share a Stand?, A Studio Needs Help) can happen again, and
+  publishers' advances in Publishers Bid are back to their intended size.
+
+## 0.22.0
+- **Industry events for the console and cartridge years (from 1985):** 16 new events. Some run on into the late 1990s
+  and early 2000s.
+  - Decisions:
+    - A Cartridge Shortage, The Game of the Film, A Cartoon of your hit, A Harsh Review.
+    - A Star Wants to Join You, Rent It Out?, Stuck on your game (guide, hint line or free tips).
+    - An Exclusive Offer (it sets up a timed exclusive), Concerned Parents.
+    - Swap Know-How? with a friendly studio, Shelf Space (a rival pays the shops).
+  - Headlines: a console selling out at launch, a console war, a studio's big reveal, budget re-releases, a new chain
+    of games shops.
+  - More ways to win and lose standing: share chips with a studio that has none, warn a studio that its star wants
+    to leave (or hire them), swap staff with friends, fight a rival for shelf space.
+- Some effects now wait for a game's release: a film licence's sales boost starts when the game comes out.
+
+## 0.21.0
+- **Industry events for the garage and arcade years (1976-1990):** 12 new events, most of which need no released
+  game, so a 1976 start is busy from the first months.
+  - Decisions: Computer Club Night, A Studio Asks for a Hand, Talked Down in Print, First Look, A Guild for Game
+    Makers, A Distributor in Trouble, A Pocket Version (an LCD handheld of your hit), A High-Score Contest.
+  - Headlines: a rival's flop, a star changing studios, a new games magazine, the Christmas must-have machine.
+  - More ways to win and lose standing with studios early on.
+- With cheats on, the Industry window's Recent News tab has a **Test Events** page that fires any event on demand.
+
 ## 0.20.0 - 0.20.1
 - **Industry events:**
   - News headlines that move the market: genre crazes and fatigue, hits, price cuts, delays, studios opening and

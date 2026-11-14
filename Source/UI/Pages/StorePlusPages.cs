@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using HolyAddon.Core;
 using HolyAddon.Core.CopyProtection;
+using HolyAddon.Core.Industry;
 using HolyAddon.Core.Mmo;
 using HolyAddon.Core.Store;
 using HolyAddon.Core.Updates;
@@ -119,9 +120,15 @@ internal class StoreStudiosPage : StorePlusPage
 		Text line = w.Label(status, 460f, y, w.Width - 474f, 30f, TextAnchor.MiddleLeft, bold: false, null, 13);
 		line.color = UIKit.Green;
 		y += 40f;
+		// Signed studios with PC games out right now (some signed ones have nothing on sale at the moment).
+		List<KeyValuePair<int, long>> signed = (from id in studios.Keys
+			where StorePlus.IsSigned(id)
+			select new KeyValuePair<int, long>(id, studios[id].Sum(StoreOps.CommissionOn)) into kv
+			orderby kv.Value descending
+			select kv).ToList();
 		List<KeyValuePair<string, string>> facts = new List<KeyValuePair<string, string>>
 		{
-			EditorWindow.KV("Studios signed", StorePlus.StudiosSigned() + " of " + studios.Count),
+			EditorWindow.KV("Studios signed", StorePlus.StudiosSigned() + " (" + signed.Count + " with games out now)"),
 			EditorWindow.KV("Asking now", s.Requests.Count.ToString()),
 			EditorWindow.KV("Signing fees so far", G.Money(s.SigningTotal)),
 			EditorWindow.KV("Your cut / studio trust", s.Commission + "% / " + Mathf.RoundToInt(s.Trust))
@@ -138,12 +145,7 @@ internal class StoreStudiosPage : StorePlusPage
 			RowView none = list.Row(34f);
 			none.Text("No studio is asking right now.", 12f, none.W - 24f);
 		}
-		List<KeyValuePair<int, long>> signed = (from id in studios.Keys
-			where StorePlus.IsSigned(id)
-			select new KeyValuePair<int, long>(id, studios[id].Sum(StoreOps.CommissionOn)) into kv
-			orderby kv.Value descending
-			select kv).ToList();
-		Group(list, "Signed (" + signed.Count + ")");
+		Group(list, "Signed, with games out now (" + signed.Count + ")");
 		foreach (KeyValuePair<int, long> kv2 in signed)
 		{
 			StudioRow(w, list, kv2.Key, studios[kv2.Key], signedNow: true, G.Money(kv2.Value) + " a week to you");
@@ -469,6 +471,8 @@ internal class StoreWishlistPage : StorePlusPage
 {
 	private string status = "";
 
+	private bool statusGood;
+
 	public override string Title => "Wishlists and Early Access";
 
 	public override float Width => 1000f;
@@ -477,6 +481,11 @@ internal class StoreWishlistPage : StorePlusPage
 
 	public override void Build(EditorWindow w)
 	{
+		if (HolyLaunch.On)
+		{
+			BuildHoly(w);
+			return;
+		}
 		if (!Top(w, "Players wishlist your PC games in development (more with hype), and wishlists make a bigger launch. Early access sells a game before it's done: money and bug reports now, but those players won't buy it again at launch."))
 		{
 			return;
@@ -526,6 +535,75 @@ internal class StoreWishlistPage : StorePlusPage
 				row2.Text(MmoUiText.Num(d2.Wishlists) + " wishlists" + ((d2.EaUnits > 0) ? (", " + MmoUiText.Num(d2.EaUnits) + " early access") : ""), row2.W - 510f, 300f, bold: false, TextAnchor.MiddleRight);
 				row2.Text((boost > 0.001f) ? ("launch boost +" + Mathf.RoundToInt(boost * 100f) + "%") : "launch boost over", row2.W - 200f, 190f, bold: false, TextAnchor.MiddleRight);
 			}
+		}
+	}
+
+	// With Holy's Launch Planner on: Holy's wishlists (your store adds its users' to them) and Holy's early access.
+	private void BuildHoly(EditorWindow w)
+	{
+		if (!Top(w, "Wishlists for your games in development grow with hype, fans and studio level (Holy's Launch Planner), and your store adds its users' wishlists for PC games. At launch they boost sales by up to +120%, fading over 4 weeks."))
+		{
+			return;
+		}
+		StoreState s = StoreOps.State;
+		Text line = w.Label(status, 24f, 50f, w.Width - 48f, 22f, TextAnchor.MiddleLeft, bold: false, null, 13);
+		line.color = statusGood ? UIKit.Grey : UIKit.Red;
+		List<gameScript> dev = IndustryCore.MyGamesInDevelopment().Where((gameScript g) => !g.typ_addon && !g.typ_mmoaddon).OrderByDescending(HolyLaunch.Wishlists).ToList();
+		roomScript room = HolyLaunch.FreeRoom();
+		w.Header("In development (" + dev.Count + ")", 14f, 76f, w.Width - 28f);
+		ListView list = w.List(13f, 106f, w.Width - 26f, 330f);
+		foreach (gameScript g in dev)
+		{
+			StoreGame d = StorePlus.Data(g);
+			int id = g.myID;
+			bool inEa = HolyLaunch.InEarlyAccess(g);
+			bool preparing = !inEa && HolyLaunch.Preparing(g);
+			RowView row = list.Row(60f, null, g.GetTooltip());
+			if (inEa)
+			{
+				row.Highlight();
+			}
+			string bottom = Mathf.FloorToInt(HolyLaunch.Progress(g)) + "% done  ·  hype " + Mathf.RoundToInt(g.hype);
+			if (d != null && d.Wishlists > 0)
+			{
+				bottom = bottom + "  ·  " + MmoUiText.Num(d.Wishlists) + " from " + s.Name;
+			}
+			if (inEa)
+			{
+				bottom = bottom + "  ·  early access: " + MmoUiText.Num(HolyLaunch.EarlyAccessPlayers(g)) + " players, " + G.Money(HolyLaunch.EarlyAccessRevenue(g));
+			}
+			else if (preparing)
+			{
+				bottom += "  ·  preparing early access";
+			}
+			row.Top(g.GetNameWithTag(), 12f, row.W - 470f);
+			row.Bottom(bottom, 12f, row.W - 470f);
+			row.Text(MmoUiText.Num(HolyLaunch.Wishlists(g)) + " wishlists", row.W - 450f, 200f, bold: true, TextAnchor.MiddleRight);
+			string problem = HolyLaunch.EarlyAccessProblem(g, room);
+			string label = (inEa ? "In Early Access" : (preparing ? "Preparing..." : "Start Early Access"));
+			string about = "A free Marketing room prepares it (" + Mathf.RoundToInt(HolyLaunch.EarlyAccessWork) + " work). Then players buy the unfinished game every week until launch, for " + G.Money(HolyLaunch.EarlyAccessPrice) + " each, and their feedback adds gameplay points. Stay in early access over a year and they lose interest.";
+			row.Button(label, row.W - 230f, 220f, () =>
+			{
+				status = HolyLaunch.StartEarlyAccess(GameUpdates.FindGame(id), out statusGood);
+				w.Rebuild();
+			}, problem == null, problem ?? about);
+		}
+		if (dev.Count == 0)
+		{
+			w.Label("You have no games in development.", 24f, 112f, w.Width - 48f, 26f);
+		}
+		w.Header("Launched with wishlists", 14f, 450f, w.Width - 28f);
+		ListView done = w.List(13f, 480f, w.Width - 26f, w.Height - 75f - 490f);
+		foreach (KeyValuePair<gameScript, object> kv in HolyLaunch.Launched(15))
+		{
+			gameScript g2 = kv.Key;
+			long wish = HolyCompat.Get<long>(kv.Value, "Wishlists");
+			long ea = HolyCompat.Get<long>(kv.Value, "EaPlayers");
+			float boost = HolyLaunch.BoostNow(kv.Value);
+			RowView row2 = done.Row(40f, null, g2.GetTooltip());
+			row2.Text(g2.GetNameWithTag(), 12f, row2.W - 520f, bold: true);
+			row2.Text(MmoUiText.Num(wish) + " wishlists" + ((ea > 0) ? (", " + MmoUiText.Num(ea) + " early access") : ""), row2.W - 510f, 300f, bold: false, TextAnchor.MiddleRight);
+			row2.Text((boost > 0.001f) ? ("launch boost +" + Mathf.RoundToInt(boost * 100f) + "%") : "launch boost over", row2.W - 200f, 190f, bold: false, TextAnchor.MiddleRight);
 		}
 	}
 }

@@ -446,7 +446,8 @@ internal static class MmoBots
 		}
 		try
 		{
-			bool monthly = __instance.week == 1;
+			// After the game's weekly update the month's last week reads 5 (the new month starts right after).
+			bool monthly = __instance.week >= 5;
 			Dictionary<int, publisherScript> studios = Studios();
 			StepSystems(monthly, studios);
 			gameScript[] all = (__instance.games_ ? __instance.games_.arrayGamesScripts : null);

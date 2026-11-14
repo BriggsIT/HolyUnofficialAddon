@@ -399,11 +399,57 @@ internal static class HolyCompat
 		}
 	}
 
+	// Holy's console-scene pop-ups (a cracked console, an emulator) answer "You can't afford that." whenever a
+	// counter-move isn't possible, even with billions in the bank (the hackers already work for you, nobody has
+	// cracked it, your lawyers are already on it). This gives Holy's own reason instead.
+	private static MethodInfo securityBlock;
+
+	private static bool HitBackPrefix(platformScript p, int action, ref string __result)
+	{
+		try
+		{
+			if (securityBlock == null || !p)
+			{
+				return true;
+			}
+			if (!(securityBlock.Invoke(null, new object[2] { p, action }) is string why))
+			{
+				return true;
+			}
+			__result = why;
+			return false;
+		}
+		catch
+		{
+			return true;
+		}
+	}
+
+	private static void FixHitBack(Harmony harmony)
+	{
+		try
+		{
+			Type scene = AccessTools.TypeByName("HolyExpansion.Systems.ConsoleScene");
+			MethodInfo hit = ((scene != null) ? AccessTools.Method(scene, "HitBack") : null);
+			securityBlock = ((scene != null) ? AccessTools.Method(scene, "SecurityBlock") : null);
+			if (hit != null && securityBlock != null)
+			{
+				harmony.Patch(hit, new HarmonyMethod(typeof(HolyCompat), "HitBackPrefix"));
+				Plugin.Log.LogInfo("Holy's console-scene pop-ups give the real reason when a move isn't possible");
+			}
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Could not fix Holy's console-scene messages: " + ex.Message);
+		}
+	}
+
 	public static void Apply(Harmony harmony)
 	{
 		ShareSalesBonus();
 		SharePriceCut();
 		LockAntiCheatMenu();
+		FixHitBack(harmony);
 		HolyLiveService.Apply(harmony);
 		RoomSupport.Apply(harmony);
 		try

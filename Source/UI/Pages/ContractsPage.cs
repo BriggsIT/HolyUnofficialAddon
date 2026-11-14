@@ -119,7 +119,8 @@ internal class ContractsPage : Page
 		w.Banner(UpdateIcons.Banner("contracts"), 14f, 14f, w.Width - 28f, 96f, full: true);
 		w.BannerText("<b>Contracts</b>", 30f, 22f, 520f, 32f, 22, Color.white);
 		w.BannerText("Hire independent studios for research or to help with your games in development.", 30f, 56f, 620f, 24f, 14, new Color(0.84f, 0.88f, 0.94f));
-		w.BannerText(G.Money(((bool)G.MS) ? G.MS.money : 0), w.Width - 334f, 22f, 300f, 26f, 15, Color.white, bold: true, TextAnchor.MiddleRight);
+		// Clear of the banner's picture on the right.
+		w.BannerText(G.Money(((bool)G.MS) ? G.MS.money : 0), w.Width - 680f, 22f, 300f, 26f, 15, Color.white, bold: true, TextAnchor.MiddleRight);
 		List<Contract> running = ContractBook.Active.ToList();
 		List<Contract> done = ContractBook.History.ToList();
 		int firms = Firms.All().Count();
@@ -186,7 +187,7 @@ internal class ContractsPage : Page
 		}
 		else
 		{
-			w.Label("Click items to add them to one contract.", 18f, 88f + O, 216f, 30f, TextAnchor.MiddleLeft, bold: false, null, 13);
+			w.Label("Click items to add them.", 18f, 88f + O, 216f, 30f, TextAnchor.MiddleLeft, bold: false, null, 13);
 		}
 		w.SmallButton("Select All Shown", 244f, 90f + O, 120f, () =>
 		{
@@ -471,7 +472,13 @@ internal class ContractsPage : Page
 			RowView row = firms.Row(48f);
 			float infoX = row.W - 290f;
 			row.Top(quote.Firm.GetName(), 8f, infoX - 12f);
-			row.Bottom(Firms.Describe(quote.Firm), 8f, infoX - 12f);
+			// Fixed sizes, each in its own space: the studio's rating and genre on the left, what the job brings on
+			// the right (best fit let a long genre run into it).
+			Text who = row.Bottom(Firms.Describe(quote.Firm), 8f, infoX - 16f);
+			who.resizeTextForBestFit = false;
+			who.fontSize = 13;
+			who.horizontalOverflow = HorizontalWrapMode.Wrap;
+			who.verticalOverflow = VerticalWrapMode.Truncate;
 			bool busy = ContractBook.FirmBusy(quote.Firm.myID);
 			if (quote.Unavailable != null)
 			{
@@ -479,7 +486,11 @@ internal class ContractsPage : Page
 				continue;
 			}
 			row.Top(G.Money(quote.Price), infoX, 190f, bold: true, TextAnchor.MiddleRight);
-			row.Bottom(((research == null) ? (quote.Effect + "  ·  ") : "") + quote.Weeks + ((quote.Weeks == 1) ? " week" : " weeks"), infoX - 40f, 230f, bold: false, TextAnchor.MiddleRight);
+			Text what = row.Bottom(((research == null) ? (quote.Effect.Replace("About ", "") + "  ·  ") : "") + quote.Weeks + ((quote.Weeks == 1) ? " week" : " weeks"), infoX - 6f, 196f, bold: false, TextAnchor.MiddleRight);
+			what.resizeTextForBestFit = false;
+			what.fontSize = 13;
+			what.horizontalOverflow = HorizontalWrapMode.Wrap;
+			what.verticalOverflow = VerticalWrapMode.Truncate;
 			row.Button(busy ? "Busy" : "Hire", row.W - 90f, 82f, () =>
 			{
 				Contract c = Hiring.Hire(quote, kind, research, game, addonStudio, addons);
