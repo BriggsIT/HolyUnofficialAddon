@@ -49,6 +49,9 @@ internal class IndustryEventDef
 	public int Default;
 
 	public Func<IndustryContext, string> Apply;
+
+	// Never picked at random: started by something else (your arch-rival's moves, IndustryRivals).
+	public bool Scripted;
 }
 
 // The events. All names (magazines, arcade chains) are made up. The 1976-1985 pack is in IndustryEventsEarly, the
@@ -108,7 +111,7 @@ internal static partial class IndustryEvents
 	// A decision that can happen now, picked by weight (null when none fits).
 	public static IndustryPending PickDecision()
 	{
-		List<IndustryEventDef> pool = Defs.Where((IndustryEventDef d) => !d.Headline && Ready(d)).ToList();
+		List<IndustryEventDef> pool = Defs.Where((IndustryEventDef d) => !d.Headline && !d.Scripted && Ready(d)).ToList();
 		while (pool.Count > 0)
 		{
 			IndustryEventDef d2 = Weighted(pool);
@@ -211,7 +214,11 @@ internal static partial class IndustryEvents
 		{ "consolewar", "A console war" },
 		{ "reveal", "A big reveal" },
 		{ "budget", "Budget re-releases" },
-		{ "shops", "A new chain of shops" }
+		{ "shops", "A new chain of shops" },
+		{ "rv_poach", "Poaching Attempt (arch-rival)" },
+		{ "rv_copy", "Copycat (arch-rival)" },
+		{ "rv_clash", "Release Clash (arch-rival)" },
+		{ "rv_taunt", "Trash Talk (arch-rival)" }
 	};
 
 	// Testing (cheats on): runs one event now if its conditions are met, whatever its years and cooldown.
@@ -377,7 +384,7 @@ internal static partial class IndustryEvents
 			Hit(),
 			PriceCut(),
 			Delay()
-		}.Concat(Early()).Concat(Consoles()).ToList();
+		}.Concat(Early()).Concat(Consoles()).Concat(RivalMoves()).ToList();
 	}
 
 	// Two teenagers send you their game: publish it (a gamble), hire them, or pass.

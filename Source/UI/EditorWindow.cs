@@ -185,9 +185,19 @@ internal class EditorWindow
 		}
 	}
 
-	public float Width => Mathf.Min(Current?.Width ?? 614f, MaxSize.x);
+	// The page's own size: pages lay out at it, and a window too big for the screen is scaled down to fit (ApplySize),
+	// so on small screens (1366x768...) nothing is cut off at the bottom.
+	public float Width => Current?.Width ?? 614f;
 
-	public float Height => Mathf.Min(Current?.Height ?? 640f, MaxSize.y);
+	public float Height => Current?.Height ?? 640f;
+
+	private float appliedFit = 1f;
+
+	private float FitScale(Vector2 size)
+	{
+		Vector2 max = MaxSize;
+		return Mathf.Clamp(Mathf.Min(max.x / Mathf.Max(1f, size.x), max.y / Mathf.Max(1f, size.y)), 0.4f, 1f);
+	}
 
 	private Vector2 MaxSize
 	{
@@ -232,13 +242,16 @@ internal class EditorWindow
 	private void ApplySize()
 	{
 		Vector2 size = new Vector2(Width, Height);
-		if (size == appliedSize)
+		float fit = FitScale(size);
+		if (size == appliedSize && Mathf.Abs(fit - appliedFit) < 0.001f)
 		{
 			return;
 		}
 		appliedSize = size;
+		appliedFit = fit;
 		frame.anchoredPosition = Vector2.zero;
 		frame.sizeDelta = size;
+		frame.localScale = new Vector3(fit, fit, 1f);
 		RectTransform fill = (RectTransform)frame.Find("Fill_Titleleiste");
 		fill.anchorMin = fill.anchorMax = new Vector2(0.5f, 0.5f);
 		fill.sizeDelta = new Vector2(size.x, 75f);

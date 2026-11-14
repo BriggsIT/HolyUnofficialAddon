@@ -944,6 +944,13 @@ internal static class MmoOps
 		}
 	}
 
+	// The fixed part of a project's cost, set for 2000 and following Holy's price curve. The rest scales with the
+	// game's own development cost.
+	public static long Fixed(long value)
+	{
+		return Prices.Anchored(value, 2000);
+	}
+
 	// Old MMOs had small budgets: projects cost at least what a game of their size costs today.
 	public static long BaseCost(gameScript g)
 	{
@@ -1003,7 +1010,7 @@ internal static class MmoOps
 		}
 		float share = Mathf.Min(3f, gain / Mathf.Max(1f, m.LaunchGfx));
 		plan.Work = 20f + Points(g) * 0.35f * share;
-		plan.Cost = 10000L + (long)((float)BaseCost(g) * 0.3f * share);
+		plan.Cost = MmoOps.Fixed(10000L) + (long)((float)BaseCost(g) * 0.3f * share);
 		plan.Graphics = gain;
 		if (capped)
 		{
@@ -1038,7 +1045,7 @@ internal static class MmoOps
 			return plan;
 		}
 		plan.Work = 20f + Points(g) * 0.25f;
-		plan.Cost = 10000L + (long)((float)BaseCost(g) * 0.1f);
+		plan.Cost = MmoOps.Fixed(10000L) + (long)((float)BaseCost(g) * 0.1f);
 		plan.Tech = Mathf.Max(5f, g.points_technik * 0.1f);
 		return plan;
 	}
@@ -1210,7 +1217,7 @@ internal static class MmoOps
 		}
 		plan.Work = 30f + Points(g) * StepWork[s];
 		long sizeDelta = Math.Max(0L, SizeCost(s + 1) - SizeCost(s));
-		plan.Cost = 20000L + Math.Max((long)((float)GameUpdates.DevCost(g) * StepCost[s]), sizeDelta);
+		plan.Cost = MmoOps.Fixed(20000L) + Math.Max((long)((float)GameUpdates.DevCost(g) * StepCost[s]), sizeDelta);
 		float gain = StepGain[s];
 		plan.Gameplay = g.points_gameplay * gain;
 		plan.Graphics = g.points_grafik * gain;
@@ -1259,7 +1266,7 @@ internal static class MmoOps
 			return plan;
 		}
 		plan.Work = 15f + Points(g) * 0.12f;
-		plan.Cost = 5000L + (long)((float)BaseCost(g) * 0.03f);
+		plan.Cost = MmoOps.Fixed(5000L) + (long)((float)BaseCost(g) * 0.03f);
 		plan.Gameplay = g.points_gameplay * 0.02f;
 		return plan;
 	}

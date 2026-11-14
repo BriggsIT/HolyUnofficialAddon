@@ -287,6 +287,16 @@ internal static class StoreOps
 
 	public const long BuildCost = 600000L;
 
+	// The store's prices (building it, features, signing fees) are set for 2003 and follow Holy's price curve.
+	public const int PriceYear = 2003;
+
+	public static long BuildCostNow => Prices.Anchored(BuildCost, PriceYear);
+
+	public static long FeatureCost(StoreFeature f)
+	{
+		return Prices.Anchored(f.Cost, PriceYear);
+	}
+
 	public static readonly List<RivalStore> RivalStores = new List<RivalStore>
 	{
 		new RivalStore
@@ -1123,7 +1133,7 @@ internal static class StoreOps
 		return new UpdatePlan
 		{
 			Work = BuildWork,
-			Cost = BuildCost
+			Cost = BuildCostNow
 		};
 	}
 
@@ -1133,7 +1143,7 @@ internal static class StoreOps
 		{
 			Problem = FeatureProblem(f),
 			Work = f.Work,
-			Cost = f.Cost
+			Cost = FeatureCost(f)
 		};
 	}
 

@@ -140,6 +140,32 @@ internal class IndustryState
 
 	// Studios knocked down by the 0.20-0.22 stars bug have been put back (once per save).
 	public bool StarsChecked;
+
+	// ---- Rivals (Core/Industry/IndustryRivals): your arch-rival and your record against rivals ----
+
+	public int ArchRival = -1;
+
+	public int RivalNextMove = -1;
+
+	public int RivalQuietUntil = -1;
+
+	public int RivalDeclareAfter = -1;
+
+	public int RivalWins;
+
+	public int RivalLosses;
+
+	public int PoachedFromThem;
+
+	public int PoachedFromUs;
+
+	public int RivalsDrivenOut;
+
+	public int ComebackId = -1;
+
+	public int ComebackWeek = -1;
+
+	public bool HolyRivalCarried;
 }
 
 // Industry events: the industry around you moves (headlines in the news), and things land on your desk (pop-up
@@ -332,7 +358,7 @@ internal static class IndustryCore
 	}
 
 	// Changes your standing with a studio (good turns also improve the game's own relation: better publishing terms).
-	public static void Change(publisherScript p, int delta, string why)
+	public static void Change(publisherScript p, int delta, string why, bool quiet = false)
 	{
 		if (!p || delta == 0)
 		{
@@ -359,7 +385,7 @@ internal static class IndustryCore
 			notes.RemoveAt(notes.Count - 1);
 		}
 		int after = Tier(Standing(p));
-		if (after != before)
+		if (after != before && !quiet)
 		{
 			News("<b>" + p.GetName() + "</b> now sees you as " + ((after == 3) ? "an ally" : ("a " + TierNames[after].ToLower())) + ".");
 		}
@@ -683,6 +709,7 @@ internal static class IndustryCore
 			}
 			Effects();
 			StudioChanges();
+			IndustryRivals.Weekly();
 			if (S.NextHeadline < 0)
 			{
 				S.NextHeadline = Now + UnityEngine.Random.Range(2, 5);
@@ -725,7 +752,7 @@ internal static class IndustryCore
 	}
 
 	// Not in a week when another big event is on screen or waiting (the game's world events, Holy's PR events).
-	private static bool Quiet()
+	internal static bool Quiet()
 	{
 		if (!G.Gui || G.Gui.menuOpen)
 		{

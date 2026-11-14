@@ -142,10 +142,10 @@ internal static class MmoBots
 		return best;
 	}
 
-	// Prices grow with the years.
+	// Prices follow Holy's price curve, as set for 1997 (they were +5% a year before).
 	public static float Inflation()
 	{
-		return 1f + (float)Mathf.Max(0, Year - 1997) * 0.05f;
+		return (float)Prices.Since(1997);
 	}
 
 	// Botting grows with the years: few bots before the late 90s.

@@ -794,7 +794,8 @@ internal static class StorePlus
 		{
 			Problem = ConsoleProblem(p),
 			Work = 220f,
-			Cost = (long)Mathf.Round(400000f * (1f + (float)Mathf.Max(0, Year - ConsoleYear) * 0.05f) / 1000f) * 1000
+			// Set for 2005, following Holy's price curve (it was +5% a year).
+			Cost = Prices.Anchored(400000.0, ConsoleYear)
 		};
 	}
 
@@ -912,7 +913,18 @@ internal static class StorePlus
 	// ---- Studios signing with your store ----
 
 	// Your signing fee's choices: what a studio pays you once to sell its games on your store.
+	// Signing fee steps, in 2003 money: the fee you set (and a request's fee) is kept as a step, and what a studio
+	// actually pays is the step on Holy's price curve (FeeNow).
 	public static readonly long[] FeeSteps = new long[9] { 0L, 25000L, 100000L, 250000L, 500000L, 1000000L, 2500000L, 5000000L, 10000000L };
+
+	public static long FeeNow(long step)
+	{
+		if (step <= 0)
+		{
+			return 0L;
+		}
+		return Prices.Anchored(step, StoreOps.PriceYear);
+	}
 
 	public const int MaxRequests = 8;
 
@@ -1118,7 +1130,7 @@ internal static class StorePlus
 				continue;
 			}
 			StudioValue(kv.Value, out long theirYear, out long yourWeek);
-			float chance = 0.03f * (0.4f + S.Trust / 100f) * (0.5f + Mathf.Min(1f, S.Share * 4f)) * AcceptChance(S.SigningFee, theirYear);
+			float chance = 0.03f * (0.4f + S.Trust / 100f) * (0.5f + Mathf.Min(1f, S.Share * 4f)) * AcceptChance(FeeNow(S.SigningFee), theirYear);
 			if (UnityEngine.Random.value < chance)
 			{
 				bool big = IsBig(id2, yourWeek);
@@ -1151,18 +1163,19 @@ internal static class StorePlus
 			return "That request is gone.";
 		}
 		S.Requests.Remove(r);
+		long paid = FeeNow(r.Fee);
 		S.Signed[r.StudioId] = new SignedStudio
 		{
 			Week = NowWeek,
-			Fee = r.Fee
+			Fee = paid
 		};
-		if (r.Fee > 0)
+		if (paid > 0)
 		{
-			G.MS.Earn(r.Fee, 2);
-			S.SigningTotal += r.Fee;
+			G.MS.Earn(paid, 2);
+			S.SigningTotal += paid;
 		}
 		GameUpdates.Touch();
-		return StudioName(r.StudioId) + " signed" + ((r.Fee > 0) ? (" and paid " + G.Money(r.Fee)) : "") + ". Its PC games now sell on " + S.Name + ".";
+		return StudioName(r.StudioId) + " signed" + ((paid > 0) ? (" and paid " + G.Money(paid)) : "") + ". Its PC games now sell on " + S.Name + ".";
 	}
 
 	// Asks for a different fee: the studio weighs it as it weighed yours; it walks away if it's too much.
@@ -1174,7 +1187,7 @@ internal static class StorePlus
 		}
 		StudiosOnStore().TryGetValue(r.StudioId, out var games);
 		StudioValue(games ?? new List<gameScript>(), out long theirYear, out long _);
-		float chance = ((fee <= r.Fee) ? 1f : AcceptChance(fee, theirYear));
+		float chance = ((fee <= r.Fee) ? 1f : AcceptChance(FeeNow(fee), theirYear));
 		if (UnityEngine.Random.value < chance)
 		{
 			r.Fee = fee;
@@ -1183,7 +1196,7 @@ internal static class StorePlus
 		S.Requests.Remove(r);
 		S.AskAgain[r.StudioId] = NowWeek + 13;
 		GameUpdates.Touch();
-		return StudioName(r.StudioId) + " won't pay " + G.Money(fee) + " and walks away. It may ask again in a few months.";
+		return StudioName(r.StudioId) + " won't pay " + G.Money(FeeNow(fee)) + " and walks away. It may ask again in a few months.";
 	}
 
 	public static void Decline(StudioRequest r)

@@ -119,6 +119,7 @@ internal static class GameServices
 		}
 	}
 
+	// Prices are in 1990 money and follow Holy's price curve (cheaper in the early years, dearer later).
 	public static Quote Quote(gameScript g, string kind, publisherScript firm)
 	{
 		float q = Firms.Quality(firm);
@@ -141,7 +142,7 @@ internal static class GameServices
 				quote.Unavailable = "No bugs to fix";
 			}
 			quote.Amount = fixes;
-			quote.Price = Firms.Round(Mathf.Max(5000f, (float)fixes * 1500f * (0.75f + 0.75f * q) * (1f - discount)));
+			quote.Price = Firms.Round(Mathf.Max(5000f, (float)fixes * 1500f * (0.75f + 0.75f * q) * (1f - discount)) * (float)Prices.Factor);
 			quote.Weeks = 2 + Mathf.CeilToInt((float)size / 2f) + Mathf.CeilToInt(2f * (1f - q));
 			quote.Effect = "Fixes up to " + fixes + " bugs";
 			break;
@@ -155,7 +156,7 @@ internal static class GameServices
 				quote.Unavailable = "Nearly finished";
 			}
 			quote.Amount = remaining * share;
-			quote.Price = Firms.Round(share * 100f * 4000f * (float)(size + 1) * (0.75f + 0.75f * q) * (1f - discount));
+			quote.Price = Firms.Round(share * 100f * 4000f * (float)(size + 1) * (0.75f + 0.75f * q) * (1f - discount) * (float)Prices.Factor);
 			quote.Weeks = 3 + size;
 			quote.Effect = "Takes on about " + Mathf.RoundToInt(share * 100f) + "% of the remaining work";
 			break;
@@ -171,7 +172,7 @@ internal static class GameServices
 				gain = 0f;
 			}
 			quote.Amount = gain * Divisor(g, kind);
-			quote.Price = Firms.Round(Mathf.Max(5000f, gain * 5000f * (float)(size + 1) * (0.75f + 0.75f * q) * (1f - discount)));
+			quote.Price = Firms.Round(Mathf.Max(5000f, gain * 5000f * (float)(size + 1) * (0.75f + 0.75f * q) * (1f - discount)) * (float)Prices.Factor);
 			quote.Weeks = 2 + size + Mathf.CeilToInt(3f * (1f - q));
 			quote.Effect = "About +" + Mathf.Max(1, Mathf.RoundToInt(gain)) + " " + Short(kind);
 			break;

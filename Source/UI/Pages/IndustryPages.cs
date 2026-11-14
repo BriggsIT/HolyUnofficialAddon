@@ -192,7 +192,9 @@ internal class IndustryPage : Page
 		float cw = (W - 28f - 30f) / 4f;
 		w.StatCard(IndustryUi.Icon, "Studios", studios.Count.ToString(), studios.Count((publisherScript p) => p.publisher) + " publish", 14f, 14f, cw, 80f);
 		w.StatCard(UpdateIcons.Game("iconHappy", IndustryUi.Icon), "Friends and allies", friends.ToString(), "better terms, favours", 14f + cw + 10f, 14f, cw, 80f, (friends > 0) ? new Color?(UIKit.Green) : null);
-		w.StatCard(UpdateIcons.Game("iconUnhappy", IndustryUi.Icon), "Rivals", rivals.ToString(), (rivals > 0) ? "they may act against you" : "none yet", 14f + 2f * (cw + 10f), 14f, cw, 80f, (rivals > 0) ? new Color?(UIKit.Red) : null);
+		IndustryRivals.Ensure();
+		publisherScript arch = IndustryRivals.Arch;
+		w.StatCard(UpdateIcons.Game("iconUnhappy", IndustryUi.Icon), "Rivals", rivals.ToString(), arch ? ("arch-rival: " + arch.GetName()) : ((rivals > 0) ? "they may act against you" : "none yet"), 14f + 2f * (cw + 10f), 14f, cw, 80f, (rivals > 0) ? new Color?(UIKit.Red) : null, arch ? ("Your arch-rival makes moves against you every few months. Click it in the list for your moves against it.") : null);
 		w.StatCard(UpdateIcons.Game("iconDollar", IndustryUi.Icon), "Deals running", (s.Streams.Count + s.Promises.Count).ToString(), "shares, fees, promises", 14f + 3f * (cw + 10f), 14f, cw, 80f);
 		string[] tabs = new string[3] { "Studios", "Recent News", "Your Deals" };
 		float tw = (W - 28f - 20f) / 3f;
@@ -292,7 +294,7 @@ internal class IndustryPage : Page
 				w.Push(new StudioPage(id));
 			}, p2.GetTooltip());
 			row.Picture(p2.GetLogo(), 8f, 42f);
-			IndustryUi.Fixed(row.Top(p2.GetName() + "  <color=#777777>" + IndustryUi.Stars(p2.stars) + "</color>", 60f, 330f), 15);
+			IndustryUi.Fixed(row.Top(p2.GetName() + "  <color=#777777>" + IndustryUi.Stars(p2.stars) + "</color>" + (IndustryRivals.IsArch(p2) ? "  <color=#c62828>arch-rival</color>" : ""), 60f, 330f), 15);
 			IndustryUi.Fixed(row.Bottom((p2.publisher ? (p2.developer ? "Developer and publisher" : "Publisher") : "Developer") + ((p2.fanGenre >= 0) ? ("  ·  loves " + IndustryCore.GenreName(p2.fanGenre)) : ""), 60f, 330f), 13);
 			developing.TryGetValue(p2.myID, out var dev);
 			// Up to two lines, kept clear of the standing bar (which starts at W - 370).
@@ -438,6 +440,16 @@ internal class StudioPage : Page
 			EditorWindow.KV("Games released", p.GetAmountGames().ToString())
 		};
 		y += w.Facts(14f, y, W - 28f, facts, 2) + 12f;
+		if (IndustryRivals.On && IndustryRivals.IsRival(p))
+		{
+			y = RivalPanel(w, p, y);
+		}
+		else if (!string.IsNullOrEmpty(status))
+		{
+			// What your last move did, after it took them out of Rival tier (a truce) or out of business.
+			w.Label(status.Replace("\n\n", "  "), 24f, y, W - 48f, 40f, TextAnchor.UpperLeft, bold: false, null, 13);
+			y += 44f;
+		}
 		w.Header("Between you", 14f, y, (W - 38f) / 2f);
 		w.Header("Their games", 24f + (W - 38f) / 2f, y, (W - 38f) / 2f);
 		y += 32f;
@@ -446,9 +458,10 @@ internal class StudioPage : Page
 		IndustryCore.State.Notes.TryGetValue(id, out var list);
 		foreach (RelationNote n in list ?? new List<RelationNote>())
 		{
-			RowView row = notes.Row(44f);
-			Fixed(row.Text(n.Text, 10f, row.W - 70f, bold: false, TextAnchor.MiddleLeft, 4f, 36f));
-			Fixed(row.Text(((n.Delta > 0) ? "+" : "") + n.Delta, row.W - 60f, 50f, bold: true, TextAnchor.MiddleRight, 4f, 36f)).color = ((n.Delta > 0) ? UIKit.Green : UIKit.Red);
+			// Room for two full lines (a long note, such as an old rivalry log line, wraps instead of being cut).
+			RowView row = notes.Row(54f);
+			Fixed(row.Text(n.Text, 10f, row.W - 70f, bold: false, TextAnchor.MiddleLeft, 3f, 48f)).fontSize = 13;
+			Fixed(row.Text((n.Delta == 0) ? "" : (((n.Delta > 0) ? "+" : "") + n.Delta), row.W - 60f, 50f, bold: true, TextAnchor.MiddleRight, 3f, 48f)).color = ((n.Delta > 0) ? UIKit.Green : UIKit.Red);
 		}
 		if (list == null || list.Count == 0)
 		{
@@ -465,6 +478,71 @@ internal class StudioPage : Page
 			row2.Top(g.GetNameSimple(), 10f, row2.W - 20f);
 			row2.Bottom(g.inDevelopment ? (g.angekuendigt ? "Announced" : "In development") : (g.reviewTotal + "%  ·  " + MmoUi.Short(CurrentChartsPage.Week(g)) + " this week"), 10f, row2.W - 20f);
 		}
+	}
+
+	private string status = "";
+
+	private static readonly string[] Moves = new string[4] { "poach", "rumours", "peace", "driveout" };
+
+	private static readonly string[] MoveNames = new string[4] { "Poach a Developer", "Spread Rumours", "Make Peace", "Drive Them Out" };
+
+	// A rival's page: the rivalry, your record against rivals (your arch-rival's page), and your four moves, each
+	// greyed out with the reason while it can't be made.
+	private float RivalPanel(EditorWindow w, publisherScript p, float y)
+	{
+		float W = w.Width;
+		bool arch = IndustryRivals.IsArch(p);
+		IndustryState s = IndustryCore.State;
+		w.Header(arch ? "Your arch-rival" : "A rival", 14f, y, W - 28f);
+		y += 32f;
+		int rivalry = IndustryRivals.Rivalry(p);
+		w.Label("Rivalry", 24f, y, 100f, 26f);
+		w.Bar(124f, y, 300f, 26f, (float)rivalry / 100f, rivalry + "%", (rivalry > 66) ? UIKit.Red : ((rivalry > 33) ? UIKit.Orange : UIKit.Green), null, "How far below zero your standing with them is. At 100% you can try to drive them out of business.");
+		int next = IndustryRivals.NextMoveIn;
+		string right = (arch ? ((next > 0) ? ("Their next move: in about " + ((next == 1) ? "1 week" : (next + " weeks"))) : "Their next move: any time now") : "Your arch-rival is the rival you get on worst with; it makes moves against you.");
+		w.Label(right, 440f, y, W - 464f, 26f, TextAnchor.MiddleLeft, bold: false, null, 13);
+		y += 32f;
+		if (arch)
+		{
+			w.Label("Rounds won " + s.RivalWins + "  ·  lost " + s.RivalLosses + "  ·  staff you took " + s.PoachedFromThem + "  ·  staff they took " + s.PoachedFromUs + "  ·  rivals driven out " + s.RivalsDrivenOut, 24f, y, W - 48f, 24f, TextAnchor.MiddleLeft, bold: false, null, 13).color = UIKit.Grey;
+			y += 28f;
+		}
+		string[] about = new string[4]
+		{
+			"A strong developer from their team joins your job market. Their stars drop a little; standing -8. Next try in 12 weeks.",
+			"60%: their reputation takes a hit (their stars drop). 40%: a journalist traces it back to you (studio points -20). Standing -6. Next try in 8 weeks.",
+			"Standing +35 and staff morale +2" + (arch ? ", and no moves against you for 26 weeks" : "") + ". Next try in 26 weeks.",
+			"At 100% rivalry: buy up their debts and close the studio for good (about " + Mathf.RoundToInt(IndustryRivals.DriveOutChance(p) * 100f) + "% chance: bigger studios cost more and are harder to take down). You pay only if it works. If it fails, your games sell 15% less for 12 weeks and publishers trust you less. Once a year."
+		};
+		float bw = (W - 28f - 30f) / 4f;
+		for (int i = 0; i < 4; i++)
+		{
+			string move = Moves[i];
+			string problem = IndustryRivals.Problem(move, p);
+			float x = 14f + (float)i * (bw + 10f);
+			w.SmallButton(MoveNames[i], x, y, bw, () =>
+			{
+				publisherScript target = IndustryCore.Studio(id);
+				status = move switch
+				{
+					"poach" => IndustryRivals.Poach(target),
+					"rumours" => IndustryRivals.Rumours(target),
+					"peace" => IndustryRivals.Peace(target),
+					_ => IndustryRivals.DriveOut(target),
+				};
+				UIKit.Sound();
+				w.Rebuild();
+			}, problem == null, problem ?? about[i], null, 32f);
+			string costLine = G.Money(IndustryRivals.Cost(move, p)) + ((move == "driveout") ? ("  ·  " + Mathf.RoundToInt(IndustryRivals.DriveOutChance(p) * 100f) + "% chance") : "");
+			w.Label(costLine, x, y + 34f, bw, 20f, TextAnchor.MiddleCenter, bold: false, null, 12).color = UIKit.Grey;
+		}
+		y += 60f;
+		if (!string.IsNullOrEmpty(status))
+		{
+			w.Label(status.Replace("\n\n", "  "), 24f, y, W - 48f, 40f, TextAnchor.UpperLeft, bold: false, null, 13);
+			y += 44f;
+		}
+		return y + 4f;
 	}
 
 	// The same text size on every row (the row prefab's best fit would blow short lines up).

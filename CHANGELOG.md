@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.25.1
+- **Small screens:** a window too tall or wide for the screen (at 1366x768, for example) is scaled down to fit
+  instead of being cut off at the bottom. Before, Game settings, the store, Contracts, MMO Management and Current
+  Charts lost their lower part on such screens.
+- **Bottom bar:** an arrow button before the addon's buttons shows or hides them, and remembers. Where they'd cover
+  the game's pause and play buttons (1366 wide, for example), they sit in a row just above the bar instead.
+
+## 0.25.0
+- **Rivals from your standing**, in place of The Holy Expansion's Rival Studio:
+  - **Your arch-rival** is the studio at Rival tier you get on worst with. Its rivalry % is how far below zero
+    your standing is.
+  - If no rivalry has formed once you're established (2 games out, studio level 2), a studio your size declares
+    you its rival, Holy's way.
+  - **Its moves**, every 9-18 weeks (sooner the worse things are), as industry decisions in its colours:
+    - a poaching attempt on your best person;
+    - a copycat of your hit;
+    - a release clash with its next game;
+    - trash talk.
+  - **Your moves** are on any rival's page in the Industry window, at Holy's costs and odds: Poach a Developer,
+    Spread Rumours, Make Peace, and Drive Them Out at 100% rivalry. A studio you drive out may come back as
+    "Reborn".
+  - The arch-rival's page shows the rivalry, when its next move comes, and your record against rivals.
+  - Holy's rival, record and history carry over once. Holy's Management > Rival Studio entry opens your
+    arch-rival's page.
+  - Game settings: "Rivals (replace Holy's)", on by default.
+  - Holy's rival carries over as soon as you open the Industry window or Rival Studio, not only after the first
+    week.
+- A studio's page: long notes in "Between you" wrap onto a second line instead of being cut off.
+
+## 0.24.0
+- **The addon's prices follow The Holy Expansion's price curve** (x1.06 a year), like the convention and industry
+  events already did. Each price stays as it was in the year it was set for, and keeps pace with Holy's after:
+  - anti-bot systems, their licences and monthly fees (set for 1997; they rose 5% a year before);
+  - console storefronts (set for 2005; they rose 5% a year before);
+  - building your store and its features, and signing fees (set for 2003; they never rose before);
+  - contract services: bug fixing, extra hands, and graphics, sound, gameplay and tech passes (set for 1990, so
+    cheaper in the early years and dearer later);
+  - the fixed part of MMO project costs (set for 2000; the rest already follows the game's own costs).
+- Signing fees: the steps you pick are set for 2003, and studios pay that step on today's curve. Fees already paid
+  keep their amount.
+
 ## 0.23.3
 - Industry window, Studios tab: the same text size on every row (studio names, what they make, your last note).
 - Recent News: headlines saved before 0.23.1 no longer say "Sports Game games".

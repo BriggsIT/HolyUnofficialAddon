@@ -16,7 +16,7 @@ internal class GameSettingsPage : Page
 
 	public override float Width => 660f;
 
-	public override float Height => 1076f;
+	public override float Height => 1112f;
 
 	public override void Build(EditorWindow w)
 	{
@@ -95,6 +95,12 @@ internal class GameSettingsPage : Page
 			Plugin.IndustryPace.Value = Mathf.Clamp(v, 0, 2);
 		});
 		y += 40f;
+		w.Toggle("Rivals (replace Holy's)", 24f, y + 2f, 280f, Plugin.MergedRival.Value, (bool v) =>
+		{
+			Plugin.MergedRival.Value = v;
+			Core.Updates.GameUpdates.Touch();
+		}, "Rivals come from your standing with studios. The one you get on worst with is your arch-rival: it makes moves against you every few months (poaching your best people, copycats, release clashes, trash talk), and your moves against any rival are on its page in the Industry window. Replaces The Holy Expansion's Rival Studio, whose rival carries over. Needs industry events. Off = Holy's Rival Studio as before.");
+		y += 36f;
 		SpeedSlider(w, ref y, "Turbo speed", Plugin.TurboSpeed, 4f);
 		SpeedSlider(w, ref y, "Ultra speed", Plugin.UltraSpeed, 6f);
 		w.Label("Very high speeds can make employees jump around while walking.", 24f, y, w.Width - 48f, 26f, TextAnchor.MiddleLeft, bold: false, null, 13);

@@ -17,7 +17,7 @@ public class Plugin : BaseUnityPlugin
 
 	public const string Name = "Holy Unofficial Addon";
 
-	public const string Version = "0.23.3";
+	public const string Version = "0.25.1";
 
 	private const string OldGuid = "mgt2.editor";
 
@@ -80,6 +80,10 @@ public class Plugin : BaseUnityPlugin
 	internal static ConfigEntry<bool> IndustryEvents;
 
 	internal static ConfigEntry<int> IndustryPace;
+
+	internal static ConfigEntry<bool> MergedRival;
+
+	internal static ConfigEntry<bool> BottomBarExpanded;
 
 	internal static ConfigEntry<bool> StoreEnabled;
 
@@ -170,6 +174,8 @@ public class Plugin : BaseUnityPlugin
 		LiveServiceInRoom = Config.Bind("Holy", "LiveServiceSeasonsInRoom", true, "The Holy Expansion's \"Start the next season automatically\" prepares the season in a free Marketing room (250 work, as a manual season) instead of starting it instantly; it waits for a free room if needed.");
 		IndustryEvents = Config.Bind("Industry", "Events", true, "Industry events: news headlines that move the market, and decisions (pop-ups) about other studios, deals and your games, from 1976 on. Plus the Industry window: every studio and where you stand with it.");
 		IndustryPace = Config.Bind("Industry", "Pace", 1, new ConfigDescription("How often decisions come up, at random: 0 = calm, 1 = normal (every 2-3 months on average), 2 = busy.", new AcceptableValueRange<int>(0, 2)));
+		BottomBarExpanded = Config.Bind("General", "BottomBarExpanded", true, "Show the addon's buttons on the bottom bar (the arrow button before them shows or hides them). On narrow screens they sit in a row just above the bar.");
+		MergedRival = Config.Bind("Industry", "Rivals", true, "Rivals from your standing with studios: the one you get on worst with is your arch-rival and makes moves against you every few months (poaching, copycats, release clashes, trash talk); your moves against rivals are on their page in the Industry window. Replaces The Holy Expansion's Rival Studio (its rival carries over). Needs industry events. Off = Holy's Rival Studio as before.");
 		Harmony harmony = new Harmony(Guid);
 		harmony.PatchAll(typeof(Plugin).Assembly);
 		HolyCompat.Apply(harmony);

@@ -444,12 +444,90 @@ internal static class HolyCompat
 		}
 	}
 
+	// ---- Holy's Rival Studio gives way to rivals from your standing (Core/Industry/IndustryRivals) ----
+
+	private static bool RivalOff(ref bool __result)
+	{
+		if (Industry.IndustryRivals.On)
+		{
+			__result = false;
+			return false;
+		}
+		return true;
+	}
+
+	private static void TakeOverRival(Harmony harmony)
+	{
+		try
+		{
+			Type rival = AccessTools.TypeByName("HolyExpansion.Systems.Rival");
+			MethodInfo on = ((rival != null) ? AccessTools.PropertyGetter(rival, "On") : null);
+			if (on == null)
+			{
+				return;
+			}
+			harmony.Patch(on, new HarmonyMethod(typeof(HolyCompat), "RivalOff"));
+			Traverse t = HolyEntry("HolyExpansion.UI.MenuInjector", "rival");
+			if (t != null)
+			{
+				Action click = t.Field("Click").GetValue<Action>();
+				Func<string> locked = t.Field("LockReason").GetValue<Func<string>>();
+				Func<bool> visible = t.Field("Visible").GetValue<Func<bool>>();
+				t.Field("Click").SetValue(new Action(() =>
+				{
+					if (Industry.IndustryRivals.On)
+					{
+						OpenRival();
+					}
+					else
+					{
+						click?.Invoke();
+					}
+				}));
+				t.Field("LockReason").SetValue(new Func<string>(() => Industry.IndustryRivals.On ? RivalLock() : locked?.Invoke()));
+				t.Field("Visible").SetValue(new Func<bool>(() => Industry.IndustryRivals.On || (visible?.Invoke() ?? true)));
+			}
+			Plugin.Log.LogInfo("Holy's Rival Studio gives way to rivals from your standing");
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Could not hand Holy's Rival Studio over to the Industry window: " + ex.Message);
+		}
+	}
+
+	// Rival Studio (Management menu): your arch-rival's page in the Industry window.
+	private static void OpenRival()
+	{
+		Industry.IndustryRivals.Ensure();
+		publisherScript arch = Industry.IndustryRivals.Arch;
+		UI.EditorWindow.Industry.Open();
+		if ((bool)arch)
+		{
+			UI.EditorWindow.Industry.Push(new UI.Pages.StudioPage(arch.myID));
+		}
+	}
+
+	private static string RivalLock()
+	{
+		Industry.IndustryRivals.Ensure();
+		if ((bool)Industry.IndustryRivals.Arch || Industry.IndustryCore.Studios().Any(Industry.IndustryRivals.IsRival))
+		{
+			return null;
+		}
+		if (Industry.IndustryRivals.Established())
+		{
+			return "No studio sees you as a rival right now. One may declare you its rival before long, or a studio you fall out with will become one.";
+		}
+		return "No studio sees you as a rival yet. Once you're established (2 games out, studio level 2), one may declare you its rival.";
+	}
+
 	public static void Apply(Harmony harmony)
 	{
 		ShareSalesBonus();
 		SharePriceCut();
 		LockAntiCheatMenu();
 		FixHitBack(harmony);
+		TakeOverRival(harmony);
 		HolyLiveService.Apply(harmony);
 		RoomSupport.Apply(harmony);
 		try

@@ -13,7 +13,7 @@ Where it overlaps with The Holy Expansion, the two are merged into one system ra
 It's a hobby project for friends: not for sale, and not affiliated with Eggcode Games or with The Holy Expansion's
 author.
 
-**Version:** 0.23.3 · **Game:** Mad Games Tycoon 2 (Steam, PC) · **Loader:** BepInEx 5
+**Version:** 0.25.1 · **Game:** Mad Games Tycoon 2 (Steam, PC) · **Loader:** BepInEx 5
 
 <img src="Screenshots/overview/bottom-bar.png" width="100%" alt="The bottom bar with the addon's buttons">
 
@@ -87,6 +87,9 @@ The addon also adds entries to the game's menus:
 - **Statistics:** Current Charts.
 - **Development room:** Develop Copy Protection, MMO Management, Updates & Addons.
 
+An arrow button before them shows or hides them. On narrow screens, where they'd cover the game's speed buttons,
+they sit in a row just above the bar.
+
 A button or entry for something you can't use yet is greyed out, and its tooltip says why, like the game's own.
 
 <p>
@@ -148,6 +151,12 @@ The industry around you moves, and things land on your desk.
     - Shelf Space.
 - **Standing with every studio**, from Rival through Neutral and Friendly to Ally, grows out of what happens between
   you. Good turns also improve the game's own relation with them, so you get better publishing terms.
+- **Rivals:**
+  - The rival you get on worst with is your **arch-rival**. Every few months it moves against you: poaching your
+    best people, copying your hit, clashing with your release, or trash-talking you.
+  - Once you're established, a studio your size may declare you its rival.
+  - On any rival's page you can poach a developer, spread rumours, make peace, or at 100% rivalry drive them out of
+    business.
 - **The Industry window** has three tabs:
   - **Studios:** each studio's stars, favourite genre, game in development, your standing and your last dealing.
     Click one for its page: what happened between you, and its games.
@@ -421,13 +430,16 @@ is switched off, keeping its good parts:
 - **Sales Events** replace Holy's Seasonal Sales; Holy's menu entry opens them.
 - **The yearly convention** replaces Holy's Fan Convention. Holy's Support-room button opens its planner, and Holy's
   own room task prepares it.
+- **Rivals** come from your standing with studios, in place of Holy's Rival Studio. Holy's moves and yours are
+  kept, and its rival carries over; its menu entry opens your arch-rival's page.
 - **Holy's Launch Planner** is the one launch system: your store feeds its wishlists, early access is Holy's, and
   there's one launch boost. Launches with wishlists make the news.
 - **Holy's live-service seasons** started automatically now need a free Marketing room to prepare them, like ones
   you start yourself.
 - **Shared sales bonus limit:** the addon's sales bonuses count toward Holy's limit instead of stacking on top.
 - **Holy's piracy:** updates from this addon cut pirated copies, like a normal update.
-- **Holy's price curve:** the convention and industry events use it, so their prices keep pace over the years.
+- **Holy's price curve:** the addon's costs and income follow it (the store, contracts, MMO projects, anti-bot
+  systems, the convention, industry events), so they keep pace with Holy's over the years.
 - **Supporting rooms:** they count in Holy's time estimates, and show the progress of Holy's jobs.
 - **Holy's delayed platforms** can be changed during development.
 - **Holy's "Your Anti-Cheat"** is greyed out until anti-cheat software exists.

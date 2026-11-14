@@ -115,7 +115,7 @@ internal static class MmoLive
 			return plan;
 		}
 		plan.Work = 12f + Points(g) * 0.05f;
-		plan.Cost = 5000L + (long)((float)MmoOps.BaseCost(g) * 0.015f);
+		plan.Cost = MmoOps.Fixed(5000L) + (long)((float)MmoOps.BaseCost(g) * 0.015f);
 		return plan;
 	}
 
@@ -137,7 +137,7 @@ internal static class MmoLive
 		// A few bugs make a small patch.
 		float size = Mathf.Clamp01(g.points_bugs / 5f);
 		plan.Work = 6f + Points(g) * 0.04f * size + g.points_bugs * 0.5f;
-		plan.Cost = 2000L + (long)((float)MmoOps.BaseCost(g) * 0.01f * size);
+		plan.Cost = MmoOps.Fixed(2000L) + (long)((float)MmoOps.BaseCost(g) * 0.01f * size);
 		return plan;
 	}
 
@@ -169,7 +169,7 @@ internal static class MmoLive
 			return plan;
 		}
 		plan.Work = 10f + Points(g) * 0.03f;
-		plan.Cost = 5000L + Math.Min((long)((float)pool * 0.2f), (long)((float)MmoOps.BaseCost(g) * 0.15f));
+		plan.Cost = MmoOps.Fixed(5000L) + Math.Min((long)((float)pool * 0.2f), (long)((float)MmoOps.BaseCost(g) * 0.15f));
 		if (!FreshContent(g, m))
 		{
 			plan.Notes = "Tip: more of them come back right after a content patch or an expansion pack.";
@@ -187,7 +187,7 @@ internal static class MmoLive
 			return plan;
 		}
 		plan.Work = 12f + Points(g) * 0.05f;
-		plan.Cost = 10000L + (long)((float)MmoOps.BaseCost(g) * 0.02f);
+		plan.Cost = MmoOps.Fixed(10000L) + (long)((float)MmoOps.BaseCost(g) * 0.02f);
 		if (MmoBots.On)
 		{
 			plan.Notes = "Bots love free accounts: expect more of them while the trial runs.";
@@ -214,7 +214,7 @@ internal static class MmoLive
 		if (m.ClassicOn)
 		{
 			plan.Work = 15f + Points(g) * 0.08f;
-			plan.Cost = 15000L + (long)((float)MmoOps.BaseCost(g) * 0.04f);
+			plan.Cost = MmoOps.Fixed(15000L) + (long)((float)MmoOps.BaseCost(g) * 0.04f);
 			plan.Notes = "The classic realms' players move over to it.";
 			return plan;
 		}
@@ -231,12 +231,12 @@ internal static class MmoLive
 		if (option == 1)
 		{
 			plan.Work = 35f + Points(g) * 0.18f;
-			plan.Cost = 30000L + (long)((float)MmoOps.BaseCost(g) * 0.1f);
+			plan.Cost = MmoOps.Fixed(30000L) + (long)((float)MmoOps.BaseCost(g) * 0.1f);
 		}
 		else
 		{
 			plan.Work = 25f + Points(g) * 0.12f;
-			plan.Cost = 20000L + (long)((float)MmoOps.BaseCost(g) * 0.06f);
+			plan.Cost = MmoOps.Fixed(20000L) + (long)((float)MmoOps.BaseCost(g) * 0.06f);
 		}
 		return plan;
 	}
@@ -267,7 +267,7 @@ internal static class MmoLive
 			return plan;
 		}
 		plan.Work = 12f + Points(g) * 0.05f;
-		plan.Cost = 6000L + (long)((float)MmoOps.BaseCost(g) * 0.02f);
+		plan.Cost = MmoOps.Fixed(6000L) + (long)((float)MmoOps.BaseCost(g) * 0.02f);
 		plan.Notes = ((m.ClassicPhase >= Phases) ? "Every phase is out: this opens fresh classic realms that start again from phase 1." : ("Phase " + (m.ClassicPhase + 1) + " of " + Phases + "."));
 		return plan;
 	}

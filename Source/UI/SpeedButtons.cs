@@ -320,7 +320,7 @@ internal static class SpeedButtons
 
 	// The arrow image of a speed button: a child image that is not one of the game's on/off indicators,
 	// or else the button's own image (the game's speed buttons are drawn that way).
-	private static Image IconOf(RectTransform button, GUI_Main gui, GameObject skip = null)
+	internal static Image IconOf(RectTransform button, GUI_Main gui, GameObject skip = null)
 	{
 		HashSet<GameObject> indicators = new HashSet<GameObject>();
 		if ((bool)gui)
@@ -434,7 +434,7 @@ internal static class SpeedButtons
 		go.GetComponent<Outline>().effectColor = Color.black;
 	}
 
-	private static Rect WorldRect(RectTransform rt)
+	internal static Rect WorldRect(RectTransform rt)
 	{
 		Vector3[] corners = new Vector3[4];
 		rt.GetWorldCorners(corners);

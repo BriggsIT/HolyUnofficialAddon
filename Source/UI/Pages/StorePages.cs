@@ -369,7 +369,7 @@ internal class StoreHomePage : Page
 		w.StatCard(UpdateIcons.Game("iconTotalPlatformUser", UpdateIcons.Game("iconPlayer")), "Users", MmoUi.Short(s.Accounts), young ? "New store" : ((thisWeek >= 0) ? ("+" + MmoUi.Short(thisWeek) + " this week") : (MmoUi.Short(thisWeek) + " this week")), 14f, y, cw, 86f, young ? null : new Color?((thisWeek >= 0) ? UIKit.Green : UIKit.Red), MmoUi.Short(s.Active) + " active players. MMO players in your launcher: " + MmoUi.Short(s.LauncherAccounts) + ".");
 		int games = StorePlus.GamesOnStore(out int yours);
 		w.StatCard(UpdateIcons.Game("iconGames", UpdateIcons.Store()), "Games on the store", games.ToString(), yours + " of them yours", 14f + (cw + 10f), y, cw, 86f, null, "Your PC games with a digital version, and the share of other studios' PC games your store carries (" + StoreUi.Pct(s.Coverage) + ", from studio trust).");
-		w.StatCard(UpdateIcons.Game("iconPublishingOfferVertrag", UpdateIcons.Game("iconDeveloper")), "Studios signed", StorePlus.StudiosSigned().ToString() + ((s.Requests.Count > 0) ? ("  (" + s.Requests.Count + " asking)") : ""), "Your cut: " + s.Commission + "%  ·  fee " + ((s.SigningFee > 0) ? G.Money(s.SigningFee) : "free"), 14f + 2f * (cw + 10f), y, cw, 86f, null, "Studio trust " + Mathf.RoundToInt(s.Trust) + ". Studios ask to sell with you and pay your signing fee once: a lower fee, a fair cut and plenty of players bring more of them (Studios).");
+		w.StatCard(UpdateIcons.Game("iconPublishingOfferVertrag", UpdateIcons.Game("iconDeveloper")), "Studios signed", StorePlus.StudiosSigned().ToString() + ((s.Requests.Count > 0) ? ("  (" + s.Requests.Count + " asking)") : ""), "Your cut: " + s.Commission + "%  ·  fee " + ((s.SigningFee > 0) ? G.Money(StorePlus.FeeNow(s.SigningFee)) : "free"), 14f + 2f * (cw + 10f), y, cw, 86f, null, "Studio trust " + Mathf.RoundToInt(s.Trust) + ". Studios ask to sell with you and pay your signing fee once: a lower fee, a fair cut and plenty of players bring more of them (Studios).");
 		long income = s.CommissionMonth + s.PlacementMonth + s.ConsoleMonth;
 		long costs = s.FeesMonth + s.ServerMonth;
 		long net = income - costs;
@@ -655,7 +655,7 @@ internal class StoreFeaturesPage : Page
 			Image icon = row.Picture(UpdateIcons.StoreFeature(f.Id), 10f, 44f);
 			Text top = row.Top(f.Name, 64f, row.W - 300f);
 			row.Bottom(f.About, 64f, row.W - 300f);
-			string state = (done ? "<color=#2e7d32>Done</color>" : (building ? ("In development " + Mathf.FloorToInt(running.Fraction * 100f) + "%") : ((problem != null && StoreOps.Year < f.Year) ? ("From " + f.Year) : G.Money(f.Cost))));
+			string state = (done ? "<color=#2e7d32>Done</color>" : (building ? ("In development " + Mathf.FloorToInt(running.Fraction * 100f) + "%") : ((problem != null && StoreOps.Year < f.Year) ? ("From " + f.Year) : G.Money(StoreOps.FeatureCost(f)))));
 			row.Text(state, row.W - 220f, 210f, bold: true, TextAnchor.MiddleRight);
 			if (!done && !building && StoreOps.Year < f.Year)
 			{

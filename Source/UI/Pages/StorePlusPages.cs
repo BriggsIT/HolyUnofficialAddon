@@ -111,7 +111,7 @@ internal class StoreStudiosPage : StorePlusPage
 		float y = 54f;
 		w.Label("Signing fee", 24f, y, 150f, 30f, TextAnchor.MiddleLeft, bold: true);
 		int index = Mathf.Max(0, Array.IndexOf(StorePlus.FeeSteps, s.SigningFee));
-		w.Dropdown(180f, y, 260f, StorePlus.FeeSteps.Select((long f) => (f == 0) ? "Free" : G.Money(f)).ToList(), index, (int v) =>
+		w.Dropdown(180f, y, 260f, StorePlus.FeeSteps.Select((long f) => (f == 0) ? "Free" : G.Money(StorePlus.FeeNow(f))).ToList(), index, (int v) =>
 		{
 			UIKit.Sound();
 			StoreOps.State.SigningFee = StorePlus.FeeSteps[Mathf.Clamp(v, 0, StorePlus.FeeSteps.Length - 1)];
@@ -180,7 +180,7 @@ internal class StoreStudiosPage : StorePlusPage
 		row.Highlight();
 		row.Picture(p ? p.GetLogo() : null, 8f, 42f);
 		row.Top(StorePlus.StudioName(r.StudioId) + (r.Big ? "  <color=#1565c0>big studio</color>" : ""), 60f, row.W - 470f);
-		row.Bottom(games.Count + ((games.Count == 1) ? " PC game" : " PC games") + "  ·  about " + G.Money(yours) + " a week to you  ·  offers " + ((r.Fee > 0) ? G.Money(r.Fee) : "nothing"), 60f, row.W - 470f);
+		row.Bottom(games.Count + ((games.Count == 1) ? " PC game" : " PC games") + "  ·  about " + G.Money(yours) + " a week to you  ·  offers " + ((r.Fee > 0) ? G.Money(StorePlus.FeeNow(r.Fee)) : "nothing"), 60f, row.W - 470f);
 		StudioRequest req = r;
 		row.Button("Sign", row.W - 400f, 120f, () =>
 		{
@@ -304,13 +304,13 @@ internal class StudioRequestPage : Page
 		y += 160f;
 		List<KeyValuePair<string, string>> facts = new List<KeyValuePair<string, string>>
 		{
-			EditorWindow.KV("It offers", (r.Fee > 0) ? (G.Money(r.Fee) + " (your fee)") : "nothing (your fee is free)"),
+			EditorWindow.KV("It offers", (r.Fee > 0) ? (G.Money(StorePlus.FeeNow(r.Fee)) + " (your fee)") : "nothing (your fee is free)"),
 			EditorWindow.KV("It would bring you", "about " + G.Money(yours) + " a week (" + s.Commission + "% cut)"),
 			EditorWindow.KV("It would make with you", "about " + G.Money(theirYear) + " a year"),
 			EditorWindow.KV("Asked", (StoreOps.Year - r.Week / 48 <= 0) ? "this year" : ("in " + r.Week / 48))
 		};
 		y += w.Facts(14f, y, w.Width - 28f, facts, 2) + 12f;
-		w.BigButton("Sign Them" + ((r.Fee > 0) ? (" for " + G.Money(r.Fee)) : ""), 14f, y, 270f, 44f, () =>
+		w.BigButton("Sign Them" + ((r.Fee > 0) ? (" for " + G.Money(StorePlus.FeeNow(r.Fee))) : ""), 14f, y, 270f, 44f, () =>
 		{
 			result = StorePlus.Accept(StorePlus.RequestFor(studioId));
 			UIKit.Sound();
@@ -323,15 +323,15 @@ internal class StudioRequestPage : Page
 			{
 				counter = 0;
 			}
-			w.Dropdown(298f, y + 7f, 200f, asks.Select((long f) => G.Money(f)).ToList(), counter, (int v) =>
+			w.Dropdown(298f, y + 7f, 200f, asks.Select((long f) => G.Money(StorePlus.FeeNow(f))).ToList(), counter, (int v) =>
 			{
 				UIKit.Sound();
 				counter = v;
 				w.Rebuild();
 			});
 			long ask = asks[counter];
-			int chance = Mathf.RoundToInt(StorePlus.AcceptChance(ask, theirYear) * 100f);
-			w.SmallButton("Ask for " + G.Money(ask), 508f, y + 7f, 180f, () =>
+			int chance = Mathf.RoundToInt(StorePlus.AcceptChance(StorePlus.FeeNow(ask), theirYear) * 100f);
+			w.SmallButton("Ask for " + G.Money(StorePlus.FeeNow(ask)), 508f, y + 7f, 180f, () =>
 			{
 				result = StorePlus.Counter(StorePlus.RequestFor(studioId), ask);
 				w.Rebuild();
