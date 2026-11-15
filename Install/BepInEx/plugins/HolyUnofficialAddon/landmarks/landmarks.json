@@ -1,0 +1,27 @@
+{
+  "About": "Landmark games: historical games you can make first. Title is the franchise line in the game's NPC IP list (Holy's real-world list); Genre and Topics use the game's numbers (Holy's lists). Topics must all be among the game's topics; Extra topics are suggestions. Review is the real score: the bar is Review - 10, at least 70. Add puts the line in the list when it's missing.",
+  "Landmarks": [
+    { "Id": "breakout", "Name": "Breakout", "Title": "Breakout", "Year": 1976, "Studio": "Atari", "Genre": 0, "Topics": [73], "Extra": [], "Review": 80 },
+    { "Id": "space-invaders", "Name": "Space Invaders", "Title": "Space Invaders", "Year": 1978, "Studio": "Taito", "Genre": 0, "Topics": [48], "Extra": [53], "Review": 95 },
+    { "Id": "asteroids", "Name": "Asteroids", "Title": "Asteroids", "Year": 1979, "Studio": "Atari", "Genre": 0, "Topics": [254], "Extra": [56], "Review": 80 },
+    { "Id": "pac-man", "Name": "Pac-Man", "Title": "Pac-Man", "Year": 1980, "Studio": "Namco", "Genre": 0, "Topics": [268], "Extra": [28], "Review": 85 },
+    { "Id": "donkey-kong", "Name": "Donkey Kong", "Title": "Donkey Kong", "Year": 1981, "Studio": "Nintendo", "Genre": 6, "Topics": [120], "Extra": [71], "Review": 85 },
+    { "Id": "wizardry", "Name": "Wizardry", "Title": "Wizardry: Proving Grounds of the Mad Overlord", "Year": 1981, "Studio": "Sir-Tech", "Genre": 3, "Topics": [52], "Extra": [24], "Review": 85 },
+    { "Id": "flight-simulator", "Name": "Flight Simulator", "Title": "Microsoft Flight Simulator", "Year": 1982, "Studio": "Microsoft", "Genre": 7, "Topics": [44], "Extra": [], "Review": 85 },
+    { "Id": "tetris", "Name": "Tetris", "Title": "Tetris", "Year": 1984, "Studio": "Nintendo", "Genre": 1, "Topics": [73], "Extra": [], "Review": 90, "Add": true },
+    { "Id": "kings-quest", "Name": "King's Quest", "Title": "King’s Quest: Quest for the Crown", "Year": 1984, "Studio": "Sierra Entertainment", "Genre": 2, "Topics": [47], "Extra": [29], "Review": 85 },
+    { "Id": "super-mario-bros", "Name": "Super Mario Bros.", "Title": "Super Mario Bros.", "Year": 1985, "Studio": "Nintendo", "Genre": 6, "Topics": [71], "Extra": [], "Review": 90 },
+    { "Id": "zelda", "Name": "The Legend of Zelda", "Title": "The Legend of Zelda", "Year": 1986, "Studio": "Nintendo", "Genre": 2, "Topics": [52], "Extra": [47], "Review": 90 },
+    { "Id": "metroid", "Name": "Metroid", "Title": "Metroid", "Year": 1986, "Studio": "Nintendo", "Genre": 23, "Topics": [48], "Extra": [369], "Review": 85 },
+    { "Id": "castlevania", "Name": "Castlevania", "Title": "Castlevania", "Year": 1986, "Studio": "Konami", "Genre": 6, "Topics": [58], "Extra": [162], "Review": 88 },
+    { "Id": "dragon-quest", "Name": "Dragon Quest", "Title": "Dragon Quest", "Year": 1986, "Studio": "Enix", "Genre": 3, "Topics": [26], "Extra": [47], "Review": 85 },
+    { "Id": "outrun", "Name": "OutRun", "Title": "OutRun", "Year": 1986, "Studio": "Sega", "Genre": 17, "Topics": [67], "Extra": [], "Review": 90 },
+    { "Id": "final-fantasy", "Name": "Final Fantasy", "Title": "Final Fantasy", "Year": 1987, "Studio": "Square", "Genre": 3, "Topics": [47], "Extra": [24], "Review": 85 },
+    { "Id": "mega-man", "Name": "Mega Man", "Title": "Mega Man", "Year": 1987, "Studio": "Capcom", "Genre": 6, "Topics": [49], "Extra": [], "Review": 90 },
+    { "Id": "street-fighter", "Name": "Street Fighter", "Title": "Street Fighter", "Year": 1987, "Studio": "Capcom", "Genre": 10, "Topics": [3], "Extra": [], "Review": 80 },
+    { "Id": "metal-gear", "Name": "Metal Gear", "Title": "Metal Gear", "Year": 1988, "Studio": "Konami", "Genre": 5, "Topics": [75], "Extra": [55], "Review": 85 },
+    { "Id": "john-madden-football", "Name": "John Madden Football", "Title": "John Madden Football", "Year": 1988, "Studio": "Electronic Arts", "Genre": 8, "Topics": [181], "Extra": [], "Review": 85 },
+    { "Id": "simcity", "Name": "SimCity", "Title": "SimCity", "Year": 1989, "Studio": "Maxis", "Genre": 11, "Topics": [57], "Extra": [35], "Review": 85 },
+    { "Id": "populous", "Name": "Populous", "Title": "Populous", "Year": 1989, "Studio": "Bullfrog Productions", "Genre": 4, "Topics": [79], "Extra": [], "Review": 85 }
+  ]
+}

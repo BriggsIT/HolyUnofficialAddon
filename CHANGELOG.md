@@ -6,6 +6,8 @@ Newest first. Each version below lists what changed; the table is a quick way in
 
 | Version | What it brought |
 |---|---|
+| [0.32.0](#0320-third-and-fourth-topics-new-languages) | Third and fourth topics, new languages |
+| [0.31.0](#0310-landmark-games) | Landmark games |
 | [0.30.0](#0300-every-event-on-real-systems) | Every event on real systems |
 | [0.29.0](#0290-events-for-the-3d-and-online-years) | Events for the 3D and online years |
 | [0.28.0](#0280-events-that-follow-through) | Events that follow through |
@@ -43,6 +45,64 @@ Newest first. Each version below lists what changed; the table is a quick way in
 | [0.4.0 - 0.5.x](#040---05x-contracts) | Contracts |
 | [0.3.x](#03x-press-reviews) | Press reviews |
 | [0.1.x - 0.2.x](#01x---02x-the-employee-editor-and-game-settings) | The employee editor and game settings |
+
+## 0.32.0: third and fourth topics, new languages
+Two new research items give your games more topics, eleven new languages open over the years, and the game design
+screen grows a row to fit them.
+- **Layered Settings** (Other research, from 1988, after the game's Sub topic research) gives a third topic;
+  **Rich Worlds** (from 1996) a fourth.
+- **Third topic and Fourth topic** on the game design screen: a row under Main topic and Subtopic that works the same
+  way. Locked, with the research to do as the tooltip, until Layered Settings (third) and Rich Worlds (fourth) are
+  done. Each button's tooltip says whether the topic suits the genre and goes with the game's other topics, the review
+  change, and the extra work.
+- **The review:** a topic that suits the genre and goes with the others lifts it, one that doesn't lowers it (from
+  about -6% to +5% altogether). The review says how the mix works. Topics are judged by their themes: Crime, City and
+  Cars go together; Horror and Kittens don't.
+- **The work:** each extra topic adds about 10% to the development cost and time.
+- Sequels and spin-offs start with the original's extra topics; ports and remasters keep them. Contract games and
+  studio games have two topics, as before. Landmarks count all four topics.
+- **Eleven new languages:** Portuguese, Dutch, Greek, Hungarian, Czech, Turkish, Romanian, Ukrainian, Arabic, Hindi
+  and Indonesian, each from the year its market grew (Dutch 1980 to Hindi and Indonesian 2005). A second row of flags
+  under the game's eleven on the design screen. Each adds 1-2% to the game's sales while it's on the market (the
+  mirror of what the game takes off for each of its own languages a game lacks) and costs the game's price for a
+  translation (free for your studio's own). Add-ons, budget and GOTY editions and ports carry their main game's.
+- **Translate the Game:** a new update in Updates & Addons brings a released game out in new languages it doesn't
+  have yet.
+- **The taller design screen:** the gameplay features list grows into the space, and the platform page shows the
+  timed exclusive choice (which platform first, for how long, what the deal pays) with its own icon, instead of a
+  pop-up.
+- **Market Check** (design focus page): the trend and what's out of fashion, your genre's popularity, whether your
+  genre and topics are on trend, and which studios are making something similar right now.
+- **Project Overview** (financing page): the cost and work with the extra topics, roughly how many months at your
+  recent pace, the topic mix's review change, the new languages, a landmark the game could become, and the timed
+  exclusive.
+
+## 0.31.0: landmark games
+Historical games you can make first, before the studio that made them for real.
+- **22 landmarks from 1976 to 1989**, from Breakout and Space Invaders to SimCity and Populous, on The Holy Expansion's
+  real franchise list. Each has a genre and topics it needs (written for the addon: Holy's list files many games
+  loosely), and a quality bar: its real review score less 10, at least 70%.
+- **Claiming one:** when a new game of yours is finished and fits a landmark (its genre and topics, a good enough
+  projected review, and the years), a pop-up comes up before you choose to release it or keep developing. Make it the
+  landmark and it's renamed, shows the landmark's pictures, and its studio never makes it; a studio that was making it
+  shelves its version. A landmark can be made from 3 years before its real year until its studio releases it (or 5
+  years after its real year, if nobody does).
+- **At release:** IP points, fans of its genre, hype, and its genre becomes the trend. Your second landmark in a genre
+  that isn't your special genre offers to make it your special genre.
+- **Studios make them for real:** each landmark's studio makes it on time, in the right genre, and is known for that
+  genre from then on.
+- **Later entries belong to their series:** The Holy Expansion's list has later games of a series as series of their
+  own (Mega Man X, Metal Gear Solid, Ocarina of Time), so their studio started each as a new series, even when someone
+  else owned the original, or you did. Now they're made as sequels (or spin-offs, in another genre) by whoever owns
+  the series, around their real year. Your series: no studio makes them. A series whose owner has closed is taken
+  over by the studio of its next entry. Sequels after one continue its name ("Metal Gear Solid 2"). Series already
+  started in a save stay as they are.
+- **Landmarks tab** in the Industry window: the landmarks made so far, who made them and when. The rest are for you
+  to discover; "Show upcoming landmarks" in Game settings lists them all, with what it takes to make each.
+- **The pop-ups** show the landmark's screenshot across the top, what it takes (or what you got) as a row of facts,
+  and blur and dim the screen behind them. Yours coming out gets a fanfare.
+- **Pictures:** a folder per landmark (PNG or JPG, any size; cropped to 4:3). Landmarks without pictures show the
+  game's usual screenshot.
 
 ## 0.30.0: every event on real systems
 The last events that only paid money or nudged sales by a flat percentage now change the game's real systems, like

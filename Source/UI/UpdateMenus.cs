@@ -16,12 +16,13 @@ namespace HolyAddon.UI;
 [HarmonyPatch]
 internal static class UpdateMenus
 {
-	private static readonly UpdateKind[] Kinds = new UpdateKind[4]
+	private static readonly UpdateKind[] Kinds = new UpdateKind[5]
 	{
 		UpdateKind.Port,
 		UpdateKind.Engine,
 		UpdateKind.Features,
-		UpdateKind.Rating
+		UpdateKind.Rating,
+		UpdateKind.Translation
 	};
 
 	private static readonly AccessTools.FieldRef<Menu_Dev_Addon, roomScript> AddonRoom = AccessTools.FieldRefAccess<Menu_Dev_Addon, roomScript>("rS_");
@@ -104,6 +105,7 @@ internal static class UpdateMenus
 			UpdateKind.Engine => "Update the Engine",
 			UpdateKind.Features => "Add Gameplay Features",
 			UpdateKind.Rating => "Change the Age Rating",
+			UpdateKind.Translation => "Translate the Game",
 			_ => "",
 		};
 	}
@@ -116,6 +118,7 @@ internal static class UpdateMenus
 			UpdateKind.Engine => "<b>Update the engine</b>\nMove a released game to newer engine features, from its own engine or another one you own or license. Better graphics, sound and tech, and a lasting sales bonus. (Holy Unofficial Addon)",
 			UpdateKind.Features => "<b>Add gameplay features</b>\nAdd researched gameplay features to a released game without making an addon. Features that suit the genre help most. (Holy Unofficial Addon)",
 			UpdateKind.Rating => "<b>Change the age rating</b>\nCut content so a released game gets a lower age rating and more players can buy it. (Holy Unofficial Addon)",
+			UpdateKind.Translation => "<b>Translate the game</b>\nBring a released game out in the new languages (Portuguese, Dutch, Turkish...) it doesn't have yet. Each one adds its share to its sales from then on. (Holy Unofficial Addon)",
 			_ => "",
 		};
 	}
@@ -125,6 +128,11 @@ internal static class UpdateMenus
 		if (k == UpdateKind.Port && !GameUpdates.SlotUnlocked(1))
 		{
 			return "Research making games for more than one platform first.";
+		}
+		if (k == UpdateKind.Translation && !Core.Languages.ExtraLanguages.AnyUnlocked)
+		{
+			Core.Languages.LanguageDef next = Core.Languages.ExtraLanguages.NextToOpen;
+			return "No new languages yet." + ((next != null) ? (" " + next.Name + " opens in " + next.Year + ".") : "");
 		}
 		return null;
 	}
@@ -170,7 +178,7 @@ internal static class UpdateMenus
 				{
 					lockIcon.gameObject.SetActive(locked != null);
 				}
-				UIKit.SetTooltip(row.gameObject, ((locked != null) ? ("<b>" + Label(k) + "</b>\n" + locked) : Tip(k)) + (Core.Mmo.MmoOps.On ? "\nMMOs get this in MMO Management, with more effect on their players." : ""));
+				UIKit.SetTooltip(row.gameObject, ((locked != null) ? ("<b>" + Label(k) + "</b>\n" + locked) : Tip(k)) + ((Core.Mmo.MmoOps.On && k != UpdateKind.Translation) ? "\nMMOs get this in MMO Management, with more effect on their players." : ""));
 			}
 			MoveMmoAddon(__instance, rows);
 		}
@@ -525,6 +533,7 @@ internal static class UpdateMenus
 			{
 				UpdateKind.Engine => new EngineUpdatePage(game.myID, room ? room.myID : (-1)),
 				UpdateKind.Features => new FeatureUpdatePage(game.myID, room ? room.myID : (-1)),
+				UpdateKind.Translation => new TranslationUpdatePage(game.myID, room ? room.myID : (-1)),
 				_ => new RatingUpdatePage(game.myID, room ? room.myID : (-1)),
 			};
 			EditorWindow.Updates.Push(page);

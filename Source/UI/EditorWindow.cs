@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using HolyAddon.Core;
 using HolyAddon.Core.Store;
@@ -45,6 +46,9 @@ internal class EditorWindow
 
 	// Opens on top of the game's new-game screen, which already holds the game in menu mode.
 	public static readonly EditorWindow TimedExclusive = new EditorWindow("Editor_TimedExclusiveWindow", () => new TimedExclusivePage(), overlay: true);
+
+	// The design screen's third and fourth topics (UI/ExtraTopicsMenu), over the same screen.
+	public static readonly EditorWindow ExtraTopics = new EditorWindow("Editor_ExtraTopicsWindow", () => new ExtraTopicsPage(), overlay: true);
 
 	// The MGH Games Awards ceremony (Core/Awards/AwardsShow), opened by the game's December awards.
 	public static readonly EditorWindow Awards = new EditorWindow("Editor_AwardsWindow", () => new AwardsCeremonyPage(0));
@@ -118,6 +122,19 @@ internal class EditorWindow
 		titleOf = () => new KeyValuePair<Color, Color>(IndustryUi.StudioColor(Core.Industry.IndustryCore.Studio(Core.Industry.IndustryCore.ShownOutcome?.StudioId ?? -1)), Color.white)
 	};
 
+	// A landmark game (Core/Landmarks): the offer over the game's completion window, and the moment yours comes out.
+	public static readonly EditorWindow Landmark = new EditorWindow("Editor_LandmarkWindow", () => new LandmarkPage(), overlay: true)
+	{
+		titleOf = () => new KeyValuePair<Color, Color>(LandmarkUi.Gold, Color.white),
+		BlurBehind = true
+	};
+
+	public static readonly EditorWindow LandmarkMade = new EditorWindow("Editor_LandmarkMadeWindow", () => new LandmarkPage())
+	{
+		titleOf = () => new KeyValuePair<Color, Color>(LandmarkUi.Gold, Color.white),
+		BlurBehind = true
+	};
+
 	public static readonly EditorWindow Industry = new EditorWindow("Editor_IndustryWindow", () => new IndustryPage())
 	{
 		titleOf = () => new KeyValuePair<Color, Color>(IndustryUi.Navy, Color.white)
@@ -171,12 +188,143 @@ internal class EditorWindow
 	{
 		get
 		{
+			if (opening)
+			{
+				return true;
+			}
 			if ((bool)root)
 			{
 				return root.activeSelf;
 			}
 			return false;
 		}
+	}
+
+	// ---- Backdrop: pop-ups that want your attention blur and dim the screen behind them ----
+
+	// A copy of the screen, taken the frame the window opens (before it's drawn), blurred and dimmed behind it. It also
+	// stops clicks reaching what's behind.
+	public bool BlurBehind;
+
+	private bool opening;
+
+	private RawImage backdrop;
+
+	private RenderTexture backdropTexture;
+
+	private static readonly Color BackdropTint = new Color(0.58f, 0.6f, 0.66f, 1f);
+
+	private IEnumerator OpenAfterCapture()
+	{
+		yield return new WaitForEndOfFrame();
+		opening = false;
+		Texture2D shot = null;
+		try
+		{
+			shot = ScreenCapture.CaptureScreenshotAsTexture();
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Window backdrop: " + ex.Message);
+		}
+		OpenNow();
+		if ((bool)shot)
+		{
+			ShowBackdrop(shot);
+		}
+	}
+
+	private void ShowBackdrop(Texture2D shot)
+	{
+		try
+		{
+			RenderTexture blurred = Blur(shot);
+			UnityEngine.Object.Destroy(shot);
+			if (!backdrop)
+			{
+				GameObject go = new GameObject("Backdrop", typeof(RectTransform), typeof(RawImage));
+				go.transform.SetParent(root.transform, worldPositionStays: false);
+				backdrop = go.GetComponent<RawImage>();
+				backdrop.raycastTarget = true;
+			}
+			backdrop.transform.SetAsFirstSibling();
+			Cover(backdrop.rectTransform);
+			DropBackdropTexture();
+			backdropTexture = blurred;
+			backdrop.texture = blurred;
+			backdrop.color = BackdropTint;
+			backdrop.gameObject.SetActive(value: true);
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Window backdrop: " + ex.Message);
+		}
+	}
+
+	// Halving the picture four times (each step averages its pixels) and stretching it back is a soft, cheap blur.
+	private static RenderTexture Blur(Texture2D src)
+	{
+		int w = src.width;
+		int h = src.height;
+		Texture from = src;
+		RenderTexture prev = null;
+		for (int i = 0; i < 4; i++)
+		{
+			w = Mathf.Max(4, w / 2);
+			h = Mathf.Max(4, h / 2);
+			RenderTexture rt = RenderTexture.GetTemporary(w, h, 0);
+			rt.filterMode = FilterMode.Bilinear;
+			Graphics.Blit(from, rt);
+			if (prev != null)
+			{
+				RenderTexture.ReleaseTemporary(prev);
+			}
+			prev = rt;
+			from = rt;
+		}
+		RenderTexture up = new RenderTexture(w * 4, h * 4, 0);
+		up.filterMode = FilterMode.Bilinear;
+		Graphics.Blit(prev, up);
+		RenderTexture.ReleaseTemporary(prev);
+		return up;
+	}
+
+	// Exactly over the screen (the root canvas), whatever the window's own parents are scaled to.
+	private void Cover(RectTransform rt)
+	{
+		Canvas canvas = root.GetComponentInParent<Canvas>();
+		if (!canvas)
+		{
+			return;
+		}
+		RectTransform screen = (RectTransform)canvas.rootCanvas.transform;
+		Vector3[] c = new Vector3[4];
+		screen.GetWorldCorners(c);
+		Vector3 bl = root.transform.InverseTransformPoint(c[0]);
+		Vector3 tr = root.transform.InverseTransformPoint(c[2]);
+		rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+		rt.sizeDelta = new Vector2(tr.x - bl.x, tr.y - bl.y);
+		rt.localPosition = new Vector3((bl.x + tr.x) / 2f, (bl.y + tr.y) / 2f, 0f);
+	}
+
+	private void DropBackdropTexture()
+	{
+		if (backdropTexture != null)
+		{
+			backdropTexture.Release();
+			UnityEngine.Object.Destroy(backdropTexture);
+			backdropTexture = null;
+		}
+	}
+
+	private void HideBackdrop()
+	{
+		if ((bool)backdrop)
+		{
+			backdrop.texture = null;
+			backdrop.gameObject.SetActive(value: false);
+		}
+		DropBackdropTexture();
 	}
 
 	public Page Current
@@ -304,6 +452,17 @@ internal class EditorWindow
 
 	public void Open()
 	{
+		if (BlurBehind && !IsOpen && Core.EditorRunner.Instance != null)
+		{
+			opening = true;
+			Core.EditorRunner.Instance.StartCoroutine(OpenAfterCapture());
+			return;
+		}
+		OpenNow();
+	}
+
+	private void OpenNow()
+	{
 		if (!EnsureCreated())
 		{
 			Plugin.Log.LogWarning("Editor window is not ready yet");
@@ -332,6 +491,7 @@ internal class EditorWindow
 			return;
 		}
 		UIKit.Sound();
+		HideBackdrop();
 		root.SetActive(value: false);
 		ReleaseInput();
 		stack.Clear();

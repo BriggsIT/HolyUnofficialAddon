@@ -230,6 +230,7 @@ internal static class IndustryHooks
 		try
 		{
 			IndustryReal.Weekly();
+			Topics.ExtraTopics.Weekly();
 		}
 		catch (Exception ex)
 		{

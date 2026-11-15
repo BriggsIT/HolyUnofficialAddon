@@ -16,6 +16,7 @@ internal static class UpdateIcons
 			UpdateKind.Engine => "update-engine.png",
 			UpdateKind.Features => "update-features.png",
 			UpdateKind.Rating => "update-rating.png",
+			UpdateKind.Translation => "update-translation.png",
 			UpdateKind.MmoGraphics => "mmo-graphics.png",
 			UpdateKind.MmoClient64 => "mmo-client64.png",
 			UpdateKind.MmoMigration => "mmo-migration.png",
@@ -38,6 +39,12 @@ internal static class UpdateIcons
 			_ => "update-port.png",
 		};
 		return File(file) ?? UIKit.Sprite("iconUpdate") ?? UIKit.Sprite("iconOptions");
+	}
+
+	// Timed exclusives: a controller with a stopwatch.
+	public static Sprite TimedExclusive()
+	{
+		return File("timed-exclusive.png") ?? For(UpdateKind.Port);
 	}
 
 	// Anti-bot systems (the window and a system's picture).

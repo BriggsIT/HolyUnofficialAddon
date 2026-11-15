@@ -15,6 +15,8 @@ internal enum UpdateKind
 	Engine = 2,
 	Features = 3,
 	Rating = 4,
+	// The addon's new languages for a released game (Core/Languages).
+	Translation = 5,
 	// MMO management projects (Core/Mmo).
 	MmoGraphics = 10,
 	MmoClient64 = 11,
@@ -82,6 +84,9 @@ internal class UpdateProject
 	// Age rating edit: the new rating (gameScript.usk).
 	public int Usk = -1;
 
+	// Translation: the new languages (ExtraLanguages ids).
+	public List<int> Languages;
+
 	// Classic servers: 0 = classic realms in the same subscription, 1 = relaunched as its own game; and its name.
 	public int Option;
 
@@ -122,6 +127,8 @@ internal class GameExtras
 	public int FeaturesAdded;
 
 	public int RatingEdits;
+
+	public int Translations;
 }
 
 internal class UpdatesState
@@ -201,6 +208,7 @@ internal static class GameUpdates
 			UpdateKind.Engine => "Engine Update",
 			UpdateKind.Features => "New Gameplay Features",
 			UpdateKind.Rating => "Age Rating Edit",
+			UpdateKind.Translation => "Translation",
 			UpdateKind.MmoGraphics => "Graphics Overhaul",
 			UpdateKind.MmoClient64 => "64-bit Client",
 			UpdateKind.MmoMigration => "Engine Migration",
@@ -380,7 +388,7 @@ internal static class GameUpdates
 				return Mmo.MmoOps.PortProblem(g);
 			}
 		}
-		else if (g.gameTyp == 1 && Mmo.MmoOps.On)
+		else if (g.gameTyp == 1 && Mmo.MmoOps.On && kind != UpdateKind.Translation)
 		{
 			return "MMOs get this in MMO Management (development room menu).";
 		}
@@ -406,6 +414,16 @@ internal static class GameUpdates
 			return (FeatureCandidates(g, null).Count == 0) ? "There are no researched gameplay features this game doesn't have yet." : null;
 		case UpdateKind.Rating:
 			return (g.usk <= MinUsk(g)) ? "The topic doesn't allow a lower age rating." : null;
+		case UpdateKind.Translation:
+			if (!Languages.ExtraLanguages.On)
+			{
+				return "New languages are for single-player games.";
+			}
+			if (g.typ_addon || g.typ_addonStandalone || g.typ_mmoaddon || g.typ_budget || g.typ_goty || g.typ_bundle || g.typ_bundleAddon)
+			{
+				return "Add-ons and re-releases speak their main game's languages: translate the main game.";
+			}
+			return (Languages.ExtraLanguages.Missing(g).Count == 0) ? "It has every new language there is so far." : null;
 		default:
 			return null;
 		}
@@ -491,6 +509,7 @@ internal static class GameUpdates
 			UpdateKind.Features => (c.s_gamedesign + c.s_programmieren) * 0.5f,
 			UpdateKind.MmoFeatures => (c.s_gamedesign + c.s_programmieren) * 0.5f,
 			UpdateKind.Rating => c.s_gamedesign,
+			UpdateKind.Translation => c.s_gamedesign,
 			UpdateKind.MmoRating => c.s_gamedesign,
 			UpdateKind.MmoGraphics => c.s_grafik,
 			UpdateKind.MmoExpansion => (c.s_gamedesign + c.s_programmieren + c.s_grafik) / 3f,
@@ -931,6 +950,30 @@ internal static class GameUpdates
 		return plan;
 	}
 
+	// Translating a released game: the game's price per language (development points x 5, free for your studio's
+	// own), and a little work per language for the room.
+	public static UpdatePlan PlanTranslation(gameScript g, ICollection<int> picked)
+	{
+		UpdatePlan plan = new UpdatePlan();
+		List<int> missing = Languages.ExtraLanguages.Missing(g);
+		List<int> chosen = (picked ?? new List<int>()).Where(missing.Contains).Distinct().ToList();
+		if (chosen.Count == 0)
+		{
+			plan.Problem = "Pick at least one language.";
+			return plan;
+		}
+		bool[] set = Languages.ExtraLanguages.New();
+		foreach (int i in chosen)
+		{
+			set[i] = true;
+		}
+		plan.Work = 0.04f * DevPoints(g) * (float)chosen.Count + 10f;
+		plan.Cost = Languages.ExtraLanguages.Cost(set, DevPoints(g));
+		plan.Bonus = Languages.ExtraLanguages.Share(set);
+		plan.Notes = "Its sales go up by each language's share for as long as it's on the market.";
+		return plan;
+	}
+
 	// How much of a new lasting bonus still fits under the cap.
 	public static float BonusRoom(gameScript g, float wanted)
 	{
@@ -1141,6 +1184,8 @@ internal static class GameUpdates
 			return CompleteFeatures(p, g, extras, name);
 		case UpdateKind.Rating:
 			return CompleteRating(p, g, extras, name);
+		case UpdateKind.Translation:
+			return CompleteTranslation(p, g, extras, name);
 		default:
 			return IsMmo(p.Kind) ? Mmo.MmoOps.Complete(p, g, extras, name) : null;
 		}
@@ -1311,6 +1356,24 @@ internal static class GameUpdates
 		return name + " is now rated " + UskName(g.usk) + " (was " + UskName(old) + ").\n\nMore players can buy it: sales " + Pct(UskSales(g.usk) - UskSales(old)) + ". Some fans don't like the cut content.";
 	}
 
+	internal static string CompleteTranslation(UpdateProject p, gameScript g, GameExtras extras, string name)
+	{
+		List<int> missing = Languages.ExtraLanguages.Missing(g);
+		List<int> fresh = (p.Languages ?? new List<int>()).Where(missing.Contains).Distinct().ToList();
+		if (fresh.Count == 0)
+		{
+			return null;
+		}
+		Languages.ExtraLanguages.Add(g, fresh);
+		extras.Translations++;
+		bool[] set = Languages.ExtraLanguages.New();
+		foreach (int i in fresh)
+		{
+			set[i] = true;
+		}
+		return name + " is out in " + Languages.ExtraLanguages.Names(fresh) + ".\n\nIts sales " + Pct(Languages.ExtraLanguages.Share(set)) + " for as long as it's on the market.";
+	}
+
 	// ---- Weekly ----
 
 	[HarmonyPostfix]
@@ -1403,7 +1466,7 @@ internal static class GameUpdates
 	// bonus total instead (and its cap), see HolyCompat.
 	public static float OurSalesFactor(gameScript g)
 	{
-		return SalesFactor(g) * Mmo.MmoOps.NewPlayerFactor(g) * Store.StoreOps.SalesFactor(g) + Store.SalesEvents.Bonus(g) + Events.StudioCon.Bonus(g) + Industry.IndustryCore.Bonus(g);
+		return SalesFactor(g) * Languages.ExtraLanguages.SalesFactor(g) * Mmo.MmoOps.NewPlayerFactor(g) * Store.StoreOps.SalesFactor(g) + Store.SalesEvents.Bonus(g) + Events.StudioCon.Bonus(g) + Industry.IndustryCore.Bonus(g);
 	}
 
 	[HarmonyFinalizer]

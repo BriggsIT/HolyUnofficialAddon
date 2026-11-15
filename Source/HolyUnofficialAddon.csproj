@@ -6,7 +6,7 @@
     <TargetFramework>net472</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
-    <Version>0.30.0</Version>
+    <Version>0.32.0</Version>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
@@ -35,6 +35,7 @@
     <Reference Include="UnityEngine.ImageConversionModule" HintPath="$(Managed)\UnityEngine.ImageConversionModule.dll" Private="false" />
     <Reference Include="UnityEngine.AnimationModule" HintPath="$(Managed)\UnityEngine.AnimationModule.dll" Private="false" />
     <Reference Include="UnityEngine.PhysicsModule" HintPath="$(Managed)\UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="UnityEngine.ScreenCaptureModule" HintPath="$(Managed)\UnityEngine.ScreenCaptureModule.dll" Private="false" />
     <Reference Include="Newtonsoft.Json" HintPath="$(Managed)\Newtonsoft.Json.dll" Private="false" />
     <Reference Include="System.Core" />
   </ItemGroup>
@@ -50,6 +51,12 @@
     <UpdateIcons Include="$(MSBuildThisFileDirectory)Assets\icons\png\*.png" />
     <!-- Store logos (yours and the rival stores'), drawn by Assets\store\store-logos.html. -->
     <StoreLogos Include="$(MSBuildThisFileDirectory)Assets\store\png\*.png" />
+    <!-- Landmark games: the list, and the pictures put in Assets\landmarks\pictures\<landmark>\ (kept out of the
+         public repo by Publish-Repo.ps1 unless it's run with -Pictures). -->
+    <LandmarkData Include="$(MSBuildThisFileDirectory)Assets\landmarks\landmarks.json" />
+    <LandmarkPictures Include="$(MSBuildThisFileDirectory)Assets\landmarks\pictures\**\*.png;$(MSBuildThisFileDirectory)Assets\landmarks\pictures\**\*.jpg;$(MSBuildThisFileDirectory)Assets\landmarks\pictures\**\*.jpeg" />
+    <!-- Third and fourth topics: the themes each topic has, for judging how topics go together. -->
+    <TopicData Include="$(MSBuildThisFileDirectory)Assets\topics\topic-themes.json" />
   </ItemGroup>
 
   <!-- Copy the built mod into the distributable package folder (same layout as the other mods). -->
@@ -61,6 +68,9 @@
     <Copy SourceFiles="@(CompanyLogos)" DestinationFolder="$(PackageDir)\logos" />
     <Copy SourceFiles="@(UpdateIcons)" DestinationFolder="$(PackageDir)\icons" />
     <Copy SourceFiles="@(StoreLogos)" DestinationFolder="$(PackageDir)\store" />
+    <Copy SourceFiles="@(LandmarkData)" DestinationFolder="$(PackageDir)\landmarks" />
+    <Copy SourceFiles="@(LandmarkPictures)" DestinationFolder="$(PackageDir)\landmarks\pictures\%(RecursiveDir)" />
+    <Copy SourceFiles="@(TopicData)" DestinationFolder="$(PackageDir)\topics" />
   </Target>
 
   <!-- dotnet build -t:Install copies the package straight into the game. -->
@@ -73,6 +83,9 @@
     <Copy SourceFiles="@(CompanyLogos)" DestinationFolder="$(InstallDir)\logos" />
     <Copy SourceFiles="@(UpdateIcons)" DestinationFolder="$(InstallDir)\icons" />
     <Copy SourceFiles="@(StoreLogos)" DestinationFolder="$(InstallDir)\store" />
-    <Message Importance="high" Text="Installed HolyUnofficialAddon.dll, icons, reviews, company and store logos into $(InstallDir)" />
+    <Copy SourceFiles="@(LandmarkData)" DestinationFolder="$(InstallDir)\landmarks" />
+    <Copy SourceFiles="@(LandmarkPictures)" DestinationFolder="$(InstallDir)\landmarks\pictures\%(RecursiveDir)" />
+    <Copy SourceFiles="@(TopicData)" DestinationFolder="$(InstallDir)\topics" />
+    <Message Importance="high" Text="Installed HolyUnofficialAddon.dll, icons, reviews, company and store logos, landmarks, topics into $(InstallDir)" />
   </Target>
 </Project>

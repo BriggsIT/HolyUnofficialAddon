@@ -139,8 +139,8 @@ internal static class UpdateRoom
 			points = (float)GetWorkResult.Invoke(c, new object[1] { points });
 			UpdateKind k = p.Kind;
 			bool graphics = k == UpdateKind.MmoGraphics || k == UpdateKind.MmoExpansion;
-			bool design = k == UpdateKind.Features || k == UpdateKind.Rating || k == UpdateKind.MmoFeatures || k == UpdateKind.MmoRating || k == UpdateKind.MmoExpansion || k == UpdateKind.MmoPatch;
-			bool programming = k != UpdateKind.Rating && k != UpdateKind.MmoRating && k != UpdateKind.MmoGraphics;
+			bool design = k == UpdateKind.Features || k == UpdateKind.Rating || k == UpdateKind.Translation || k == UpdateKind.MmoFeatures || k == UpdateKind.MmoRating || k == UpdateKind.MmoExpansion || k == UpdateKind.MmoPatch;
+			bool programming = k != UpdateKind.Rating && k != UpdateKind.Translation && k != UpdateKind.MmoRating && k != UpdateKind.MmoGraphics;
 			if (!c.settings_.disableWorkIcons && UiVisible(c))
 			{
 				c.StartCoroutine((IEnumerator)CreatePop.Invoke(c, new object[4]
@@ -333,6 +333,7 @@ internal static class UpdateRoom
 			UpdateKind.Engine => "Engine Update",
 			UpdateKind.Features => "New Features",
 			UpdateKind.Rating => "Age Rating Edit",
+			UpdateKind.Translation => "Translation",
 			UpdateKind.MmoGraphics => "Graphics Overhaul",
 			UpdateKind.MmoClient64 => "64-Bit Client",
 			UpdateKind.MmoMigration => "Engine Migration",

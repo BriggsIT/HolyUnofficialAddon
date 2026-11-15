@@ -85,6 +85,30 @@ internal static class TimedExclusiveMenu
 			{
 				return;
 			}
+			// With the taller design screen (ExtraTopicsRow), the choice sits on the platform page itself.
+			if (ExtraTopicsRow.In && TimedExclusives.On)
+			{
+				if (button.activeSelf)
+				{
+					button.SetActive(value: false);
+				}
+				if (EditorWindow.TimedExclusive.IsOpen)
+				{
+					EditorWindow.TimedExclusive.Close();
+				}
+				if (PickedFirst >= 0 && !Platforms(menu).Contains(PickedFirst))
+				{
+					PickedFirst = -1;
+				}
+				Strip(menu);
+				return;
+			}
+			if ((bool)strip)
+			{
+				UnityEngine.Object.Destroy(strip);
+				strip = null;
+				stripKey = "";
+			}
 			bool show = Wanted(menu);
 			if (button.activeSelf != show)
 			{
@@ -221,6 +245,195 @@ internal static class TimedExclusiveMenu
 		go.SetActive(value: false);
 		Plugin.Log.LogInfo("Timed exclusive button added to the new-game screen");
 		return true;
+	}
+
+	// ---- On the platform page: the choice itself, under "Buy DevKits" ----
+
+	private static GameObject strip;
+
+	private static string stripKey = "";
+
+	// Two rows of buttons in the game's style (copies of "Buy DevKits"): which platform first, and for how long,
+	// with what the deal pays underneath. Greyed out, with the reason, when the game can't have one.
+	private static void Strip(Menu_DevGame menu)
+	{
+		Transform page = menu.uiObjects[146].transform.parent;
+		RectTransform buy = page.Find("Button_PlatformKaufen") as RectTransform;
+		// Laid out while the platform page is showing, so its rows are where they'll be.
+		if (!buy || !page.gameObject.activeInHierarchy)
+		{
+			return;
+		}
+		int[] slots = ((menu.g_GamePlatform != null) ? menu.g_GamePlatform.Take(4).ToArray() : new int[0]);
+		bool wanted = Wanted(menu);
+		string key = string.Join(",", slots) + "|" + PickedFirst + "|" + PickedMonths + "|" + wanted;
+		if ((bool)strip && key == stripKey)
+		{
+			return;
+		}
+		stripKey = key;
+		if ((bool)strip)
+		{
+			UnityEngine.Object.Destroy(strip);
+		}
+		RectTransform pageRt = (RectTransform)page;
+		Rect b = Local(buy, pageRt);
+		// As wide as the row "Buy DevKits" is in: the help icon on the left to the platforms' total on the right
+		// (tall things such as the platforms' background don't count).
+		float left = b.xMin;
+		float right = b.xMax;
+		foreach (Graphic gr in page.GetComponentsInChildren<Graphic>(includeInactive: false))
+		{
+			if (((bool)strip && gr.transform.IsChildOf(strip.transform)) || ((bool)button && gr.transform.IsChildOf(button.transform)))
+			{
+				continue;
+			}
+			Rect r = Local(gr.rectTransform, pageRt);
+			if (r.width >= 2f && r.height >= 2f && r.height <= b.height * 2.5f && r.yMax >= b.yMin - 4f && r.yMin <= b.yMax + 4f)
+			{
+				left = Mathf.Min(left, r.xMin);
+				right = Mathf.Max(right, r.xMax);
+			}
+		}
+		float space = ExtraTopicsRow.Pitch - 18f;
+		float topY = b.yMin - 16f;
+		strip = new GameObject("Addon_TimedExclusiveStrip", typeof(RectTransform));
+		strip.transform.SetParent(page, worldPositionStays: false);
+		RectTransform srt = (RectTransform)strip.transform;
+		srt.anchorMin = (srt.anchorMax = new Vector2(0.5f, 0.5f));
+		srt.pivot = new Vector2(0.5f, 0.5f);
+		srt.sizeDelta = new Vector2(right - left, space);
+		srt.anchoredPosition = new Vector2((left + right) / 2f, topY - space / 2f) - pageRt.rect.center;
+		float w = right - left;
+		float rowH = Mathf.Clamp((space - 26f) / 2f, 22f, b.height);
+		// The timed exclusive's icon on the left, as tall as the panel.
+		float icon = Mathf.Min(space - 6f, 66f);
+		Image pic = new GameObject("Icon", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+		pic.transform.SetParent(strip.transform, worldPositionStays: false);
+		Place((RectTransform)pic.transform, 0f, (space - icon) / 2f, icon, icon);
+		pic.sprite = UpdateIcons.TimedExclusive();
+		pic.preserveAspect = true;
+		pic.raycastTarget = false;
+		float lx = icon + 10f;
+		float labelW = 118f;
+		string why = (wanted ? null : (menu.typ_contractGame ? "Contract games don't have timed exclusives." : "Pick two or more platforms for a multiplatform game first."));
+		// First on: none, or one of the game's four platform slots (an empty slot stays greyed out).
+		Label("Timed exclusive", lx, 0f, labelW, rowH, bold: true, buy);
+		List<KeyValuePair<int, string>> choices = new List<KeyValuePair<int, string>>
+		{
+			new KeyValuePair<int, string>(-1, "None")
+		};
+		for (int k = 0; k < 4; k++)
+		{
+			int id0 = ((k < slots.Length) ? slots[k] : (-1));
+			choices.Add(new KeyValuePair<int, string>(id0, (id0 >= 0) ? Name(id0) : ((k == 0) ? "Main Platform" : ("Platform " + (k + 1)))));
+		}
+		float bx = lx + labelW + 6f;
+		float bw = (w - bx - 6f * (float)(choices.Count - 1)) / (float)choices.Count;
+		for (int i = 0; i < choices.Count; i++)
+		{
+			int id = choices[i].Key;
+			bool empty = i > 0 && id < 0;
+			bool on = !empty && PickedFirst == id;
+			string tip = why ?? (empty ? "No platform in this slot." : ((id < 0) ? "Release on all its platforms at once." : ("<b>" + choices[i].Value + " first</b>\n" + DealText(id, PickedMonths))));
+			SmallButton(on ? ("[" + choices[i].Value + "]") : choices[i].Value, bx + (float)i * (bw + 6f), 0f, bw, rowH, wanted && !empty, tip, buy, () =>
+			{
+				PickedFirst = id;
+			});
+		}
+		// For how long
+		float y2 = rowH + 6f;
+		Label("Exclusive for", lx, y2, labelW, rowH, bold: true, buy);
+		int n = TimedExclusives.Windows.Length;
+		float mw = (w - bx - 6f * (float)(n - 1)) / (float)n;
+		for (int j = 0; j < n; j++)
+		{
+			int m = TimedExclusives.Windows[j];
+			bool on2 = PickedMonths == m;
+			string tip2 = why ?? ((PickedFirst < 0) ? "Pick the platform that gets it first." : "Longer deals pay more, but the other platforms wait longer.");
+			SmallButton(on2 ? ("[" + m + " months]") : (m + " months"), bx + (float)j * (mw + 6f), y2, mw, rowH, wanted && PickedFirst >= 0, tip2, buy, () =>
+			{
+				PickedMonths = m;
+			});
+		}
+		// What it pays
+		string text = why ?? ((PickedFirst < 0) ? "Release the game on one platform first; its maker pays you for the deal, and the others get it later." : DealText(PickedFirst, PickedMonths));
+		Label(text, lx, y2 + rowH + 4f, w - lx, Mathf.Max(18f, space - (y2 + rowH + 4f)), bold: false, buy);
+	}
+
+	// A copy of "Buy DevKits" at (x, y) from the strip's top left.
+	private static void SmallButton(string text, float x, float y, float w, float h, bool enabled, string tip, RectTransform template, Action onClick)
+	{
+		GameObject go = UnityEngine.Object.Instantiate(template.gameObject, strip.transform, worldPositionStays: false);
+		go.name = "Choice";
+		foreach (setText s in go.GetComponentsInChildren<setText>(includeInactive: true))
+		{
+			UnityEngine.Object.DestroyImmediate(s);
+		}
+		foreach (tooltip t in go.GetComponentsInChildren<tooltip>(includeInactive: true))
+		{
+			UnityEngine.Object.DestroyImmediate(t);
+		}
+		Place((RectTransform)go.transform, x, y, w, h);
+		Text label2 = go.GetComponentInChildren<Text>(includeInactive: true);
+		if ((bool)label2)
+		{
+			label2.text = text;
+			label2.resizeTextForBestFit = true;
+			label2.resizeTextMinSize = 8;
+			label2.resizeTextMaxSize = Mathf.Max(9, label2.fontSize);
+		}
+		Button b = go.GetComponent<Button>();
+		b.onClick = new Button.ButtonClickedEvent();
+		b.interactable = enabled;
+		UIKit.OnClick(b, () =>
+		{
+			UIKit.Sound();
+			onClick();
+		});
+		if (!string.IsNullOrEmpty(tip))
+		{
+			UIKit.SetTooltip(go, tip);
+		}
+	}
+
+	// A label in the font of "Buy DevKits".
+	private static void Label(string text, float x, float y, float w, float h, bool bold, RectTransform template)
+	{
+		Text source = template.GetComponentInChildren<Text>(includeInactive: true);
+		if (!source)
+		{
+			return;
+		}
+		GameObject go = UnityEngine.Object.Instantiate(source.gameObject, strip.transform, worldPositionStays: false);
+		go.name = "Label";
+		foreach (MonoBehaviour mb in go.GetComponents<MonoBehaviour>())
+		{
+			if (!(mb is Graphic))
+			{
+				UnityEngine.Object.DestroyImmediate(mb);
+			}
+		}
+		Place((RectTransform)go.transform, x, y, w, h);
+		Text t = go.GetComponent<Text>();
+		t.text = (bold ? ("<b>" + text + "</b>") : text);
+		t.supportRichText = true;
+		t.alignment = (bold ? TextAnchor.MiddleLeft : TextAnchor.UpperLeft);
+		t.horizontalOverflow = HorizontalWrapMode.Wrap;
+		t.verticalOverflow = VerticalWrapMode.Truncate;
+		t.resizeTextForBestFit = true;
+		t.resizeTextMinSize = 8;
+		t.resizeTextMaxSize = Mathf.Max(9, source.fontSize);
+		t.raycastTarget = false;
+	}
+
+	// Top-left placement inside the strip.
+	private static void Place(RectTransform rt, float x, float y, float w, float h)
+	{
+		rt.anchorMin = (rt.anchorMax = new Vector2(0f, 1f));
+		rt.pivot = new Vector2(0f, 1f);
+		rt.sizeDelta = new Vector2(w, h);
+		rt.anchoredPosition = new Vector2(x, 0f - y);
 	}
 
 	// In the gap left of "Buy DevKits", up to the help icon, same height.

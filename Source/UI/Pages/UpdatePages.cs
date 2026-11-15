@@ -430,6 +430,84 @@ internal class RatingUpdatePage : UpdatePageBase
 	}
 }
 
+// Translating a released game into the addon's new languages (Core/Languages): pick the ones it doesn't have yet.
+internal class TranslationUpdatePage : UpdatePageBase
+{
+	private readonly HashSet<int> picked = new HashSet<int>();
+
+	public TranslationUpdatePage(int gameId, int roomId)
+		: base(gameId, roomId, mmo: false)
+	{
+	}
+
+	protected override UpdateKind BaseKind => UpdateKind.Translation;
+
+	public override float Width => 760f;
+
+	public override float Height => 660f;
+
+	public override void Build(EditorWindow w)
+	{
+		float y = Header(w);
+		if (y < 0f)
+		{
+			return;
+		}
+		gameScript g = Game;
+		List<int> missing = Core.Languages.ExtraLanguages.Missing(g);
+		picked.RemoveWhere((int i) => !missing.Contains(i));
+		bool[] has = Core.Languages.ExtraLanguages.Of(g);
+		w.Label("Pick the languages to bring it out in. Each adds its share to its sales from then on.", 24f, y, w.Width - 48f, 24f, TextAnchor.MiddleLeft, bold: false, null, 13);
+		y += 30f;
+		float listHeight = 300f;
+		ListView list = w.List(13f, y, w.Width - 26f, listHeight);
+		float points = GameUpdates.DevPoints(g);
+		for (int k = 0; k < Core.Languages.ExtraLanguages.Count; k++)
+		{
+			int i = k;
+			Core.Languages.LanguageDef d = Core.Languages.ExtraLanguages.Defs[i];
+			bool already = has != null && i < has.Length && has[i];
+			bool open = missing.Contains(i);
+			string state = (already ? "It has it" : ((!Core.Languages.ExtraLanguages.Unlocked(i)) ? ("Opens in " + d.Year) : (Core.Languages.ExtraLanguages.Native(i) ? "Free: your studio speaks it" : G.Money((long)Mathf.Round(points * 5f)))));
+			RowView row = list.Row(44f, delegate
+			{
+				if (!picked.Remove(i))
+				{
+					picked.Add(i);
+				}
+				status = "";
+				w.Rebuild();
+			}, open ? ("<b>" + d.Name + "</b>\nSales +" + Mathf.RoundToInt(d.Share * 100f) + "% while it's on the market.") : state, open);
+			if (picked.Contains(i))
+			{
+				row.Highlight();
+			}
+			row.Picture(Core.Languages.ExtraLanguages.Icon(i), 8f, 36f);
+			Text name = row.Text((open ? "" : "<color=#8a8a8a>") + d.Name + "  ·  sales +" + Mathf.RoundToInt(d.Share * 100f) + "%" + (open ? "" : "</color>"), 54f, row.W - 300f, bold: true);
+			name.supportRichText = true;
+			row.Text(state, row.W - 240f, 226f, bold: false, TextAnchor.MiddleRight);
+		}
+		y += listHeight + 10f;
+		UpdatePlan plan = GameUpdates.PlanTranslation(g, picked);
+		List<KeyValuePair<string, string>> facts = new List<KeyValuePair<string, string>>
+		{
+			EditorWindow.KV("Costs", G.Money(plan.Cost)),
+			EditorWindow.KV("Time", (plan.Work > 0f) ? RoomLine(plan.Work) : "-"),
+			EditorWindow.KV("Languages", (picked.Count > 0) ? Core.Languages.ExtraLanguages.Names(picked.OrderBy((int i) => i)) : "-"),
+			EditorWindow.KV("Sales while on the market", (plan.Bonus > 0f) ? GameUpdates.Pct(plan.Bonus) : "-")
+		};
+		y += w.Facts(14f, y, w.Width - 28f, facts, 2) + 6f;
+		w.Label(plan.Notes, 24f, y, w.Width - 48f, 24f, TextAnchor.UpperLeft, bold: false, null, 13);
+		y += 30f;
+		List<int> chosen = picked.OrderBy((int i) => i).ToList();
+		StartButton(w, y, plan, () => new UpdateProject
+		{
+			Kind = UpdateKind.Translation,
+			Languages = chosen
+		});
+	}
+}
+
 // One update in development: progress, room, cancel.
 internal class UpdateProjectPage : Page
 {

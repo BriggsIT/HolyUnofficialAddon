@@ -260,6 +260,9 @@ internal class IndustryPage : Page
 {
 	private int tab;
 
+	// Open the Industry window on this tab (3 = Landmarks), from another window.
+	public static int StartTab = -1;
+
 	private int filter;
 
 	private static readonly string[] Filters = new string[6] { "All", "Allies and Friends", "Rivals", "Competitors", "Developers", "Publishers" };
@@ -288,12 +291,24 @@ internal class IndustryPage : Page
 		publisherScript arch = IndustryRivals.Arch;
 		w.StatCard(UpdateIcons.Game("iconUnhappy", IndustryUi.Icon), "Rivals", rivals.ToString(), arch ? ("arch-rival: " + arch.GetName()) : ((rivals > 0) ? "they may act against you" : "none yet"), 14f + 2f * (cw + 10f), 14f, cw, 80f, (rivals > 0) ? new Color?(UIKit.Red) : null, arch ? ("Your arch-rival makes moves against you every few months. Click it in the list for your moves against it.") : null);
 		w.StatCard(UpdateIcons.Game("iconDollar", IndustryUi.Icon), "Deals running", (s.Streams.Count + s.Promises.Count + s.Deals.Count).ToString(), "shares, fees, promises", 14f + 3f * (cw + 10f), 14f, cw, 80f);
-		string[] tabs = new string[3] { "Studios", "Recent News", "Your Deals" };
-		float tw = (W - 28f - 20f) / 3f;
-		for (int i = 0; i < 3; i++)
+		if (StartTab >= 0)
+		{
+			tab = StartTab;
+			StartTab = -1;
+		}
+		string[] tabs = new string[4] { "Studios", "Recent News", "Your Deals", "Landmarks" };
+		Sprite[] icons = new Sprite[4]
+		{
+			IndustryUi.Icon,
+			UpdateIcons.Game("iconPress", IndustryUi.Icon),
+			UpdateIcons.Game("iconDollar", IndustryUi.Icon),
+			UpdateIcons.Game("iconTrophy", UpdateIcons.Game("iconStar", IndustryUi.Icon))
+		};
+		float tw = (W - 28f - 30f) / 4f;
+		for (int i = 0; i < 4; i++)
 		{
 			int t = i;
-			w.IconButton(tabs[i], (i == 0) ? IndustryUi.Icon : ((i == 1) ? UpdateIcons.Game("iconPress", IndustryUi.Icon) : UpdateIcons.Game("iconDollar", IndustryUi.Icon)), 14f + (float)i * (tw + 10f), 104f, tw, 44f, delegate
+			w.IconButton(tabs[i], icons[i], 14f + (float)i * (tw + 10f), 104f, tw, 44f, delegate
 			{
 				tab = t;
 				w.Rebuild();
@@ -327,9 +342,13 @@ internal class IndustryPage : Page
 				none.Text("Nothing yet: the news will fill up as the weeks go by.", 12f, none.W - 24f);
 			}
 		}
-		else
+		else if (tab == 2)
 		{
 			DealsTab(w, y);
+		}
+		else
+		{
+			LandmarksTab.Build(w, y);
 		}
 	}
 

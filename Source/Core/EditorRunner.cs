@@ -6,7 +6,15 @@ namespace HolyAddon.Core;
 
 internal class EditorRunner : MonoBehaviour
 {
+	// For coroutines (a window's backdrop is captured at the end of a frame).
+	public static EditorRunner Instance { get; private set; }
+
 	private string lastError;
+
+	private void Awake()
+	{
+		Instance = this;
+	}
 
 	private void Update()
 	{
@@ -40,10 +48,17 @@ internal class EditorRunner : MonoBehaviour
 			EditorWindow.Industry.Tick();
 			EditorWindow.IndustryEvent.Tick();
 			Industry.IndustryCore.Tick();
+			EditorWindow.Landmark.Tick();
+			EditorWindow.LandmarkMade.Tick();
+			Landmarks.Landmarks.Tick();
 			Rooms.RoomScan.Tick();
 			Events.StudioCon.Tick();
 			StoreMenu.Tick();
 			TimedExclusiveMenu.Tick();
+			ExtraTopicsMenu.Tick();
+			EditorWindow.ExtraTopics.Tick();
+			DesignScreenPanels.Tick();
+			LanguagesRow.Tick();
 			CopyProtectMenu.Tick();
 			UpdateMenus.Tick();
 			ContractTracker.Tick();

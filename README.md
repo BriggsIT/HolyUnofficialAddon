@@ -2,7 +2,9 @@
 
 An unofficial addon for **Mad Games Tycoon 2**, made to sit alongside **The Holy Expansion**. It makes the whole game
 livelier, from a 1976 start to the late game:
-- **Industry:** events, and the other studios you deal with.
+- **Industry:** events, the other studios you deal with, and historical landmark games to make before they do.
+- **Designing games:** a third and fourth topic, eleven more languages, and a design screen that shows the market and
+  the whole project.
 - **Running your company:** MMOs you can keep alive for decades, your own digital store, sales, a yearly
   convention and an awards ceremony.
 - **Tools:** an overview of all your rooms, current charts, and contracts with outside studios.
@@ -13,7 +15,7 @@ Where it overlaps with The Holy Expansion, the two are merged into one system ra
 It's a hobby project for friends: not for sale, and not affiliated with Eggcode Games or with The Holy Expansion's
 author.
 
-**Version:** 0.28.0 ([what's new in each version](CHANGELOG.md)) · **Game:** Mad Games Tycoon 2 (Steam, PC) · **Loader:** BepInEx 5
+**Version:** 0.32.0 ([what's new in each version](CHANGELOG.md)) · **Game:** Mad Games Tycoon 2 (Steam, PC) · **Loader:** BepInEx 5
 
 <img src="Screenshots/overview/bottom-bar.png" width="100%" alt="The bottom bar with the addon's buttons">
 
@@ -31,6 +33,8 @@ author.
 - [Features](#features)
   - [Bottom bar and menus](#bottom-bar-and-menus)
   - [Industry events](#industry-events)
+  - [Landmark games](#landmark-games)
+  - [Designing games](#designing-games)
   - [Rooms Overview](#rooms-overview)
   - [MMO Management](#mmo-management)
   - [Your Digital Store](#your-digital-store-from-2003)
@@ -211,6 +215,38 @@ The industry around you moves, and things land on your desk.
 <img src="Screenshots/industry/rivals.png" width="49%" alt="The Rivals filter, with your arch-rival tagged">
 <img src="Screenshots/industry/competitors.png" width="49%" alt="The Competitors filter">
 </p>
+
+### Landmark games
+
+Historical games you can make first, before the studio that made them for real: 22 so far, from Breakout (1976) to
+SimCity and Populous (1989), on The Holy Expansion's real franchise list.
+- **Claiming one:** when a new game of yours is finished and fits a landmark (its genre and topics, a good enough
+  projected review, and the years), a pop-up offers to make it that landmark. It's renamed, shows the landmark's
+  screenshots, and its studio never makes it. A landmark can be made from 3 years before its real year until its
+  studio releases it.
+- **At release:** IP points, fans of its genre, hype, and its genre becomes the trend. A second landmark in another
+  genre offers to make that your special genre.
+- **Studios make them for real**, on time and in the right genre, if you don't.
+- **Series follow history:** later games of a series in Holy's list (Mega Man X, Metal Gear Solid...) are made as
+  sequels by whoever owns the series, not as new series. Yours are never made by a studio.
+- **Landmarks tab** in the Industry window: the landmarks made so far, and who made them. "Show upcoming landmarks"
+  in Game settings lists the rest, with what it takes to make each.
+- **Pictures:** each landmark shows real screenshots from `BepInEx\plugins\HolyUnofficialAddon\landmarks\pictures\<landmark>`
+  (PNG or JPG, any size, cropped to 4:3). Without any, it shows the game's usual screenshot.
+
+### Designing games
+
+- **Third and fourth topics:** two research items, **Layered Settings** (from 1988) and **Rich Worlds** (from 1996),
+  open Third topic and Fourth topic buttons under Main topic and Subtopic. A topic that suits the genre and goes with
+  the others lifts the review (up to about +5%); one that doesn't lowers it. Each adds about 10% to the development
+  cost and time.
+- **Eleven more languages:** Portuguese, Dutch, Greek, Hungarian, Czech, Turkish, Romanian, Ukrainian, Arabic, Hindi
+  and Indonesian, each from its year, in a second row of flags. Each adds 1-2% to sales and costs the game's
+  translation price. Released games can get them with **Translate the Game** in Updates & Addons.
+- **The design screen** grows a row to fit them. The platform page chooses the timed exclusive, the design focus page
+  has a **Market Check** (the trend, your genre's popularity, similar games other studios are making), and the
+  financing page a **Project Overview** (cost, work and roughly how long, topic mix, languages, landmark, timed
+  exclusive).
 
 ### Rooms Overview
 
@@ -416,15 +452,16 @@ Hire outside studios instead of doing everything in-house:
 
 ### More features
 
-- **Timed exclusives:** in the new-game screen, launch a multiplatform game on one platform first. The others follow
-  3 to 24 months later, and the platform maker pays a deal.
+- **Timed exclusives:** on the new-game screen's platform page, launch a multiplatform game on one platform first.
+  The others follow 3 to 24 months later, and the platform maker pays a deal.
 - **Your own copy protection:** research it (from 1980) and develop it in a development room, from disk checks to
   always-online DRM. Keep it updated, and license it to other studios.
 - **More kinds of updates** in Updates & Addons for your released games:
   - **Port to More Platforms**, of the same kind;
   - **Update the Engine**;
   - **Add Gameplay Features**;
-  - **Change the Age Rating**.
+  - **Change the Age Rating**;
+  - **Translate the Game**, into the new languages.
 
   Addons are no longer blocked by features added after release.
 - **Press reviews:**
@@ -522,9 +559,12 @@ saves.
 
 ## Known issues
 
-- **New features need play-testing:** industry events, the Launch Planner merge, the MMO tab, the Rooms Overview,
-  the yearly convention and Sales Events are recent. Please report anything odd: numbers that feel off, or events
-  that come too often or too rarely.
+- **New features need play-testing:** landmark games, series following history, the third and fourth topics, the
+  new languages, industry events, the Launch Planner merge, the MMO tab, the Rooms Overview, the yearly convention and
+  Sales Events are recent. Please report anything odd: numbers that feel off, or events that come too often or too
+  rarely.
+- **Other mods on the design screen:** the addon makes the new-game screen a row taller and lays out its new rows
+  from what's on screen. A mod that changes that screen too could end up overlapped; the BepInEx log says what moved.
 - **Room menu button:** the Rooms Overview button sits at the end of each room menu's tool row. Please say if it
   looks out of place.
 - **Press reviews** are only written in English. With the game in another language, you get the game's own review

@@ -12,7 +12,7 @@ internal class TimedExclusivePage : Page
 {
 	public override string Title => "Timed Exclusive";
 
-	public override Sprite IconSprite => UpdateIcons.For(UpdateKind.Port);
+	public override Sprite IconSprite => UpdateIcons.TimedExclusive();
 
 	public override float Width => 620f;
 

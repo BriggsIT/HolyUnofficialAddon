@@ -100,6 +100,7 @@ internal class GameSettingsPage : Page
 			Plugin.MergedRival.Value = v;
 			Core.Updates.GameUpdates.Touch();
 		}, "Rivals come from your standing with studios. The one you get on worst with is your arch-rival: it makes moves against you every few months (poaching your best people, copycats, release clashes, trash talk), and your moves against any rival are on its page in the Industry window. Replaces The Holy Expansion's Rival Studio, whose rival carries over. Needs industry events. Off = Holy's Rival Studio as before.");
+		w.Toggle("Show upcoming landmarks", 316f, y + 2f, w.Width - 340f, Plugin.LandmarksShowUpcoming.Value, (bool v) => Plugin.LandmarksShowUpcoming.Value = v, "The Landmarks tab in the Industry window also lists the landmark games nobody has made yet, with what it takes to make them. Off: only the ones already made, so you discover the rest.");
 		y += 36f;
 		SpeedSlider(w, ref y, "Turbo speed", Plugin.TurboSpeed, 4f);
 		SpeedSlider(w, ref y, "Ultra speed", Plugin.UltraSpeed, 6f);

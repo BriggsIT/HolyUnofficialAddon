@@ -17,7 +17,7 @@ public class Plugin : BaseUnityPlugin
 
 	public const string Name = "Holy Unofficial Addon";
 
-	public const string Version = "0.30.0";
+	public const string Version = "0.32.0";
 
 	private const string OldGuid = "mgt2.editor";
 
@@ -82,6 +82,8 @@ public class Plugin : BaseUnityPlugin
 	internal static ConfigEntry<int> IndustryPace;
 
 	internal static ConfigEntry<bool> MergedRival;
+
+	internal static ConfigEntry<bool> LandmarksShowUpcoming;
 
 	internal static ConfigEntry<bool> BottomBarExpanded;
 
@@ -176,6 +178,7 @@ public class Plugin : BaseUnityPlugin
 		IndustryPace = Config.Bind("Industry", "Pace", 1, new ConfigDescription("How often decisions come up, at random: 0 = calm, 1 = normal (every 2-3 months on average), 2 = busy.", new AcceptableValueRange<int>(0, 2)));
 		BottomBarExpanded = Config.Bind("General", "BottomBarExpanded", true, "Show the addon's buttons on the bottom bar (the arrow button before them shows or hides them). On narrow screens they sit in a row just above the bar.");
 		MergedRival = Config.Bind("Industry", "Rivals", true, "Rivals from your standing with studios: the one you get on worst with is your arch-rival and makes moves against you every few months (poaching, copycats, release clashes, trash talk); your moves against rivals are on their page in the Industry window. Replaces The Holy Expansion's Rival Studio (its rival carries over). Needs industry events. Off = Holy's Rival Studio as before.");
+		LandmarksShowUpcoming = Config.Bind("Industry", "ShowUpcomingLandmarks", false, "The Landmarks tab (Industry window) also lists the landmark games nobody has made yet, with what it takes to make them. Off = only the ones already made, so you discover them.");
 		Harmony harmony = new Harmony(Guid);
 		harmony.PatchAll(typeof(Plugin).Assembly);
 		HolyCompat.Apply(harmony);
