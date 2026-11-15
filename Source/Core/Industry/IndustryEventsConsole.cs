@@ -930,7 +930,7 @@ internal static partial class IndustryEvents
 			Setup = delegate(IndustryContext c)
 			{
 				platformScript[] all = (G.MS ? G.MS.arrayPlatformsScripts : null);
-				List<platformScript> pool = ((all == null) ? new List<platformScript>() : all.Where((platformScript p) => (bool)p && p.isUnlocked && !p.vomMarktGenommen && p.ownerID != G.MS.myID && (p.typ == 1 || p.typ == 2) && Now - LaunchWeek(p) >= 0 && Now - LaunchWeek(p) <= 8 && !IndustryCore.State.Cooldowns.ContainsKey("launch:" + p.myID)).ToList());
+				List<platformScript> pool = ((all == null) ? new List<platformScript>() : all.Where((platformScript p) => (bool)p && p.isUnlocked && !p.vomMarktGenommen && p.ownerID != G.MS.myID && (p.typ == 1 || p.typ == 2) && Now - LaunchWeek(p) >= 0 && Now - LaunchWeek(p) <= 8 && !IndustryCore.State.Cooldowns.ContainsKey("launch:" + p.myID) && !IndustryHooks.WeakLaunch(p)).ToList());
 				if (pool.Count == 0)
 				{
 					return false;

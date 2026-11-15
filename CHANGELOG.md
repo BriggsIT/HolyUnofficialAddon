@@ -6,6 +6,7 @@ Newest first. Each version below lists what changed; the table is a quick way in
 
 | Version | What it brought |
 |---|---|
+| [0.29.0](#0290-events-for-the-3d-and-online-years) | Events for the 3D and online years |
 | [0.28.0](#0280-events-that-follow-through) | Events that follow through |
 | [0.27.0](#0270-balance-patch) | Balance patch |
 | [0.26.0](#0260-competitors) | Competitors |
@@ -41,6 +42,75 @@ Newest first. Each version below lists what changed; the table is a quick way in
 | [0.4.0 - 0.5.x](#040---05x-contracts) | Contracts |
 | [0.3.x](#03x-press-reviews) | Press reviews |
 | [0.1.x - 0.2.x](#01x---02x-the-employee-editor-and-game-settings) | The employee editor and game settings |
+
+## 0.29.0: events for the 3D and online years
+A new pack of industry events for 1995-2009. Like 0.28.0's, every one changes the game's real systems: engines,
+IPs, studios, platforms, copy protection, age ratings and Holy's modding communities, not just money and sales.
+
+- **Engine Request** (from 1993): a friendly studio wants one of your engines that you don't sell.
+  - **License It to Them:** they pay a fee now and build their next game on your engine. The fee and share come
+    from the game's own engine market: more than the dearest engine on sale, for a deal only they get. The game's
+    own engine statement pays your share of that game's profit when it leaves the shops.
+  - **Put It on Sale:** the engine goes on sale to every studio at the going rate, a price and share studios will
+    actually pay (the game has them turn down engines dearer than the market's).
+  - **Keep It In-House.**
+- **The Mod Team** (from 1995): fans made a hit mod of your game. With The Holy Expansion's Communities, this is
+  Holy's "Mod of the month" for one of your games; without them, one of your well-loved games now and then.
+  - **Hire Them:** its two leads join the job market as a strong designer and programmer.
+  - **Support Them:** IP points, and Holy's official modding tools for the game (more modders if it has them), at
+    what Holy charges for its modding tools.
+  - **Make It Official:** buy the mod and release it as a real paid add-on, out now; the modders get 20% for a year.
+    It's priced and rated like the game's own add-ons: the mod counts as two kinds of add-on content, so it costs
+    what the game's add-on screen would charge to make that (a share of the main game's development cost), and sells
+    with that add-on quality. Like any add-on, it lifts the main game's sales too.
+  - **Leave Them to It.**
+- **Community Work** for Support rooms (with Holy's Communities on): a toggle in the room's menu. On, the room starts
+  Holy's modding tools and tournaments for your games by itself when they're ready, pausing calls while it works and
+  going back to the phones when it's done.
+- **A Star Leaves** (from 1990): one of your best people (a skill of 70+) leaves to found a studio. It's a real new
+  studio that saves, makes games and shows in the Industry window, with one of the addon's company logos that nobody
+  uses and the name that goes with it.
+  - **Wish Them Well:** it starts friendly.
+  - **Back Them:** costs money, which goes into the studio's company value; it starts stronger and as an ally.
+  - **Make Them Stay:** a 40% raise. About half stay; the rest leave bitter, and the new studio starts against you.
+- **Closure Auction** (from 1985): a closed studio's best series is auctioned. It follows the closure rather than
+  coming up at random: as soon as the series is free to change hands under the game's own IP-market rule (none of
+  its games still in the shops), and nothing else is waiting. Closures from the last two years count, each studio is
+  auctioned once, and there's at most one auction every three months. Win it and the series is yours, as if bought
+  on the IP market: sequels, remasters and spin-offs.
+  - **Bid the Asking Price:** about a 55% chance.
+  - **Bid High:** 40% more, almost certain.
+  - **Pass:** the other bidder, a real studio, gets the series.
+- **Cover Disc** (1994-2008): a magazine wants a demo of your game in development. A demo gives a big hype boost,
+  but about a third of the time reviewers remember it and its review score drops 3-6 points at release. A trailer
+  costs money and gives half the hype.
+- **Graphics Card Bundle** (1996-2005): a 3D-card maker wants to bundle your new PC game. They pay a fee and PC sales
+  rise 12% for 12 weeks, unless its graphics review is weak. Weak graphics get shown up: only 6%, and players
+  grumble. Ask for more and they may bundle another studio's game instead.
+- **Fund a Port** (from 1995): the maker of a platform you have a dev kit for offers to pay half of porting your game
+  to it (three quarters if you push your luck). Start the port in Updates & Addons within a year, and the discount
+  is there in the port's price.
+- **CD Burners** (1998-2005): every copy protection on the market loses 15 points of strength.
+  - **Update Your Copy Protection:** starts your own copy protection's update in a free room.
+  - **Patch Your Games:** with Holy, a quarter of your PC games' pirated copies stop working.
+  - **Take the Losses:** your PC games sell 8% less for 12 weeks.
+- **Hidden Content** (from 1998): fans find a cut scene stronger than your game's age rating allows.
+  - **Accept a Higher Rating:** the rating really goes up.
+  - **Recall and Patch:** a short sales dip.
+  - **Deny It:** a gamble; you may be re-rated anyway, and players feel lied to.
+- **New headlines:** sales effects on the real games out at the time.
+  - The dot-com boom (1999-2000) and bust (2001-2002) for online games, and internet cafés.
+  - The used-games market (old boxed games sell less) and the handheld revival.
+  - **A console maker quits hardware** (2000-2009, once): the weakest maker with a machine still to come stops making
+    consoles. Its consoles are discontinued, and its next one never comes out.
+- **Fix:** the "sells out at launch" headline no longer praises a console that The Holy Expansion gave a weak launch.
+- **Fix:** a studio that closes no longer leaves its unfinished game "in development" forever. The game stops a
+  closed studio's development, so that game could never come out, and it kept the studio's series off the IP market
+  for good. It's now cancelled, the way the game drops an NPC game it can't make (announced ones get a news line).
+  This also clears games stuck this way in existing saves.
+- **Fix:** genre names ending in "Game" read as plurals where they stand for the genre's games: a studio "loves
+  Role-Playing Games", "Best sellers in Sports Games" in the charts, and "Role-Playing MMOs" (not "Role-Playing
+  Game MMOs") in MMO anti-bot systems.
 
 ## 0.28.0: events that follow through
 Events now change the game's real systems, not just money and sales numbers.

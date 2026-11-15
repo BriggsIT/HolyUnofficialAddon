@@ -43,6 +43,9 @@ internal class IndustryContext
 	public int Number;
 
 	public int Number2;
+
+	// A name the event made up or was handed (a fan mod's name).
+	public string Text = "";
 }
 
 internal class IndustryPending
@@ -268,6 +271,58 @@ internal class IndustryState
 
 	// Same Idea's Rush It: your game -> the competitor's. Out first, it gets the launch buzz (IndustryCompetitors).
 	public Dictionary<int, int> Rushed = new Dictionary<int, int>();
+
+	// Cover Disc: games whose unfinished demo went out; at release it may cost them a few review points (IndustryHooks).
+	public List<int> CoverDiscs = new List<int>();
+
+	// Consoles The Holy Expansion gave a weak launch (its early dev kit flop): never "sold out at launch".
+	public List<int> FloppedConsoles = new List<int>();
+
+	// Holy's "Mod of the month" picks for your games, newest last (the Mod Team decision; IndustryCommunity).
+	public List<ModHit> ModHits = new List<ModHit>();
+
+	// Support rooms set to do community work by themselves, and those whose calls are paused for it.
+	public List<int> AutoSupport = new List<int>();
+
+	public List<int> PausedCalls = new List<int>();
+
+	// Fund a Port: a platform maker pays a share of porting one of your games to its machine (GameUpdates.PlanPort).
+	public List<PortDeal> PortDeals = new List<PortDeal>();
+
+	// Engine Request: a studio's next game is built on your engine (IndustryHooks, publisherScript.FindEngineForGameNew).
+	public List<EngineDeal> EngineDeals = new List<EngineDeal>();
+
+	// Studios that closed recently (studio id -> week): their IPs may come up at auction.
+	public Dictionary<int, int> RecentClosures = new Dictionary<int, int>();
+}
+
+internal class PortDeal
+{
+	public int GameId;
+
+	public int PlatformId;
+
+	public float Share;
+
+	public int Expires;
+}
+
+internal class EngineDeal
+{
+	public int StudioId;
+
+	public int EngineId;
+
+	public int Share;
+}
+
+internal class ModHit
+{
+	public int GameId;
+
+	public string Name = "";
+
+	public int Week;
 }
 
 internal class StandShare
@@ -591,6 +646,22 @@ internal static class IndustryCore
 		}
 	}
 
+	// A genre as a plural, where its name stands for its games ("loves Role-Playing Games", "best sellers in Sports
+	// Games"). Names that don't end in "Game" read fine as they are ("loves Simulation").
+	public static string Plural(string genre)
+	{
+		if (genre != null && (genre.EndsWith("Game") || genre.EndsWith("game")))
+		{
+			return genre + "s";
+		}
+		return genre;
+	}
+
+	public static string GenrePlural(int g)
+	{
+		return Plural(GenreName(g));
+	}
+
 	// Some genres' names already end in "Game" ("Sports Game", "Role-Playing Game"): "Sports Games", "Action games".
 	public static string GenreGames(int g)
 	{
@@ -702,6 +773,36 @@ internal static class IndustryCore
 		}
 		// Events add at most +-40% to one game, so they can't fill Holy's whole cap (paid choices still buy something).
 		return Mathf.Clamp(total, -0.4f, 0.4f);
+	}
+
+	// Fund a Port: the share of porting this game to this platform its maker pays (0 = none, or the deal has run out).
+	public static float PortShare(gameScript g, int platformId)
+	{
+		if (!g || S.PortDeals == null)
+		{
+			return 0f;
+		}
+		PortDeal d = S.PortDeals.FirstOrDefault((PortDeal x) => x.GameId == g.myID && x.PlatformId == platformId && Now <= x.Expires);
+		if (d == null)
+		{
+			return 0f;
+		}
+		return Mathf.Clamp01(d.Share);
+	}
+
+	public static void UsePortDeals(gameScript g, int[] platforms)
+	{
+		if (!g || S.PortDeals == null || platforms == null)
+		{
+			return;
+		}
+		foreach (PortDeal d in S.PortDeals.Where((PortDeal x) => x.GameId == g.myID && platforms.Contains(x.PlatformId)).ToList())
+		{
+			S.PortDeals.Remove(d);
+			platformScript p = GameUpdates.Platform(d.PlatformId);
+			Change(p ? Studio(p.ownerID) : null, 6, "You ported " + g.GetNameSimple() + " to their machine");
+			Feed("The port of " + g.GetNameSimple() + " to " + (p ? p.GetName() : "the new machine") + " has started, " + Mathf.RoundToInt(d.Share * 100f) + "% paid by its maker.");
+		}
 	}
 
 	// The share of its price a game sells for this week because of a price war (1 = full price).
@@ -962,6 +1063,10 @@ internal static class IndustryCore
 				S.KnownClosed.Add(p.myID);
 				if (S.Seeded)
 				{
+					S.RecentClosures[p.myID] = Now;
+				}
+				if (S.Seeded)
+				{
 					string text2 = "<b>" + p.GetName() + "</b> has closed its doors.";
 					News(text2);
 					Feed(text2);
@@ -969,6 +1074,14 @@ internal static class IndustryCore
 			}
 		}
 		S.Seeded = true;
+		try
+		{
+			IndustryEvents.CancelOrphans();
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Industry: cancelling closed studios' games: " + ex.Message);
+		}
 	}
 
 	// Opens the decision's pop-up once nothing else is on screen; closing it goes the default way.
@@ -1115,6 +1228,14 @@ internal static class IndustryCore
 			S.Clashes = S.Clashes ?? new List<ReleaseClash>();
 			S.Outcomes = S.Outcomes ?? new List<ClashOutcome>();
 			S.Rushed = S.Rushed ?? new Dictionary<int, int>();
+			S.CoverDiscs = S.CoverDiscs ?? new List<int>();
+			S.FloppedConsoles = S.FloppedConsoles ?? new List<int>();
+			S.ModHits = S.ModHits ?? new List<ModHit>();
+			S.AutoSupport = S.AutoSupport ?? new List<int>();
+			S.PausedCalls = S.PausedCalls ?? new List<int>();
+			S.PortDeals = S.PortDeals ?? new List<PortDeal>();
+			S.EngineDeals = S.EngineDeals ?? new List<EngineDeal>();
+			S.RecentClosures = S.RecentClosures ?? new Dictionary<int, int>();
 			S.Feed = S.Feed ?? new List<string>();
 			// Headlines saved before 0.23.1 said "Sports Game games".
 			S.Feed = S.Feed.Select((string f) => (f ?? "").Replace("Game games", "Games")).ToList();

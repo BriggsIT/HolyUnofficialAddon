@@ -152,6 +152,21 @@ The industry around you moves, and things land on your desk.
     - Concerned Parents;
     - Swap Know-How?;
     - Shelf Space.
+  - **The 3D and online years (from the mid-1990s; some end in the 2000s):**
+    - Engine Request (license an engine you don't sell to one studio, or put it on sale);
+    - The Mod Team (hire, back or buy a hit mod of your game; with Holy, its "Mod of the month");
+    - A Star Leaves (one of your best people founds a real new studio);
+    - Closure Auction (bid for a closed studio's series);
+    - Cover Disc;
+    - Graphics Card Bundle;
+    - Fund a Port (a platform maker pays toward porting your game);
+    - CD Burners (every copy protection weakens);
+    - Hidden Content.
+
+    Headlines for these years include the dot-com boom and bust, internet cafés, the used-games market, the
+    handheld revival, and a console maker quitting hardware.
+- **Community Work** (with The Holy Expansion's Communities): a toggle in a Support room's menu makes the room start
+  Holy's modding tools and tournaments for your games by itself, pausing calls while it works.
 - **Standing with every studio**, from Rival through Neutral and Friendly to Ally, grows out of what happens between
   you. Good turns also improve the game's own relation with them, so you get better publishing terms.
 - **Rivals:**

@@ -164,6 +164,17 @@ internal static class MmoBots
 		return gen.GetName(genre);
 	}
 
+	// "Role-Playing MMOs", "Action MMOs": never "Role-Playing Game MMOs".
+	public static string GenreMmos(int genre)
+	{
+		string n = GenreName(genre);
+		if (n.EndsWith(" Game") || n.EndsWith(" game"))
+		{
+			n = n.Substring(0, n.Length - 5);
+		}
+		return n + " MMOs";
+	}
+
 	// How well a system built for one genre works on this MMO.
 	public static float GenreFit(int systemGenre, gameScript g)
 	{
@@ -705,7 +716,7 @@ internal static class MmoBots
 			S.AntiBots.Add(a);
 			long caught = Sweep(a);
 			GameUpdates.Touch();
-			return "<b>" + a.Name + "</b> is ready: " + TechName(a.Tech).ToLower() + " against bots in " + GenreName(a.Genre) + " MMOs, at " + Mathf.RoundToInt(strength) + "% strength.\n\nIt protects every MMO of yours it suits: fully in its genre, partly where " + GenreName(a.Genre) + " is the second genre, a little elsewhere." + ((caught > 0) ? (" Its first sweep closed " + MmoUiText.Num(caught) + " bot accounts.") : "") + " Keep it strong with updates, or sell licences to other studios, under Anti-bot systems in MMO Management.";
+			return "<b>" + a.Name + "</b> is ready: " + TechName(a.Tech).ToLower() + " against bots in " + GenreMmos(a.Genre) + ", at " + Mathf.RoundToInt(strength) + "% strength.\n\nIt protects every MMO of yours it suits: fully in its genre, partly where " + GenreName(a.Genre) + " is the second genre, a little elsewhere." + ((caught > 0) ? (" Its first sweep closed " + MmoUiText.Num(caught) + " bot accounts.") : "") + " Keep it strong with updates, or sell licences to other studios, under Anti-bot systems in MMO Management.";
 		}
 		AntiBotSystem s = Find(p.SystemId);
 		if (s == null)
@@ -988,7 +999,7 @@ internal static class MmoBots
 		S.AntiBots.Add(a);
 		long caught = Sweep(a);
 		GameUpdates.Touch();
-		CopyProtectDev.Report("You now license <b>" + a.Name + "</b> from " + o.Studio.GetName() + " for " + GenreName(a.Genre) + " MMOs: " + G.Money(a.Fee) + " a month, and they keep it up to date." + ((caught > 0) ? (" Its first sweep closed " + MmoUiText.Num(caught) + " bot accounts.") : ""));
+		CopyProtectDev.Report("You now license <b>" + a.Name + "</b> from " + o.Studio.GetName() + " for " + GenreMmos(a.Genre) + ": " + G.Money(a.Fee) + " a month, and they keep it up to date." + ((caught > 0) ? (" Its first sweep closed " + MmoUiText.Num(caught) + " bot accounts.") : ""));
 		return null;
 	}
 

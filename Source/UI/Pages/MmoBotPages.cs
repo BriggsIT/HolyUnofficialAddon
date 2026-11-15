@@ -137,7 +137,7 @@ internal class AntiBotHomePage : Page
 		Image icon = row.Picture(UpdateIcons.AntiBot(), 8f, 40f);
 		string extra = ((a.Source == -1) ? ((a.Licensees.Count > 0) ? ("  ·  " + a.Licensees.Count + " licensees, " + G.Money(a.Revenue) + " earned") : "") : ("  ·  " + G.Money(a.Fee) + " a month"));
 		Text top = row.Top(a.Name + "  <color=#666666>(" + MmoBots.SourceName(a) + ")</color>" + (a.Retired ? "  <color=#c62828>retired</color>" : ""), 58f, row.W - 330f);
-		Text bottom = row.Bottom(MmoBots.GenreName(a.Genre) + " MMOs  ·  " + MmoBots.TechName(a.Tech) + extra, 58f, row.W - 330f);
+		Text bottom = row.Bottom(MmoBots.GenreMmos(a.Genre) + "  ·  " + MmoBots.TechName(a.Tech) + extra, 58f, row.W - 330f);
 		row.Bar(row.W - 260f, 240f, 22f, a.Strength / 100f, UIKit.ValueColor(Mathf.RoundToInt(a.Strength)), "strength " + Mathf.RoundToInt(a.Strength) + "%");
 		if (a.Retired)
 		{
@@ -317,7 +317,7 @@ internal class AntiBotSystemPage : Page
 		bool own = a.Source == -1;
 		w.Label("<b>" + a.Name + "</b>  <color=#666666>" + MmoBots.SourceName(a) + "</color>", 116f, 10f, w.Width - 400f, 28f, TextAnchor.MiddleLeft, bold: false, null, 16);
 		w.Label(MmoBots.TechInfo[Mathf.Clamp(a.Tech, 0, 4)], 24f, 46f, w.Width - 48f, 36f, TextAnchor.UpperLeft, bold: false, null, 13);
-		w.Bar(14f, 86f, w.Width - 28f, 24f, a.Strength / 100f, "Strength " + Mathf.RoundToInt(a.Strength) + "%  ·  keeps out up to " + BotUi.Pct(MmoBots.SystemPower(a)) + " of the bots in " + MmoBots.GenreName(a.Genre) + " MMOs", UIKit.ValueColor(Mathf.RoundToInt(a.Strength)));
+		w.Bar(14f, 86f, w.Width - 28f, 24f, a.Strength / 100f, "Strength " + Mathf.RoundToInt(a.Strength) + "%  ·  keeps out up to " + BotUi.Pct(MmoBots.SystemPower(a)) + " of the bots in " + MmoBots.GenreMmos(a.Genre) + "", UIKit.ValueColor(Mathf.RoundToInt(a.Strength)));
 		List<KeyValuePair<string, string>> facts = new List<KeyValuePair<string, string>>
 		{
 			EditorWindow.KV("Genre", MmoBots.GenreName(a.Genre)),
@@ -489,7 +489,7 @@ internal class AntiBotBuyPage : Page
 			row.Picture(o.Studio.GetLogo(), 8f, 44f);
 			int fits = mmos.Count((gameScript g) => g.maingenre == o.Genre);
 			row.Top(o.Name + "  <color=#666666>by " + o.Studio.GetName() + "</color>", 62f, row.W - 400f);
-			row.Bottom(MmoBots.GenreName(o.Genre) + " MMOs" + ((fits > 0) ? (" (" + fits + " of yours)") : " (none of yours)") + "  ·  " + MmoBots.TechName(o.Tech) + "  ·  " + Mathf.RoundToInt(o.Strength) + "%", 62f, row.W - 400f);
+			row.Bottom(MmoBots.GenreMmos(o.Genre) + "" + ((fits > 0) ? (" (" + fits + " of yours)") : " (none of yours)") + "  ·  " + MmoBots.TechName(o.Tech) + "  ·  " + Mathf.RoundToInt(o.Strength) + "%", 62f, row.W - 400f);
 			row.Text(G.Money(o.Price) + " now", row.W - 330f, 180f, bold: true, TextAnchor.MiddleRight, 6f, 24f);
 			row.Text("+ " + G.Money(o.Fee) + " a month", row.W - 330f, 180f, bold: false, TextAnchor.MiddleRight, 30f, 24f);
 			row.Button("License", row.W - 136f, 124f, () =>

@@ -605,12 +605,17 @@ internal static class GameUpdates
 		}
 		float dev = DevPoints(g);
 		long devCost = DevCost(g);
+		long funded = 0L;
 		foreach (int id in added)
 		{
 			platformScript p = Platform(id);
 			float complex = (p ? (1f + Mathf.Clamp(p.complex, 0, 3) * 0.15f) : 1f);
 			plan.Work += (0.15f * dev + 15f) * complex;
-			plan.Cost += (long)(0.08f * (float)devCost) + (p ? p.GetDevCosts() : 0);
+			long cost = (long)(0.08f * (float)devCost) + (p ? p.GetDevCosts() : 0);
+			// Fund a Port (an industry event): the platform's maker pays its share of this platform's port.
+			float share = Industry.IndustryCore.PortShare(g, id);
+			funded += (long)((float)cost * share);
+			plan.Cost += cost - (long)((float)cost * share);
 		}
 		int countAfter = newList.Count((int id) => id != -1);
 		bool exclusiveAfter = g.exklusiv && countAfter <= 1;
@@ -618,7 +623,7 @@ internal static class GameUpdates
 		float after = Reach(g, newList.Where((int id) => id != -1), exclusiveAfter);
 		plan.Bonus = LaunchBoostFor(g, newList);
 		float lasting = after / Mathf.Max(1f, before) - 1f;
-		plan.Notes = "Sales from then on: " + Pct(lasting) + ", plus a launch boost of up to " + Pct(plan.Bonus) + " fading over " + LaunchWeeks + " weeks.";
+		plan.Notes = "Sales from then on: " + Pct(lasting) + ", plus a launch boost of up to " + Pct(plan.Bonus) + " fading over " + LaunchWeeks + " weeks." + ((funded > 0) ? (" The platform's maker pays " + G.Money(funded) + " of it.") : "");
 		if (g.exklusiv && !exclusiveAfter)
 		{
 			plan.Notes += " It stops being an exclusive, which costs it the exclusive sales bonus.";
@@ -957,6 +962,10 @@ internal static class GameUpdates
 		p.Title = (store ? title : (title + ": " + g.GetNameWithTag()));
 		S.Projects.Add(p);
 		UpdateRoom.Attach(p, room);
+		if (p.Kind == UpdateKind.Port && p.Platforms != null && (bool)g)
+		{
+			Industry.IndustryCore.UsePortDeals(g, p.Platforms);
+		}
 		Version++;
 		return null;
 	}

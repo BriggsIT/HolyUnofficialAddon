@@ -222,7 +222,22 @@ internal static partial class IndustryEvents
 		{ "cp_clash", "Release Clash (competitor)" },
 		{ "cp_talent", "Talent Race (competitor)" },
 		{ "cp_price", "Price War (competitor)" },
-		{ "cp_idea", "Same Idea (competitor)" }
+		{ "cp_idea", "Same Idea (competitor)" },
+		{ "modteam", "The Mod Team" },
+		{ "coverdisc", "Cover Disc" },
+		{ "cardbundle", "Graphics Card Bundle" },
+		{ "hidden", "Hidden Content" },
+		{ "dotcom", "The dot-com boom" },
+		{ "dotbust", "The dot-com bust" },
+		{ "cafes", "Internet cafés" },
+		{ "usedgames", "The used-games market" },
+		{ "handheld2", "The handheld revival" },
+		{ "enginereq", "Engine Request" },
+		{ "auction", "Closure Auction" },
+		{ "starstudio", "A Star Leaves" },
+		{ "fundport", "Fund a Port" },
+		{ "cdburn", "CD Burners" },
+		{ "hwexit", "A console maker quits hardware" }
 	};
 
 	// Testing (cheats on): runs one event now if its conditions are met, whatever its years and cooldown.
@@ -456,7 +471,7 @@ internal static partial class IndustryEvents
 			Hit(),
 			PriceCut(),
 			Delay()
-		}.Concat(Early()).Concat(Consoles()).Concat(RivalMoves()).Concat(CompetitorFights()).ToList();
+		}.Concat(Early()).Concat(Consoles()).Concat(RivalMoves()).Concat(CompetitorFights()).Concat(ThreeD()).Concat(Studios3D()).ToList();
 	}
 
 	// Two teenagers send you their game: publish it (a gamble), hire them, or pass.

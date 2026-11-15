@@ -37,6 +37,11 @@ internal static class CompanyLogos
 
 	private static int first = Base;
 
+	// The addon's logo numbers: First up to First + Count - 1.
+	public static int First => first;
+
+	public static int Count => names.Count;
+
 	public static bool Ours(int id)
 	{
 		return id >= first && id < first + names.Count;

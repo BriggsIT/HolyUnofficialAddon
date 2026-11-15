@@ -118,7 +118,7 @@ internal class IndustryEventPage : Page
 			StoreUi.Picture(w.Body, studio.GetLogo(), 34f, 34f, 76f);
 			tx = 134f;
 			w.BannerText("<b>" + studio.GetName() + "</b>", tx, 24f, W - tx - 300f, 30f, 20, Color.white);
-			w.BannerText(IndustryUi.Stars(studio.stars) + "  ·  " + (studio.publisher ? (studio.developer ? "developer and publisher" : "publisher") : "developer") + ((studio.fanGenre >= 0) ? ("  ·  loves " + IndustryCore.GenreName(studio.fanGenre)) : ""), tx, 58f, W - tx - 300f, 24f, 14, new Color(0.84f, 0.88f, 0.94f));
+			w.BannerText(IndustryUi.Stars(studio.stars) + "  ·  " + (studio.publisher ? (studio.developer ? "developer and publisher" : "publisher") : "developer") + ((studio.fanGenre >= 0) ? ("  ·  loves " + IndustryCore.GenrePlural(studio.fanGenre)) : ""), tx, 58f, W - tx - 300f, 24f, 14, new Color(0.84f, 0.88f, 0.94f));
 			w.BannerText("Standing: " + IndustryUi.TierText(studio), tx, 88f, W - tx - 300f, 24f, 14, new Color(1f, 0.85f, 0.4f), bold: true);
 		}
 		else
@@ -402,7 +402,7 @@ internal class IndustryPage : Page
 				top.resizeTextMinSize = 11;
 				top.resizeTextForBestFit = true;
 			}
-			IndustryUi.Fixed(row.Bottom((p2.publisher ? (p2.developer ? "Developer and publisher" : "Publisher") : "Developer") + ((p2.fanGenre >= 0) ? ("  ·  loves " + IndustryCore.GenreName(p2.fanGenre)) : ""), 60f, 330f), 13);
+			IndustryUi.Fixed(row.Bottom((p2.publisher ? (p2.developer ? "Developer and publisher" : "Publisher") : "Developer") + ((p2.fanGenre >= 0) ? ("  ·  loves " + IndustryCore.GenrePlural(p2.fanGenre)) : ""), 60f, 330f), 13);
 			developing.TryGetValue(p2.myID, out var dev);
 			// Up to two lines, kept clear of the standing bar (which starts at W - 370).
 			Text devText = row.Text((dev != null) ? ((dev.angekuendigt ? "Announced: " : "In development: ") + dev.GetNameSimple()) : "Nothing in development", 400f, row.W - 370f - 410f, bold: false, TextAnchor.MiddleLeft, 4f, 48f);
@@ -544,7 +544,7 @@ internal class StudioPage : Page
 		glow.sprite = SpriteTools.Glow();
 		StoreUi.Picture(w.Body, p.GetLogo(), 34f, 66f, 76f);
 		w.BannerText("<b>" + p.GetName() + "</b>", 134f, 58f, W - 460f, 30f, 20, Color.white);
-		w.BannerText(IndustryUi.Stars(p.stars) + "  ·  founded " + p.date_year + ((p.fanGenre >= 0) ? ("  ·  loves " + IndustryCore.GenreName(p.fanGenre)) : ""), 134f, 92f, W - 460f, 24f, 14, new Color(0.84f, 0.88f, 0.94f));
+		w.BannerText(IndustryUi.Stars(p.stars) + "  ·  founded " + p.date_year + ((p.fanGenre >= 0) ? ("  ·  loves " + IndustryCore.GenrePlural(p.fanGenre)) : ""), 134f, 92f, W - 460f, 24f, 14, new Color(0.84f, 0.88f, 0.94f));
 		w.BannerText("Standing: " + IndustryUi.TierText(p), 134f, 120f, W - 460f, 24f, 14, new Color(1f, 0.85f, 0.4f), bold: true);
 		float y = 172f;
 		List<KeyValuePair<string, string>> facts = new List<KeyValuePair<string, string>>

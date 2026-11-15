@@ -386,7 +386,7 @@ internal class CurrentChartsPage : Page
 			{
 				genreFilter = id;
 				w.Rebuild();
-			}, "Show the best sellers in " + GenreName(id) + ".");
+			}, "Show the best sellers in " + Core.Industry.IndustryCore.Plural(GenreName(id)) + ".");
 			if (id == genreFilter)
 			{
 				row.Highlight();
@@ -401,7 +401,7 @@ internal class CurrentChartsPage : Page
 		}
 		float rx = 14f + leftW + 14f;
 		float rw = w.Width - rx - 14f;
-		w.Header("Best sellers in " + ((genreFilter >= 0) ? GenreName(genreFilter) : "-"), rx, y, rw);
+		w.Header("Best sellers in " + ((genreFilter >= 0) ? Core.Industry.IndustryCore.Plural(GenreName(genreFilter)) : "-"), rx, y, rw);
 		ListView games = w.List(rx - 1f, y + 32f, rw + 2f, h - 32f);
 		int rank = 0;
 		foreach (gameScript g in TopSellers().Where((gameScript x) => x.maingenre == genreFilter).Take(25))

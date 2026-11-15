@@ -529,6 +529,8 @@ internal static class HolyCompat
 		FixHitBack(harmony);
 		TakeOverRival(harmony);
 		HolyLaunch.HoldThroughPreorders(harmony);
+		Industry.IndustryHooks.WatchHolyFlops(harmony);
+		Industry.IndustryCommunity.Hook(harmony);
 		HolyLiveService.Apply(harmony);
 		RoomSupport.Apply(harmony);
 		try
