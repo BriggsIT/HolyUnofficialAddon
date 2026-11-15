@@ -218,6 +218,11 @@ The industry around you moves, and things land on your desk.
 
 ### Landmark games
 
+<p>
+<img src="Screenshots/landmarks/claim.png" width="49%" alt="A finished game can become Pac-Man">
+<img src="Screenshots/landmarks/made.png" width="49%" alt="Pac-Man is out: the landmark's rewards">
+</p>
+
 Historical games you can make first, before the studio that made them for real: 22 so far, from Breakout (1976) to
 SimCity and Populous (1989), on The Holy Expansion's real franchise list.
 - **Claiming one:** when a new game of yours is finished and fits a landmark (its genre and topics, a good enough
@@ -234,6 +239,11 @@ SimCity and Populous (1989), on The Holy Expansion's real franchise list.
 - **Pictures:** each landmark shows real screenshots from `BepInEx\plugins\HolyUnofficialAddon\landmarks\pictures\<landmark>`
   (PNG or JPG, any size, cropped to 4:3). Without any, it shows the game's usual screenshot.
 
+<p>
+<img src="Screenshots/landmarks/landmarks-tab.png" width="62%" alt="The Landmarks tab in the Industry window">
+<img src="Screenshots/landmarks/game-completed.png" width="36%" alt="The finished game shows the landmark's screenshot">
+</p>
+
 ### Designing games
 
 - **Third and fourth topics:** two research items, **Layered Settings** (from 1988) and **Rich Worlds** (from 1996),
@@ -247,6 +257,16 @@ SimCity and Populous (1989), on The Holy Expansion's real franchise list.
   has a **Market Check** (the trend, your genre's popularity, similar games other studios are making), and the
   financing page a **Project Overview** (cost, work and roughly how long, topic mix, languages, landmark, timed
   exclusive).
+
+<p>
+<img src="Screenshots/design/topics.png" width="32%" alt="Third topic and Fourth topic under Main topic and Subtopic">
+<img src="Screenshots/design/languages.png" width="32%" alt="The new languages, a second row of flags">
+<img src="Screenshots/design/timed-exclusive.png" width="32%" alt="The timed exclusive on the platform page">
+</p>
+<p>
+<img src="Screenshots/design/market-check.png" width="32%" alt="Market Check on the design focus page">
+<img src="Screenshots/design/project-overview.png" width="32%" alt="Project Overview on the financing page">
+</p>
 
 ### Rooms Overview
 
