@@ -227,10 +227,36 @@ internal static class IndustryHooks
 			}
 		}
 		IndustryCommunity.Weekly();
+		try
+		{
+			IndustryReal.Weekly();
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Industry weekly (stock, production, cartoons): " + ex.Message);
+		}
 		// Holy named a mod of the month for one of your games: the Mod Team decision, when nothing else is waiting.
 		if (S.Pending == null && S.ModHits != null && S.ModHits.Count > 0 && IndustryCore.Quiet() && (!S.LastFired.TryGetValue("modteam", out var last) || IndustryCore.Now - last >= 26))
 		{
 			ForceIfReady("modteam");
+		}
+		try
+		{
+			IndustryEvents.RestoreOldExits();
+		}
+		catch (Exception ex)
+		{
+			Plugin.Log.LogWarning("Restoring cancelled consoles: " + ex.Message);
+		}
+		// A console maker may quit hardware: rolled once a year from 2000 to 2009, and it only happens to a maker
+		// that's really struggling (the event's own conditions).
+		if (S.Pending == null && IndustryCore.Year >= 2000 && IndustryCore.Year <= 2009 && !S.LastFired.ContainsKey("hwquit") && IndustryCore.Quiet() && (!S.Cooldowns.TryGetValue("hwquit:roll", out var rolled) || IndustryCore.Now - rolled >= 48))
+		{
+			S.Cooldowns["hwquit:roll"] = IndustryCore.Now;
+			if (UnityEngine.Random.value < IndustryEvents.HardwareQuitChance)
+			{
+				ForceIfReady("hwquit");
+			}
 		}
 		// A closed studio's series is free to sell: the Closure Auction, when nothing else is waiting.
 		if (S.Pending == null && IndustryCore.Year >= 1985 && IndustryCore.Quiet() && (!S.LastFired.TryGetValue("auction", out var lastAuction) || IndustryCore.Now - lastAuction >= IndustryEvents.AuctionGap))

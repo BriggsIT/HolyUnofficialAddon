@@ -6,6 +6,7 @@ Newest first. Each version below lists what changed; the table is a quick way in
 
 | Version | What it brought |
 |---|---|
+| [0.30.0](#0300-every-event-on-real-systems) | Every event on real systems |
 | [0.29.0](#0290-events-for-the-3d-and-online-years) | Events for the 3D and online years |
 | [0.28.0](#0280-events-that-follow-through) | Events that follow through |
 | [0.27.0](#0270-balance-patch) | Balance patch |
@@ -42,6 +43,74 @@ Newest first. Each version below lists what changed; the table is a quick way in
 | [0.4.0 - 0.5.x](#040---05x-contracts) | Contracts |
 | [0.3.x](#03x-press-reviews) | Press reviews |
 | [0.1.x - 0.2.x](#01x---02x-the-employee-editor-and-game-settings) | The employee editor and game settings |
+
+## 0.30.0: every event on real systems
+The last events that only paid money or nudged sales by a flat percentage now change the game's real systems, like
+the rest. Two of the game's own mechanics do most of the work:
+- **Saturation:** the game tracks how close each boxed game is to having sold to everyone who wants it, and its weekly
+  sales shrink as it gets there. Bringing lapsed buyers back lowers it; renting, typing in or second-hand copies raise
+  it, so the game runs out of buyers sooner.
+- **Real copies:** a rental chain's or a card maker's order is counted as sales of the game (its totals, revenue and
+  charts), from your warehouse when you publish it boxed.
+
+**Decisions**
+- **A Copy of Your Game:** win the lawsuit and the court takes their copy off the shelves (as well as damages). Outsell
+  It gives hype. License It makes theirs the official version: a fee, and 15% of what it earns for a year. Ignore It
+  leaves both in the shops, crowding the same genre and topic as any two games would.
+- **A Harsh Review:** writing to the editor can get the game re-reviewed (its real review score goes up 2-3 points, and
+  every magazine's review follows), or readers side with the magazine and its user score drops. The advert gives hype.
+- **Shelf Space:** outbidding them buys a display (hype). Losing the shelf shortens the game's shelf life (saturation).
+- **A High-Score Contest:** fans, IP points and lapsed players coming back; the national final adds hype.
+- **Rent It Out?:** the chain buys copies at a rental premium. Renters become fans, but they won't buy it.
+- **Stuck on Your Game:** parents complaining about the hint line cost user score; free tips raise it and keep players
+  playing.
+- **A Cartridge Shortage:** your production room is affected. Pay the premium (copies cost 50% more to make for 8
+  weeks), ship what you can (no new copies for 8 weeks: the warehouse runs down and orders wait, as the game handles
+  any shortage), or share your chips (no copies for 12 weeks, and the other studio launches sooner).
+- **A Distributor in Trouble:** taking your stock back puts the copies back in your warehouse.
+- **A Pocket Version:** royalties follow how well known your series is (the game's IP fame), not a coin toss.
+- **A Cartoon:** an animated series of your series, premiering about a year later and judged on the series' fame and
+  its games' reviews. A hit brings players back to every game of the series, plus IP points and fans; a flop costs IP
+  points. With The Holy Expansion's Movie & TV deals on, it is Holy's own deal (so the two never double up).
+  Co-producing also brings the merchandise: your fan shop's demand for the series starts fresh at the premiere.
+- **A Graphics Card Bundle:** the card maker buys a copy for every card, at a bundle price. New players become fans and
+  judge the graphics in the user score.
+- **A Cassette in the Post:** the game they send is a small studio's real game in development. Publish It puts it in
+  your publishing offers, the game's own, to negotiate and publish like any other (within your studio level's limit).
+- **Concerned Parents:** defending it on TV gives hype and fans, but the row may get it re-rated a step higher.
+- **Hidden Content:** recalling it scraps your warehouse stock of it, and players respect you for owning up.
+- **CD Burners:** taking the losses means your copy protection stays weaker: that is the loss.
+- **Print Your Code:** readers who type it in won't buy it (saturation).
+- **The Mod Team** without Holy's Communities: supporting the modders brings lapsed players back.
+- **Competitors:** out-marketing is hype; the better-reviewed of two launches gets the attention (hype, fans); in a
+  price war, holding your price loses buyers to their cheaper game for good; making your game stand out adds polish
+  (gameplay points for its review) and hype; and a rushed game that beats theirs out gets the launch buzz (hype).
+
+**Headlines**
+- **Budget re-releases:** bargain hunters bring buyers back to your games over a year old.
+- **A new chain of shops:** an opening order for your boxed games, filled from your warehouse.
+- **The dot-com boom and bust:** interest in MMOs and free-to-play games rises, then falls; with The Holy Expansion's
+  stock market and your company public, your share price follows. In the bust, one or two of the weakest young
+  studios close for real (their series can come up at the Closure Auction).
+- **Internet cafés:** interest in online games grows, and your esports leagues (Holy) draw bigger crowds.
+- **Used games:** second-hand copies take the buyers of boxed games over six months old (saturation).
+- **The handheld revival:** other makers' handhelds sell far more machines (their installed base grows 15%).
+
+**A Console Maker Quits** is now rare, a pop-up, and only happens to a maker that's really struggling. In 0.29.0
+  it was a headline that was all but certain between 2002 and 2005, and it always took out the newest console maker:
+  Microsoft, whose first Xbox starts with the smallest market share. (The game's data already retires Sega on
+  schedule: the Dreamcast is its last console.)
+  - Rolled once a year from 2000 to 2009 at 4%, and only if a maker's newest console has been out for 3 years or
+    more and its consoles' combined market share is under 10% and the lowest, with at least two other makers left.
+  - A pop-up with choices:
+    - **Hire Their Engineers:** two strong Technicians (hardware and engineering) join the job market.
+    - **Port Your Games:** when you have a game on its consoles and a dev kit for another maker's console, that maker
+      pays half of porting it there, if you start the port within a year (Updates & Addons).
+    - **Carry On.**
+  - Its own studio goes third-party: its games come out on every console from then on.
+- Saves hit by 0.29.0's version get their consoles back: the consoles it cancelled get their launch dates back
+  from the game's data. One whose date has passed is announced at once and comes out the next month (the game only
+  launches a console in the month of its date).
 
 ## 0.29.0: events for the 3D and online years
 A new pack of industry events for 1995-2009. Like 0.28.0's, every one changes the game's real systems: engines,

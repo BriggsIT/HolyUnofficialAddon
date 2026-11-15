@@ -5,8 +5,8 @@ using UnityEngine;
 
 namespace HolyAddon.Core.Industry;
 
-// The 3D and online years (1995-2009). Every event changes the game's real systems: hype, the game's own review score
-// and age rating, sales effects on real games (yours and other studios'). See Docs/Events-1995-2009-Plan.md.
+// The 3D and online years (1995-2009). Every event changes the game's real systems: hype, the game's own review score,
+// user score and age rating, real copies sold, saturation, online interest, installed bases, studios closing. See Docs/Events-1995-2009-Plan.md.
 internal static partial class IndustryEvents
 {
 	private static readonly string[] PcMags = new string[5] { "PC Power Monthly", "Gamer's Disc", "Polygon Weekly", "CD Zone", "The Demo Drawer" };
@@ -119,7 +119,7 @@ internal static partial class IndustryEvents
 					IndustryCommunity.ScaleModders(Game(x.GameId), 0.85f);
 					return "The two leads of \"" + x.Text + "\" are in the job market now (Staff > hire), keen to work on the real thing.";
 				}),
-				Choice("Support Them", "Costs " + Money(c.Amount), (IndustryCommunity.On && !IndustryCommunity.HasTools(Game(c.GameId))) ? "Official modding tools, more modders; IP points +15" : "More modders and a buzz; IP points +15", delegate(IndustryContext x)
+				Choice("Support Them", "Costs " + Money(c.Amount), (IndustryCommunity.On && !IndustryCommunity.HasTools(Game(c.GameId))) ? "Official modding tools, more modders; IP points +15" : (IndustryCommunity.On ? "More modders and a buzz; IP points +15" : "Lapsed players come back; IP points +15"), delegate(IndustryContext x)
 				{
 					gameScript g = Game(x.GameId);
 					if (!g)
@@ -142,7 +142,7 @@ internal static partial class IndustryEvents
 					}
 					else
 					{
-						IndustryCore.AddMod(g, 0.06f, 16);
+						IndustryReal.Saturate(g, -0.1f);
 					}
 					return "You back \"" + x.Text + "\" officially. The modding scene around " + g.GetNameSimple() + " grows.";
 				}, (IndustryContext x) => Need(x.Amount)),
@@ -254,16 +254,18 @@ internal static partial class IndustryEvents
 				c.GameId = g.myID;
 				c.Number = Random.Range(0, CardMakers.Length);
 				c.Number2 = g.reviewGrafik;
-				c.Amount = OfRevenue(g, 0.01f, Scaled(5000.0));
+				// A copy for every card it expects to sell: a few weeks of the game's PC sales, at a bundle price.
+				c.Amount = Mathf.Max(100, Mathf.RoundToInt((float)Weekly(g) * Store.StoreOps.PcFraction(g) * R(3f, 6f)));
+				c.Share = IndustryReal.PerCopy(g) * 0.3f;
 				return true;
 			},
 			Title = (IndustryContext c) => "Graphics Card Bundle",
-			Text = (IndustryContext c) => CardMakers[c.Number] + " wants to put " + Name(c.GameId) + " in the box with its new 3D card, to show what the card can do. Every buyer gets your game, but they'll judge its graphics against the card's promise (its graphics review: " + c.Number2 + "%).",
+			Text = (IndustryContext c) => CardMakers[c.Number] + " wants to put " + Name(c.GameId) + " in the box with its new 3D card, to show what the card can do. It buys a copy for every card, at a bundle price, and every buyer will judge its graphics against the card's promise (its graphics review: " + c.Number2 + "%).",
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Bundle It", "They pay " + Money(c.Amount) + "; PC sales +12% for 12 weeks", (c.Number2 >= 75) ? "Its graphics hold up: a showcase" : ((c.Number2 >= 60) ? "Some risk: its graphics may look plain" : "Risky: weak graphics will be shown up"), (IndustryContext x) => Bundle(x, x.Amount)),
-				Choice("Ask for More", "A gamble", "Half as much again, or they bundle someone else's game", delegate(IndustryContext x)
+				Choice("Bundle It", "They buy " + c.Amount + " copies (" + Money((long)((float)c.Amount * c.Share)) + ")", (c.Number2 >= 75) ? "Its graphics hold up: a showcase" : ((c.Number2 >= 60) ? "Some risk: its graphics may look plain" : "Risky: weak graphics will be shown up"), (IndustryContext x) => Bundle(x, x.Amount)),
+				Choice("Ask for More", "A gamble", "A bigger order, or they bundle someone else's game", delegate(IndustryContext x)
 				{
 					if (Random.value < 0.5f)
 					{
@@ -275,7 +277,6 @@ internal static partial class IndustryEvents
 						select g).FirstOrDefault();
 					if ((bool)other)
 					{
-						IndustryCore.AddMod(other, 0.12f, 12);
 						return CardMakers[x.Number] + " bundles " + other.GetNameSimple() + " instead.";
 					}
 					return CardMakers[x.Number] + " walks away.";
@@ -285,28 +286,35 @@ internal static partial class IndustryEvents
 		};
 	}
 
-	private static string Bundle(IndustryContext c, long fee)
+	// Real copies at a bundle price (the game's own totals and revenue), and new players who judge its graphics: they
+	// become fans, and the user score follows what they think.
+	private static string Bundle(IndustryContext c, long copies)
 	{
 		gameScript g = Game(c.GameId);
 		if (!g)
 		{
 			return "The game is gone.";
 		}
-		G.MS.Earn(fee, 2);
-		float pc = Store.StoreOps.PcFraction(g);
+		// The card maker presses its own discs: these copies don't come out of your warehouse.
+		long sold = copies;
+		long money = (long)((float)sold * c.Share);
+		g.sellsTotal += sold;
+		g.sellsTotalStandard += sold;
+		g.umsatzTotal += money;
+		G.MS.Earn(money, 3);
+		int fans = AddFans((float)sold * 0.05f * R(0.8f, 1.3f));
 		bool shown = g.reviewGrafik < 60 || (g.reviewGrafik < 75 && Random.value < 0.3f);
 		if (shown)
 		{
-			IndustryCore.AddMod(g, 0.06f * pc, 12);
 			HolyCompat.ShiftUserReviews(g, -0.05f);
-			return CardMakers[c.Number] + " pays " + Money(fee) + ", but next to the card's promise " + g.GetNameSimple() + " looks dated: players grumble, and the bundle only lifts PC sales 6%.";
+			return CardMakers[c.Number] + " takes " + sold + " copies (" + Money(money) + "), but next to the card's promise " + g.GetNameSimple() + " looks dated: " + fans + " new fans, and its user score drops.";
 		}
-		IndustryCore.AddMod(g, 0.12f * pc, 12);
+		HolyCompat.ShiftUserReviews(g, 0.03f);
 		if (g.reviewGrafik >= 75)
 		{
 			g.AddHype(3f);
 		}
-		return CardMakers[c.Number] + " pays " + Money(fee) + " and every new card comes with " + g.GetNameSimple() + ": PC sales +12% for 12 weeks.";
+		return CardMakers[c.Number] + " takes " + sold + " copies (" + Money(money) + "), and every new card comes with " + g.GetNameSimple() + ": " + fans + " new fans, and players love how it looks.";
 	}
 
 	// Fans find cut content in your game's files that its age rating never covered.
@@ -349,11 +357,13 @@ internal static partial class IndustryEvents
 					g.AddHype(4f);
 					return g.GetNameSimple() + " is re-rated " + GameUpdates.UskName(g.usk) + " (was " + GameUpdates.UskName(old) + "). The fuss makes some players curious.";
 				}),
-				Choice("Recall and Patch", "Costs " + Money(c.Amount), "Its rating stays, but sales -30% for 3 weeks while shops restock", delegate(IndustryContext x)
+				Choice("Recall and Patch", "Costs " + Money(c.Amount), "Its rating stays; your warehouse stock of it is scrapped", delegate(IndustryContext x)
 				{
+					gameScript g = Game(x.GameId);
 					G.MS.Pay(x.Amount, 4);
-					IndustryCore.AddMod(Game(x.GameId), -0.3f, 3);
-					return "Every copy goes back for a patched version without the hidden scene. The rating stays.";
+					long scrapped = IndustryReal.ClearStock(g);
+					HolyCompat.ShiftUserReviews(g, 0.02f);
+					return "Every copy comes back for a patched version without the hidden scene" + ((scrapped > 0) ? (": " + scrapped + " copies in your warehouse are scrapped, and your production room has to make new ones") : "") + ". The rating stays, and players respect you for owning up.";
 				}, (IndustryContext x) => Need(x.Amount)),
 				Choice("Deny It", "A gamble", "It may blow over, or the board re-rates it anyway and players turn on you", delegate(IndustryContext x)
 				{
@@ -378,17 +388,6 @@ internal static partial class IndustryEvents
 
 	// ---- Headlines ----
 
-	private static int ModAll(IEnumerable<gameScript> games, float amount, int weeks)
-	{
-		int n = 0;
-		foreach (gameScript g in games.ToList())
-		{
-			IndustryCore.AddMod(g, amount, weeks);
-			n++;
-		}
-		return n;
-	}
-
 	private static IndustryEventDef DotComBoom()
 	{
 		return new IndustryEventDef
@@ -398,11 +397,12 @@ internal static partial class IndustryEvents
 			From = 1999,
 			To = 2000,
 			Cooldown = 999,
-			Setup = (IndustryContext c) => OnSale().Any(Online),
+			Setup = (IndustryContext c) => OnSale().Any(Online) || IndustryReal.Public,
 			Apply = delegate
 			{
-				ModAll(OnSale().Where(Online), 0.1f, 16);
-				return "Investors pour money into anything online: online games are the hot ticket, and sell 10% more for 16 weeks.";
+				IndustryReal.OnlineInterest(15f);
+				bool shares = IndustryReal.MoveSharePrice(1.15f);
+				return "Investors pour money into anything online: interest in online games soars" + (shares ? ", and your share price rises 15% with the market." : ".");
 			}
 		};
 	}
@@ -416,13 +416,32 @@ internal static partial class IndustryEvents
 			From = 2001,
 			To = 2002,
 			Cooldown = 999,
-			Setup = (IndustryContext c) => OnSale().Any(Online),
+			Setup = (IndustryContext c) => true,
 			Apply = delegate
 			{
-				ModAll(OnSale().Where(Online), -0.1f, 16);
-				return "The dot-com bubble bursts. Online companies go under, and players get wary: online games sell 10% less for 16 weeks.";
+				IndustryReal.OnlineInterest(-15f);
+				bool shares = IndustryReal.MoveSharePrice(0.75f);
+				List<string> gone = Bust();
+				return "The dot-com bubble bursts. Players get wary of online games" + ((gone.Count > 0) ? (", and the money dries up for young studios: " + string.Join(" and ", gone) + ((gone.Count == 1) ? " closes its doors" : " close their doors")) : "") + (shares ? ". Your share price falls 25%." : ".");
 			}
 		};
+	}
+
+	// The bust: one or two of the weakest young studios (opened in the last six years) close for real. Their series
+	// can come up at the Closure Auction.
+	private static List<string> Bust()
+	{
+		List<publisherScript> young = (from p in IndustryCore.Studios()
+			where p.developer && !p.publisher && !p.IsTochterfirma() && p.date_year >= Year - 6 && p.stars < 40f && p.CloseFree() && !IndustryRivals.IsRival(p)
+			orderby p.stars
+			select p).ToList();
+		List<string> names = new List<string>();
+		foreach (publisherScript p2 in young.Take(Random.Range(1, 3)))
+		{
+			names.Add(p2.GetName());
+			p2.CloseNpcStudio();
+		}
+		return names;
 	}
 
 	private static IndustryEventDef InternetCafes()
@@ -437,8 +456,9 @@ internal static partial class IndustryEvents
 			Setup = (IndustryContext c) => OnSale().Any(Online),
 			Apply = delegate
 			{
-				ModAll(OnSale().Where(Online), 0.08f, 12);
-				return "Internet cafés are opening everywhere, full of players gathering to play together: online games sell 8% more for 12 weeks.";
+				IndustryReal.OnlineInterest(10f);
+				int leagues = IndustryReal.EsportsPopularity(0.15f);
+				return "Internet cafés are opening everywhere, full of players gathering to play together: interest in online games grows" + ((leagues > 0) ? ", and your esports leagues draw bigger crowds." : ".");
 			}
 		};
 	}
@@ -452,11 +472,14 @@ internal static partial class IndustryEvents
 			From = 2003,
 			To = 2009,
 			Cooldown = 104,
-			Setup = (IndustryContext c) => OnSale().Any((gameScript g) => g.retailVersion && g.weeksOnMarket >= 26),
+			Setup = (IndustryContext c) => OnSale().Any((gameScript g) => g.retailVersion && g.gameTyp == 0 && g.weeksOnMarket >= 26),
 			Apply = delegate
 			{
-				ModAll(OnSale().Where((gameScript g) => g.retailVersion && g.weeksOnMarket >= 26), -0.08f, 16);
-				return "Shops are filling up with second-hand games: boxed games more than six months old sell 8% less for 16 weeks.";
+				foreach (gameScript g in OnSale().Where((gameScript x) => x.retailVersion && x.gameTyp == 0 && x.weeksOnMarket >= 26).ToList())
+				{
+					IndustryReal.Saturate(g, 0.1f);
+				}
+				return "Shops are filling up with second-hand games: players who'd have bought an older boxed game new pick up a used copy instead.";
 			}
 		};
 	}
@@ -470,12 +493,23 @@ internal static partial class IndustryEvents
 			From = 2004,
 			To = 2009,
 			Cooldown = 156,
-			Setup = (IndustryContext c) => OnSale().Any(OnHandheld),
+			Setup = (IndustryContext c) => Handhelds().Count > 0,
 			Apply = delegate
 			{
-				ModAll(OnSale().Where(OnHandheld), 0.1f, 16);
-				return "Handhelds are back: everyone wants a game in their pocket, and handheld games sell 10% more for 16 weeks.";
+				List<platformScript> machines = Handhelds();
+				foreach (platformScript p in machines)
+				{
+					p.units_max = (int)Mathf.Min(400000000f, (float)p.units_max * 1.15f);
+					p.units = (int)Mathf.Min((float)p.units_max, (float)p.units * 1.15f);
+				}
+				return "Handhelds are back: everyone wants a game in their pocket, and the " + string.Join(" and the ", machines.Take(3).Select((platformScript p) => p.GetName())) + " sell far more machines than expected: more players for every handheld game.";
 			}
 		};
+	}
+
+	// Other makers' handhelds on sale (the game grows their installed base itself; the player's own run on its rules).
+	private static List<platformScript> Handhelds()
+	{
+		return (G.MS.arrayPlatformsScripts ?? new platformScript[0]).Where((platformScript p) => (bool)p && p.typ == 2 && p.isUnlocked && !p.vomMarktGenommen && p.OwnerIsNPC()).ToList();
 	}
 }

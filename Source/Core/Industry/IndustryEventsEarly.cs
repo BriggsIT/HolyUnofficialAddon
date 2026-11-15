@@ -329,10 +329,21 @@ internal static partial class IndustryEvents
 					}
 					return Distributors[x.Number] + " goes under. The money is gone.";
 				}),
-				Choice("Take Your Stock Back", "No money", "Your copies go to other shops: sales +10% for 12 weeks", delegate(IndustryContext x)
+				Choice("Take Your Stock Back", "No money", "The unsold copies come back to your warehouse", delegate(IndustryContext x)
 				{
-					IndustryCore.AddMod(Game(x.GameId), 0.1f, 12);
-					return "You take your copies of " + Name(x.GameId) + " back and sell them through other shops.";
+					gameScript g = Game(x.GameId);
+					if (!g)
+					{
+						return "The game is gone.";
+					}
+					float perCopy = Mathf.Max(1f, IndustryReal.PerCopy(g));
+					long copies = (long)((float)x.Amount / perCopy);
+					long back = IndustryReal.AddStock(g, copies);
+					if (back <= 0)
+					{
+						return "Your warehouse has no room for them, so " + Distributors[x.Number] + "'s creditors keep the copies.";
+					}
+					return "You take " + back + " copies of " + g.GetNameSimple() + " back into your warehouse, to sell through other shops" + ((back < copies) ? (" (the other " + (copies - back) + " didn't fit, and are lost)") : "") + ".";
 				})
 			}
 		};
@@ -374,10 +385,12 @@ internal static partial class IndustryEvents
 					int fans = AddFans(250f * R(0.8f, 1.3f));
 					return ToyMakers[x.Number] + " pays " + Money(x.Amount) + ". The pocket game is in every playground: " + fans + " new fans.";
 				}),
-				Choice("Take Royalties", "A gamble on how it sells", "About 1.4x the fee over 12 weeks if it catches on, much less if not; IP points +20", delegate(IndustryContext x)
+				Choice("Take Royalties", "Up to 1.4x the fee over 12 weeks", "It sells on your series' fame; IP points +20", delegate(IndustryContext x)
 				{
-					bool hit = Random.value < 0.7f;
-					long weekly = x.Amount * (hit ? 14 : 3) / 120;
+					gameScript g = Game(x.GameId);
+					// The better known the series (the game's own IP fame, 0-5 stars), the more pocket games it sells.
+					float fame = (g ? Mathf.Clamp(g.GetIpBekanntheit(), 0f, 5f) : 0f);
+					long weekly = (long)((float)x.Amount * (3f + fame * 2.2f) / 120f);
 					IndustryCore.State.Streams.Add(new IncomeStream
 					{
 						Label = "Pocket " + Name(x.GameId),
@@ -385,9 +398,9 @@ internal static partial class IndustryEvents
 						WeeksLeft = 12,
 						Category = 11
 					});
-					Game(x.GameId)?.AddIpPoints(20f);
+					g?.AddIpPoints(20f);
 					AddFans(250f * R(0.8f, 1.3f));
-					return hit ? ("The pocket game is a playground hit: about " + Money(weekly) + " a week for 12 weeks.") : ("The pocket game sits on the shelves: only about " + Money(weekly) + " a week for 12 weeks.");
+					return ((fame >= 3f) ? "The pocket game rides the series' fame into every playground: " : ((fame >= 1.5f) ? "The pocket game does nicely: " : "Few kids know the series yet, so the pocket game sells slowly: ")) + "about " + Money(weekly) + " a week for 12 weeks.";
 				}),
 				Choice("Decline", "Nothing changes", "It stays a screen game", (IndustryContext x) => "You turn " + ToyMakers[x.Number] + " down.")
 			}
@@ -423,19 +436,24 @@ internal static partial class IndustryEvents
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Run a Local Contest", "Costs " + Money(c.Amount), "Sales +10% for 6 weeks, about 200 new fans", delegate(IndustryContext x)
+				Choice("Run a Local Contest", "Costs " + Money(c.Amount), "About 200 fans, IP points +10, players come back", delegate(IndustryContext x)
 				{
 					G.MS.Pay(x.Amount, 12);
-					IndustryCore.AddMod(Game(x.GameId), 0.1f, 6);
+					gameScript g = Game(x.GameId);
+					g?.AddIpPoints(10f);
+					IndustryReal.Saturate(g, -0.1f);
 					int fans = AddFans(200f * R(0.8f, 1.3f));
-					return "The contest fills a shopping centre on a Saturday: " + fans + " new fans.";
+					return "The contest fills a shopping centre on a Saturday: " + fans + " new fans, and players who'd put " + Name(x.GameId) + " away dig it out to practise.";
 				}, (IndustryContext x) => Need(x.Amount)),
-				Choice("Hold a National Final", "Costs " + Money(c.Amount2), "Sales +20% for 10 weeks, about 600 new fans", delegate(IndustryContext x)
+				Choice("Hold a National Final", "Costs " + Money(c.Amount2), "About 600 fans, IP points +25, hype +5, players come back", delegate(IndustryContext x)
 				{
 					G.MS.Pay(x.Amount2, 12);
-					IndustryCore.AddMod(Game(x.GameId), 0.2f, 10);
+					gameScript g = Game(x.GameId);
+					g?.AddIpPoints(25f);
+					g?.AddHype(5f);
+					IndustryReal.Saturate(g, -0.25f);
 					int fans = AddFans(600f * R(0.8f, 1.3f));
-					return "The national final makes the evening news: " + fans + " new fans.";
+					return "The national final makes the evening news: " + fans + " new fans, and " + Name(x.GameId) + " is back on everyone's wish list.";
 				}, (IndustryContext x) => Need(x.Amount2)),
 				Choice("No Contest", "Nothing changes", "Players keep their scores to themselves", (IndustryContext x) => "No contest this time.")
 			}

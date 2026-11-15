@@ -46,6 +46,9 @@ internal class IndustryContext
 
 	// A name the event made up or was handed (a fan mod's name).
 	public string Text = "";
+
+	// More text the event worked out when it happened (what a console maker's exit ended).
+	public string Text2 = "";
 }
 
 internal class IndustryPending
@@ -294,6 +297,45 @@ internal class IndustryState
 
 	// Studios that closed recently (studio id -> week): their IPs may come up at auction.
 	public Dictionary<int, int> RecentClosures = new Dictionary<int, int>();
+
+	// A Cartridge Shortage: the production room makes no copies of a game, or makes them dearer, for a while
+	// (IndustryReal, taskProduction.Work).
+	public List<ProductionLimit> ProductionLimits = new List<ProductionLimit>();
+
+	// A Cartoon: animated series of your IPs, in production or out (IndustryReal; with Holy, its Movie & TV deal).
+	public List<CartoonDeal> CartoonDeals = new List<CartoonDeal>();
+}
+
+internal class ProductionLimit
+{
+	public int GameId;
+
+	public int Expires;
+
+	// No copies at all while it lasts.
+	public bool Block;
+
+	// Extra cost per copy, as a share of the game's own production cost.
+	public float Surcharge;
+}
+
+internal class CartoonDeal
+{
+	// The IP's main game.
+	public int IpGameId;
+
+	public string Studio = "";
+
+	public int ReleaseWeek;
+
+	// You put money in: its merchandise comes with it.
+	public bool CoProduced;
+
+	// Holy runs the premiere (its Movie & TV deal); otherwise the addon does.
+	public bool Holy;
+
+	// 0 in production, 1 hit, 2 solid, 3 flop.
+	public int Result;
 }
 
 internal class PortDeal
@@ -1236,6 +1278,8 @@ internal static class IndustryCore
 			S.PortDeals = S.PortDeals ?? new List<PortDeal>();
 			S.EngineDeals = S.EngineDeals ?? new List<EngineDeal>();
 			S.RecentClosures = S.RecentClosures ?? new Dictionary<int, int>();
+			S.ProductionLimits = S.ProductionLimits ?? new List<ProductionLimit>();
+			S.CartoonDeals = S.CartoonDeals ?? new List<CartoonDeal>();
 			S.Feed = S.Feed ?? new List<string>();
 			// Headlines saved before 0.23.1 said "Sports Game games".
 			S.Feed = S.Feed.Select((string f) => (f ?? "").Replace("Game games", "Games")).ToList();

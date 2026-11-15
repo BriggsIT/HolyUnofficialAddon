@@ -22,7 +22,7 @@ internal static partial class IndustryEvents
 		yield return StarStudio();
 		yield return FundPort();
 		yield return CdBurners();
-		yield return HardwareExit();
+		yield return HardwareQuit();
 	}
 
 	// ---- Engine Request ----
@@ -716,11 +716,10 @@ internal static partial class IndustryEvents
 					}
 					return "Your PC games get a patch that the copies can't take." + ((gone > 0) ? (" About " + gone + " pirated copies stop working.") : "");
 				}, (IndustryContext x) => Need(x.Amount)),
-				Choice("Take the Losses", "Nothing to pay", "Your PC games sell 8% less for 12 weeks", delegate
+				Choice("Take the Losses", "Nothing to pay", "Your copy protection stays weaker", delegate
 				{
 					Burn();
-					ModAll(PcGames(), -0.08f, 12);
-					return "Copies spread, and your PC games sell less for a while.";
+					return "Copies spread. Your copy protection stays weaker until you update it, and your games lose the sales it used to protect.";
 				})
 			}
 		};
@@ -744,60 +743,284 @@ internal static partial class IndustryEvents
 		}
 	}
 
-	// ---- Headline: a console maker leaves hardware ----
+	// ---- A console maker quits hardware ----
 
-	// The weakest console maker quits: its consoles on sale are taken off the market, and the ones it had coming never
-	// come out (their launch dates are pushed out of reach).
-	private static IndustryEventDef HardwareExit()
+	// Alternate history, so it's rare: the game's data already retires makers on schedule (Sega's Dreamcast is its last
+	// console). Rolled once a year from 2000 to 2009 (IndustryHooks.Weekly), and only for a maker that's really
+	// struggling: its newest console out for 3 years or more, its consoles' combined market share under 10% and the
+	// lowest, with at least two other makers left. A newcomer (the first Xbox in its launch years) can't be picked.
+	// What happens is real: its consoles on sale are discontinued, the ones it had coming are cancelled (launch dates
+	// out of reach), and its own studio goes third-party (the game's own-platform flag off).
+	public const float HardwareQuitChance = 0.04f;
+
+	private const int StrugglingYears = 3;
+
+	private const float StrugglingShare = 10f;
+
+	private class ConsoleMaker
+	{
+		public string Name;
+
+		public publisherScript Studio;
+
+		public List<platformScript> OnSale = new List<platformScript>();
+
+		public List<platformScript> Coming = new List<platformScript>();
+
+		public float Share;
+
+		public int Newest;
+	}
+
+	private static List<ConsoleMaker> ConsoleMakers()
+	{
+		Dictionary<string, ConsoleMaker> makers = new Dictionary<string, ConsoleMaker>();
+		foreach (platformScript p in G.MS.arrayPlatformsScripts ?? new platformScript[0])
+		{
+			if (!p || p.typ != 1 || !p.OwnerIsNPC())
+			{
+				continue;
+			}
+			string name = Maker(p);
+			if (name.Length == 0)
+			{
+				continue;
+			}
+			if (!makers.TryGetValue(name, out var m))
+			{
+				m = (makers[name] = new ConsoleMaker
+				{
+					Name = name,
+					Studio = MakerStudio(p)
+				});
+			}
+			if (p.isUnlocked && !p.vomMarktGenommen)
+			{
+				m.OnSale.Add(p);
+				m.Share += p.GetMarktanteil();
+				m.Newest = Mathf.Max(m.Newest, LaunchWeek(p));
+			}
+			else if (!p.isUnlocked && p.date_year >= Year && p.date_year < 9999)
+			{
+				m.Coming.Add(p);
+			}
+		}
+		return makers.Values.Where((ConsoleMaker m) => m.OnSale.Count > 0).ToList();
+	}
+
+	private static IndustryEventDef HardwareQuit()
 	{
 		return new IndustryEventDef
 		{
-			Id = "hwexit",
-			Headline = true,
+			Id = "hwquit",
 			From = 2000,
 			To = 2009,
 			Cooldown = 999,
+			Scripted = true,
 			Setup = delegate(IndustryContext c)
 			{
-				List<platformScript> all = (G.MS.arrayPlatformsScripts ?? new platformScript[0]).Where((platformScript p) => (bool)p && p.typ == 1 && p.ownerID != G.MS.myID).ToList();
-				var makers = (from p in all
-					where p.isUnlocked && !p.vomMarktGenommen
-					group p by Maker(p) into m
-					where m.Key.Length > 0 && all.Any((platformScript f) => Maker(f) == m.Key && !f.isUnlocked && f.date_year >= Year)
-					select new
-					{
-						Name = m.Key,
-						Share = m.Sum((platformScript p) => p.GetMarktanteil()),
-						Any = m.First()
-					}).OrderBy(m => m.Share).ToList();
+				List<ConsoleMaker> makers = ConsoleMakers();
 				if (makers.Count < 3)
 				{
 					return false;
 				}
-				c.Text = makers[0].Name;
-				c.PlatformId = makers[0].Any.myID;
-				return true;
-			},
-			Apply = delegate(IndustryContext c)
-			{
-				List<platformScript> mine = (G.MS.arrayPlatformsScripts ?? new platformScript[0]).Where((platformScript p) => (bool)p && p.typ == 1 && p.ownerID != G.MS.myID && Maker(p) == c.Text).ToList();
-				List<string> ended = new List<string>();
-				foreach (platformScript p2 in mine)
+				ConsoleMaker quit = makers.OrderBy((ConsoleMaker m) => m.Share).First();
+				if (quit.Coming.Count == 0 || quit.Share >= StrugglingShare || Now - quit.Newest < StrugglingYears * 48)
 				{
-					if (p2.isUnlocked && !p2.vomMarktGenommen)
+					return false;
+				}
+				// Your best game on its consoles, and a console of another maker you could port it to.
+				c.Number = 1;
+				gameScript mine = (from g in IndustryCore.MyGamesOnMarket()
+					where g.releaseDate <= 0 && Standalone(g) && g.gamePlatform != null && quit.OnSale.Any((platformScript p) => g.gamePlatform.Contains(p.myID)) && GameUpdates.Problem(UpdateKind.Port, g) == null
+					orderby Weekly(g) descending
+					select g).FirstOrDefault();
+				if ((bool)mine)
+				{
+					c.Number = 2;
+					platformScript target = (from p in makers.Where((ConsoleMaker m) => m != quit).SelectMany((ConsoleMaker m) => m.OnSale)
+						where p.inBesitz && !mine.gamePlatform.Contains(p.myID)
+						orderby p.GetMarktanteil() descending
+						select p).FirstOrDefault();
+					if ((bool)target)
 					{
-						ended.Add(p2.GetName());
-						p2.RemoveFromMarket();
-					}
-					else if (!p2.isUnlocked)
-					{
-						p2.angekuendigt = false;
-						p2.date_year = 9999;
+						c.Number = 0;
+						c.GameId = mine.myID;
+						c.PlatformId = target.myID;
 					}
 				}
-				return "<b>" + c.Text + "</b> quits making consoles" + ((ended.Count > 0) ? (": the " + string.Join(" and the ", ended) + " " + ((ended.Count == 1) ? "is" : "are") + " discontinued") : "") + ", and its next machine will never come out.";
+				c.StudioId = (quit.Studio ? quit.Studio.myID : (-1));
+				c.Text = quit.Name;
+				c.Text2 = QuitConsoles(quit);
+				IndustryCore.Feed(c.Text2.Replace("<b>", "").Replace("</b>", ""));
+				Plugin.Log.LogInfo("Console maker quits: " + quit.Name + " (market share " + quit.Share.ToString("0.#") + "%)");
+				return true;
+			},
+			Title = (IndustryContext c) => "A Console Maker Quits",
+			Text = (IndustryContext c) => c.Text2,
+			Default = 2,
+			Choices = (IndustryContext c) => new List<IndustryChoice>
+			{
+				Choice("Hire Their Engineers", "Two Technicians join the job market", "Strong at hardware and engineering", delegate(IndustryContext x)
+				{
+					Applicant(6, 62f, 76f);
+					Applicant(6, 62f, 76f);
+					return "Two of " + x.Text + "'s hardware engineers are in the job market now (Staff > hire).";
+				}),
+				Choice("Port Your Games", PortMaker(c) + " pays half", Game(c.GameId) ? ("Port " + Name(c.GameId) + " to the " + PlatformName(c.PlatformId) + " within a year") : "Move a game to another console", (IndustryContext x) => PortDeal(x, 0.5f), (IndustryContext x) => (x.Number == 1) ? ("You have no game on sale on " + x.Text + "'s consoles that can be ported.") : ((x.Number == 2) ? "You have no dev kit for another maker's console to port it to." : null)),
+				Choice("Carry On", "Nothing changes for you", "The market moves on without them", (IndustryContext x) => "The market moves on without " + x.Text + ".")
 			}
 		};
+	}
+
+	// The studio behind a console. The game's console data names only a manufacturer (ownerID -1), so it's the open
+	// studio of that name, preferring one that makes games for its own consoles ("Microsoft", "Sony", "Nintendo").
+	private static publisherScript MakerStudio(platformScript p)
+	{
+		if (p.ownerID >= 0)
+		{
+			return IndustryCore.Studio(p.ownerID);
+		}
+		string maker = p.manufacturer_EN;
+		if (string.IsNullOrEmpty(maker))
+		{
+			return null;
+		}
+		return (from s in G.MS.arrayPublisherScripts ?? new publisherScript[0]
+			where (bool)s && !s.isPlayer && !s.Geschlossen() && string.Equals(s.name_EN, maker, StringComparison.OrdinalIgnoreCase)
+			orderby s.ownPlatform descending
+			select s).FirstOrDefault();
+	}
+
+	private static string PortMaker(IndustryContext c)
+	{
+		platformScript p = GameUpdates.Platform(c.PlatformId);
+		if (!p || Maker(p).Length == 0)
+		{
+			return "Another maker";
+		}
+		return Maker(p);
+	}
+
+	// The exit itself, done when the decision comes up: what it ended, for the pop-up.
+	private static string QuitConsoles(ConsoleMaker m)
+	{
+		List<string> ended = new List<string>();
+		List<string> cancelled = new List<string>();
+		foreach (platformScript p in m.OnSale)
+		{
+			ended.Add(p.GetName());
+			p.RemoveFromMarket();
+		}
+		foreach (platformScript p2 in (G.MS.arrayPlatformsScripts ?? new platformScript[0]).Where((platformScript x) => (bool)x && x.typ == 1 && x.OwnerIsNPC() && !x.isUnlocked && x.date_year < 9999 && Maker(x) == m.Name))
+		{
+			cancelled.Add(p2.GetName());
+			p2.angekuendigt = false;
+			p2.date_year = 9999;
+		}
+		if ((bool)m.Studio)
+		{
+			m.Studio.ownPlatform = false;
+			m.Studio.exklusive = false;
+		}
+		string text = "<b>" + m.Name + "</b> is leaving the console business.";
+		if (ended.Count > 0)
+		{
+			text = text + " The " + string.Join(" and the ", ended) + ((ended.Count == 1) ? " is" : " are") + " discontinued";
+			text += ((cancelled.Count > 0) ? (", and the " + string.Join(" and the ", cancelled) + " it was working on will never come out.") : ".");
+		}
+		else if (cancelled.Count > 0)
+		{
+			text = text + " The " + string.Join(" and the ", cancelled) + " it was working on will never come out.";
+		}
+		if ((bool)m.Studio)
+		{
+			text = text + " Its own studio will make games for every console from now on.";
+		}
+		return text;
+	}
+
+	// Saves where 0.29.0's first console-exit headline ("hwexit") cancelled consoles: they get their launch dates back
+	// from the game's data. The game only launches a console in the exact month of its date, so one whose date has
+	// passed is announced now and comes out next month. Runs once per save.
+	public static void RestoreOldExits()
+	{
+		if (!IndustryCore.State.LastFired.ContainsKey("hwexit"))
+		{
+			return;
+		}
+		IndustryCore.State.LastFired.Remove("hwexit");
+		Dictionary<int, int[]> dates = PlatformDates();
+		foreach (platformScript p in G.MS.arrayPlatformsScripts ?? new platformScript[0])
+		{
+			if (!p || p.typ != 1 || !p.OwnerIsNPC() || p.isUnlocked || p.date_year != 9999 || !dates.TryGetValue(p.myID, out var date))
+			{
+				continue;
+			}
+			int now = G.MS.year * 12 + G.MS.month;
+			if (date[0] * 12 + date[1] > now)
+			{
+				p.date_year = date[0];
+				p.date_month = date[1];
+				p.angekuendigt = date[0] * 12 + date[1] - now <= 12;
+			}
+			else
+			{
+				int next = now + 1;
+				p.date_year = (next - 1) / 12;
+				p.date_month = (next - 1) % 12 + 1;
+				p.angekuendigt = true;
+				IndustryCore.Feed(p.GetName() + " is back on: " + Maker(p) + " brings it out next month.");
+			}
+			Plugin.Log.LogInfo("Restored " + p.GetName() + " (cancelled by the old console-exit headline): out " + p.date_month + "/" + p.date_year);
+		}
+	}
+
+	// Launch dates from the platform data the game loaded (The Holy Expansion's merged copy when it's there).
+	private static Dictionary<int, int[]> PlatformDates()
+	{
+		Dictionary<int, int[]> dates = new Dictionary<int, int[]>();
+		string holy = System.IO.Path.Combine(BepInEx.Paths.PluginPath, "HolyExpansion", "cache", "DATA_Platforms.txt");
+		string game = System.IO.Path.Combine(Application.dataPath, "Extern", "Text", "DATA", "Platforms.txt");
+		string file = (System.IO.File.Exists(holy) ? holy : game);
+		if (!System.IO.File.Exists(file))
+		{
+			return dates;
+		}
+		string[] months = new string[12] { "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };
+		int id = -1;
+		bool wantId = false;
+		foreach (string raw in System.IO.File.ReadAllLines(file, System.Text.Encoding.Unicode))
+		{
+			string line = raw.Trim();
+			if (wantId)
+			{
+				wantId = false;
+				int.TryParse(line, out id);
+			}
+			if (line.StartsWith("[ID]"))
+			{
+				string rest = line.Substring(4).Trim();
+				if (rest.Length > 0)
+				{
+					int.TryParse(rest, out id);
+				}
+				else
+				{
+					wantId = true;
+				}
+			}
+			else if (line.StartsWith("[DATE]") && id >= 0)
+			{
+				string[] parts = line.Substring(6).Trim().Split(' ');
+				int month = ((parts.Length == 2) ? (Array.IndexOf(months, parts[0].ToUpperInvariant()) + 1) : 0);
+				if (month > 0 && int.TryParse(parts[1], out var year))
+				{
+					dates[id] = new int[2] { year, month };
+				}
+			}
+		}
+		return dates;
 	}
 
 	private static string Maker(platformScript p)

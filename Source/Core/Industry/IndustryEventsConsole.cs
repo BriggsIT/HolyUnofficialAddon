@@ -126,7 +126,8 @@ internal static partial class IndustryEvents
 
 	// ---- Decisions ----
 
-	// Cartridge chips run short: pay the factory, run out in the shops, or share your chips with a studio that has none.
+	// Cartridge chips run short: the production room makes copies dearer, or none at all for a while (the warehouse runs
+	// down and orders wait, the game's own backorders), or you share your chips with a studio that has none.
 	private static IndustryEventDef Cartridge()
 	{
 		return new IndustryEventDef
@@ -156,30 +157,33 @@ internal static partial class IndustryEvents
 				c.GameId = g.myID;
 				c.StudioId = friend.myID;
 				c.Game2 = TheirGame(friend).myID;
-				c.Amount = (long)Mathf.Clamp(WeeklyRevenue(g) * 1.5f, (float)Scaled(2000.0), (float)IncomeCap(Scaled(60000.0)));
 				return true;
 			},
 			Title = (IndustryContext c) => "A Cartridge Shortage",
-			Text = (IndustryContext c) => "The chip makers can't keep up, and cartridges are in short supply. " + Name(c.GameId) + " is running out in the shops: the factory will put you first, at a price. Meanwhile " + StudioName(c.StudioId) + " has no chips at all for " + Name(c.Game2) + ".",
+			Text = (IndustryContext c) => "The chip makers can't keep up, and cartridges are in short supply. The factory will keep making " + Name(c.GameId) + " if you pay over the odds; otherwise your production room gets no chips for a while. Meanwhile " + StudioName(c.StudioId) + " has no chips at all for " + Name(c.Game2) + ".",
 			Default = 1,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Pay the Premium", "Costs " + Money(c.Amount), "Your shelves stay full", delegate(IndustryContext x)
+				Choice("Pay the Premium", "Copies cost 50% more to make", "For 8 weeks; production carries on", delegate(IndustryContext x)
 				{
-					G.MS.Pay(x.Amount, 21);
-					return "You pay the premium, and " + Name(x.GameId) + " stays in the shops.";
-				}, (IndustryContext x) => Need(x.Amount)),
-				Choice("Ship What You Can", "Nothing to pay", Name(c.GameId) + " sells 20% less for 8 weeks", delegate(IndustryContext x)
-				{
-					IndustryCore.AddMod(Game(x.GameId), -0.2f, 8);
-					return "Shops sell out of " + Name(x.GameId) + " and wait for more.";
+					IndustryReal.LimitProduction(Game(x.GameId), 8, block: false, 0.5f);
+					return "You pay over the odds: every copy of " + Name(x.GameId) + " your production room makes for 8 weeks costs half as much again.";
 				}),
-				Choice("Share Your Chips", "Your sales -30% for 8 weeks", "Standing with " + StudioName(c.StudioId) + " +15", delegate(IndustryContext x)
+				Choice("Ship What You Can", "No new copies for 8 weeks", "Your stock runs down; orders wait", delegate(IndustryContext x)
 				{
-					IndustryCore.AddMod(Game(x.GameId), -0.3f, 8);
-					Game(x.Game2)?.AddHype(3f);
-					IndustryCore.Change(IndustryCore.Studio(x.StudioId), 15, "You shared your cartridge chips");
-					return StudioName(x.StudioId) + " gets enough chips to launch " + Name(x.Game2) + ", and won't forget who helped.";
+					IndustryReal.LimitProduction(Game(x.GameId), 8, block: true, 0f);
+					return "Your production room gets no chips for " + Name(x.GameId) + " for 8 weeks. Once the warehouse is empty, orders wait for new copies (" + IndustryReal.Stock(Game(x.GameId)) + " in stock now).";
+				}),
+				Choice("Share Your Chips", "No new copies for 12 weeks", "They launch sooner; standing +15", delegate(IndustryContext x)
+				{
+					IndustryReal.LimitProduction(Game(x.GameId), 12, block: true, 0f);
+					publisherScript p = IndustryCore.Studio(x.StudioId);
+					if ((bool)p)
+					{
+						p.newGameInWeeks = Mathf.Max(1, p.newGameInWeeks - 3);
+					}
+					IndustryCore.Change(p, 15, "You shared your cartridge chips");
+					return StudioName(x.StudioId) + " gets your chips and can launch " + Name(x.Game2) + " sooner. Your production room makes no copies of " + Name(x.GameId) + " for 12 weeks.";
 				})
 			}
 		};
@@ -363,7 +367,11 @@ internal static partial class IndustryEvents
 		return null;
 	}
 
-	// A TV studio wants a Saturday-morning cartoon of your hit.
+	// A TV studio wants a Saturday-morning cartoon of your hit: an animated series of the IP that premieres about a year
+	// later and is judged on the IP's fame and its games' reviews. A hit brings lapsed players back to every game of the
+	// series, IP points and fans; a flop costs IP points. With The Holy Expansion's Movie & TV deals on, it's Holy's own
+	// deal (so the two never double up); otherwise the addon runs it (IndustryReal). Co-producing also brings the
+	// series' merchandise: the IP's fan shop demand starts fresh at the premiere.
 	private static IndustryEventDef Cartoon()
 	{
 		return new IndustryEventDef
@@ -375,52 +383,52 @@ internal static partial class IndustryEvents
 			Setup = delegate(IndustryContext c)
 			{
 				gameScript g = (from x in IndustryCore.MyGamesOnMarket()
-					where x.gameTyp == 0 && x.reviewTotal >= 70 && x.weeksOnMarket <= 156 && !IndustryCore.State.Cooldowns.ContainsKey("cartoon:" + x.myID)
+					where x.gameTyp == 0 && x.reviewTotal >= 70 && x.weeksOnMarket <= 156 && x.mainIP >= 0 && !IndustryCore.State.Cooldowns.ContainsKey("cartoon:" + x.mainIP)
+					let ip = Game(x.mainIP)
+					where (bool)ip && ip.ownerID == G.MS.myID && !IndustryReal.CartoonRunning(ip)
 					orderby x.reviewTotal descending
 					select x).FirstOrDefault();
 				if (!g)
 				{
 					return false;
 				}
+				gameScript ip2 = Game(g.mainIP);
 				c.GameId = g.myID;
+				c.Game2 = ip2.myID;
 				c.Number = Random.Range(0, TvStudios.Length);
-				c.Amount = (long)((float)Scaled(10000.0) * (1f + (float)g.reviewTotal / 100f) * (1f + (float)g.gameSize * 0.3f));
-				IndustryCore.State.Cooldowns["cartoon:" + g.myID] = Now;
+				// Holy's price for an animated series, by the IP's fame.
+				c.Amount = Prices.Round((double)Prices.Scaled(150000.0) * (double)Mathf.Clamp(ip2.ipPunkte / 1000f, 0.25f, 1f) * (double)R(0.8f, 1.3f));
+				IndustryCore.State.Cooldowns["cartoon:" + ip2.myID] = Now;
 				return true;
 			},
 			Title = (IndustryContext c) => "A Cartoon of " + Name(c.GameId),
-			Text = (IndustryContext c) => TvStudios[c.Number] + " wants to make a Saturday-morning cartoon of " + Name(c.GameId) + ". Sell them the rights, or put your own money in and share in the toys and lunchboxes.",
+			Text = (IndustryContext c) => TvStudios[c.Number] + " wants to make a Saturday-morning cartoon of " + (Game(c.Game2) ? Game(c.Game2).GetIpName() : Name(c.GameId)) + ". It would air in about a year: a hit brings players back to every game of the series, a flop does it no favours. Sell them the rights, or put your own money in and share in the toys and lunchboxes.",
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Sell the Rights", Money(c.Amount) + " now", "IP points +25, about 500 new fans", delegate(IndustryContext x)
+				Choice("Sell the Rights", Money(c.Amount) + " now", "IP points +15; airs in about a year", delegate(IndustryContext x)
 				{
-					G.MS.Earn(x.Amount, 2);
-					Game(x.GameId)?.AddIpPoints(25f);
-					int fans = AddFans(500f * R(0.8f, 1.3f));
-					return TvStudios[x.Number] + " pays " + Money(x.Amount) + ". The cartoon airs on Saturday mornings: " + fans + " new fans.";
-				}),
-				Choice("Co-Produce It", "Costs " + Money(c.Amount), "A gamble: if it runs, merchandise, fans and sales", delegate(IndustryContext x)
-				{
-					G.MS.Pay(x.Amount, 13);
-					gameScript g2 = Game(x.GameId);
-					if (Random.value < 0.7f)
+					gameScript ip = Game(x.Game2);
+					if (!ip)
 					{
-						g2?.AddIpPoints(50f);
-						int fans = AddFans(1500f * R(0.8f, 1.3f));
-						IndustryCore.AddMod(g2, 0.15f, 12);
-						IndustryCore.State.Streams.Add(new IncomeStream
-						{
-							Label = Name(x.GameId) + " merchandise",
-							Fixed = x.Amount / 6,
-							WeeksLeft = 16,
-							Category = 11
-						});
-						return "The cartoon is a hit: " + fans + " new fans, sales +15% for 12 weeks, and about " + Money(x.Amount / 6) + " a week from merchandise for 16 weeks.";
+						return "The series is gone.";
 					}
-					g2?.AddIpPoints(15f);
-					int few = AddFans(300f * R(0.8f, 1.3f));
-					return "The cartoon is cancelled after one season. Still, " + few + " new fans.";
+					G.MS.Earn(x.Amount, 1);
+					ip.AddIpPoints(15f);
+					IndustryReal.StartCartoon(ip, TvStudios[x.Number], x.Amount, coProduced: false);
+					return TvStudios[x.Number] + " pays " + Money(x.Amount) + ". The " + ip.GetIpName() + " cartoon airs in about " + Mathf.Max(1, IndustryReal.CartoonWeeks(ip) / 4) + " months.";
+				}),
+				Choice("Co-Produce It", "Costs " + Money(c.Amount), "The same series, and its merchandise", delegate(IndustryContext x)
+				{
+					gameScript ip = Game(x.Game2);
+					if (!ip)
+					{
+						return "The series is gone.";
+					}
+					G.MS.Pay(x.Amount, 13);
+					ip.AddIpPoints(15f);
+					IndustryReal.StartCartoon(ip, TvStudios[x.Number], x.Amount, coProduced: true);
+					return "You co-produce the " + ip.GetIpName() + " cartoon with " + TvStudios[x.Number] + ". It airs in about " + Mathf.Max(1, IndustryReal.CartoonWeeks(ip) / 4) + " months, and the toys and lunchboxes come with it: if it doesn't flop, your fan shop's demand for the series starts fresh.";
 				}, (IndustryContext x) => Need(x.Amount)),
 				Choice("Decline", "Nothing changes", "It stays a game", (IndustryContext x) => "You turn " + TvStudios[x.Number] + " down.")
 			}
@@ -458,28 +466,30 @@ internal static partial class IndustryEvents
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Write to the Editor", "Free, but a gamble", "A correction (sales +8% for 6 weeks), or readers side with them", delegate(IndustryContext x)
+				Choice("Write to the Editor", "Free, but a gamble", "A re-review lifts its score, or readers side with them", delegate(IndustryContext x)
 				{
+					gameScript g = Game(x.GameId);
+					if (!g)
+					{
+						return "The game is gone.";
+					}
 					if (Random.value < 0.5f)
 					{
-						IndustryCore.AddMod(Game(x.GameId), 0.08f, 6);
+						int up = Random.Range(2, 4);
+						g.reviewTotal = Mathf.Min(100, g.reviewTotal + up);
 						int fans = AddFans(150f * R(0.8f, 1.3f));
-						return ConsoleMags[x.Number] + " prints your letter and admits the review was rushed: " + fans + " new fans, and sales +8% for 6 weeks.";
+						return ConsoleMags[x.Number] + " prints your letter and re-reviews " + g.GetNameSimple() + ": its review score goes up " + up + " points to " + g.reviewTotal + "%, and " + fans + " new fans.";
 					}
-					IndustryCore.AddMod(Game(x.GameId), -0.05f, 6);
-					return "Readers side with the magazine. The row does " + Name(x.GameId) + " no favours: sales -5% for 6 weeks.";
+					HolyCompat.ShiftUserReviews(g, -0.05f);
+					return "Readers side with the magazine, and the row puts players off: " + g.GetNameSimple() + "'s user score drops.";
 				}),
-				Choice("Buy a Double-Page Advert", "Costs " + Money(c.Amount), "Sales +10% for 8 weeks: let the game speak", delegate(IndustryContext x)
+				Choice("Buy a Double-Page Advert", "Costs " + Money(c.Amount), "Hype +8: let the game speak", delegate(IndustryContext x)
 				{
 					G.MS.Pay(x.Amount, 12);
-					IndustryCore.AddMod(Game(x.GameId), 0.1f, 8);
-					return "Your advert runs two issues later, with quotes from every other review.";
+					Game(x.GameId)?.AddHype(8f);
+					return "Your advert runs two issues later, with quotes from every other review: hype +8.";
 				}, (IndustryContext x) => Need(x.Amount)),
-				Choice("Let It Go", "Nothing to pay", "Sales -3% for 4 weeks", delegate(IndustryContext x)
-				{
-					IndustryCore.AddMod(Game(x.GameId), -0.03f, 4);
-					return "You let the other reviews speak for themselves.";
-				})
+				Choice("Let It Go", "Nothing changes", "The other reviews speak for it", (IndustryContext x) => "You let the other reviews speak for themselves.")
 			}
 		};
 	}
@@ -550,21 +560,22 @@ internal static partial class IndustryEvents
 				}
 				c.GameId = g.myID;
 				c.Number = Random.Range(0, RentalChains.Length);
-				// About what renting costs in sales (10%), a little more: worth it for the fans, never a free win.
-				c.Amount = (long)Mathf.Clamp(WeeklyRevenue(g) * 0.12f, (float)Scaled(300.0), (float)IncomeCap(Scaled(20000.0), 0.002f));
+				// A shelf of copies for its shops: a couple of weeks' sales, at a rental copy's higher price.
+				c.Number2 = Mathf.Max(50, Mathf.RoundToInt((float)Weekly(g) * R(1.5f, 3f)));
+				c.Share = IndustryReal.PerCopy(g) * 1.5f;
 				return true;
 			},
 			Title = (IndustryContext c) => "Rent It Out?",
-			Text = (IndustryContext c) => RentalChains[c.Number] + " wants " + Name(c.GameId) + " on its shelves next to the films, for players to rent for the weekend. It pays a weekly fee, but some players will rent it instead of buying.",
+			Text = (IndustryContext c) => RentalChains[c.Number] + " wants " + Name(c.GameId) + " on its shelves next to the films, for players to rent for the weekend. It buys rental copies at a premium, but every player who rents it is one who won't buy it.",
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Sign the Deal", Money(c.Amount) + " a week for 16 weeks", Name(c.GameId) + " sells 10% less for 16 weeks; about 300 new fans", (IndustryContext x) => Rent(x, x.Amount)),
-				Choice("Ask for More", "A gamble", "Half as much again, or they walk away", delegate(IndustryContext x)
+				Choice("Sign the Deal", "They buy " + c.Number2 + " copies (" + Money((long)((float)c.Number2 * c.Share)) + ")", "Renters become fans, but fewer will buy it later", (IndustryContext x) => Rent(x, x.Number2)),
+				Choice("Ask for More", "A gamble", "A bigger order, or they walk away", delegate(IndustryContext x)
 				{
 					if (Random.value < 0.5f)
 					{
-						return "They agree. " + Rent(x, x.Amount * 3 / 2);
+						return "They agree. " + Rent(x, x.Number2 * 3 / 2);
 					}
 					return RentalChains[x.Number] + " walks away and signs another studio's game instead.";
 				}),
@@ -573,18 +584,23 @@ internal static partial class IndustryEvents
 		};
 	}
 
-	private static string Rent(IndustryContext c, long weekly)
+	// Real copies sold to the chain (from your warehouse when it's boxed and yours), renters who become fans, and a
+	// shorter shelf life: the players who rent it won't buy it.
+	private static string Rent(IndustryContext c, int copies)
 	{
-		IndustryCore.State.Streams.Add(new IncomeStream
+		gameScript g = Game(c.GameId);
+		if (!g)
 		{
-			Label = "Rentals of " + Name(c.GameId),
-			Fixed = weekly,
-			WeeksLeft = 16,
-			Category = 2
-		});
-		IndustryCore.AddMod(Game(c.GameId), -0.1f, 16);
-		int fans = AddFans(300f * R(0.8f, 1.3f));
-		return Name(c.GameId) + " goes on the rental shelves: " + Money(weekly) + " a week for 16 weeks, and " + fans + " new fans.";
+			return "The game is gone.";
+		}
+		long sold = IndustryReal.SellCopies(g, copies, c.Share);
+		if (sold <= 0)
+		{
+			return "You have no copies of " + g.GetNameSimple() + " in the warehouse to send them.";
+		}
+		IndustryReal.Saturate(g, 0.08f);
+		int fans = AddFans((float)sold * 0.5f * R(0.8f, 1.3f));
+		return RentalChains[c.Number] + " buys " + sold + " copies of " + g.GetNameSimple() + " (" + Money((long)((float)sold * c.Share)) + "). Renters become " + fans + " new fans, but fewer players will buy it from now on.";
 	}
 
 	// Players are stuck: a strategy guide, a paid hint line, or free tips.
@@ -623,7 +639,7 @@ internal static partial class IndustryEvents
 					Game(x.GameId)?.AddIpPoints(10f);
 					return GuidePublishers[x.Number] + " pays " + Money(x.Amount) + ". The guide sells out at Christmas.";
 				}),
-				Choice("Run a Hint Line", "About " + Money(c.Amount * 13 / 120) + " a week for 12 weeks", "A bit more than the fee, but parents may complain about phone bills", delegate(IndustryContext x)
+				Choice("Run a Hint Line", "About " + Money(c.Amount * 13 / 120) + " a week for 12 weeks", "A bit more than the fee; parents may complain (user score)", delegate(IndustryContext x)
 				{
 					IndustryCore.State.Streams.Add(new IncomeStream
 					{
@@ -634,16 +650,18 @@ internal static partial class IndustryEvents
 					});
 					if (Random.value < 0.3f)
 					{
-						IndustryCore.AddMod(Game(x.GameId), -0.06f, 8);
-						return "The phones ring all day, but parents complain about their bills: sales -6% for 8 weeks.";
+						HolyCompat.ShiftUserReviews(Game(x.GameId), -0.03f);
+						return "The phones ring all day, but parents complain about their bills, and players hold it against the game: its user score drops.";
 					}
 					return "The phones ring all day: about " + Money(x.Amount * 13 / 120) + " a week for 12 weeks.";
 				}),
-				Choice("Print Free Tips", "Free: about 300 new fans", Name(c.GameId) + " sells 5% more for 8 weeks", delegate(IndustryContext x)
+				Choice("Print Free Tips", "Free: about 300 new fans", "Happier players, who keep playing", delegate(IndustryContext x)
 				{
+					gameScript g = Game(x.GameId);
 					int fans = AddFans(300f * R(0.8f, 1.3f));
-					IndustryCore.AddMod(Game(x.GameId), 0.05f, 8);
-					return "Your tips run in every magazine: " + fans + " new fans.";
+					HolyCompat.ShiftUserReviews(g, 0.02f);
+					IndustryReal.Saturate(g, -0.05f);
+					return "Your tips run in every magazine: " + fans + " new fans, a better user score, and players who'd given up pick it up again.";
 				})
 			}
 		};
@@ -754,16 +772,27 @@ internal static partial class IndustryEvents
 			Default = 1,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Defend It on TV", "About 600 new fans", "Sales +12% for 8 weeks, unless shops pull it", delegate(IndustryContext x)
+				Choice("Defend It on TV", "About 600 new fans; hype +8", "Unless the row gets it re-rated higher", delegate(IndustryContext x)
 				{
+					gameScript g = Game(x.GameId);
+					if (!g)
+					{
+						return "The game is gone.";
+					}
 					int fans = AddFans(600f * R(0.8f, 1.3f));
+					g.AddHype(8f);
 					if (Random.value < 0.75f)
 					{
-						IndustryCore.AddMod(Game(x.GameId), 0.12f, 8);
-						return "The row makes " + Name(x.GameId) + " the game every teenager wants: " + fans + " new fans, and sales +12% for 8 weeks.";
+						return "The row makes " + g.GetNameSimple() + " the game every teenager wants: " + fans + " new fans, and hype +8.";
 					}
-					IndustryCore.AddMod(Game(x.GameId), -0.15f, 8);
-					return fans + " new fans, but two big chains take " + Name(x.GameId) + " off their shelves: sales -15% for 8 weeks.";
+					if (g.usk < 5)
+					{
+						int old = g.usk;
+						g.usk++;
+						return fans + " new fans, but the rating board takes another look: " + g.GetNameSimple() + " is re-rated " + GameUpdates.UskName(g.usk) + " (was " + GameUpdates.UskName(old) + "), and fewer shops and players can buy it.";
+					}
+					IndustryReal.Saturate(g, 0.15f);
+					return fans + " new fans, but two big chains take " + g.GetNameSimple() + " off their shelves for good: it won't sell for as long.";
 				}),
 				Choice("Add a Warning Sticker", "Costs " + Money(c.Amount), "The fuss dies down", delegate(IndustryContext x)
 				{
@@ -889,12 +918,12 @@ internal static partial class IndustryEvents
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Outbid Them", "Costs " + Money(c.Amount), Name(c.GameId) + " sells 8% more for 8 weeks", delegate(IndustryContext x)
+				Choice("Outbid Them", "Costs " + Money(c.Amount), "Front-of-shop displays: hype +6", delegate(IndustryContext x)
 				{
 					G.MS.Pay(x.Amount, 12);
-					IndustryCore.AddMod(Game(x.GameId), 0.08f, 8);
+					Game(x.GameId)?.AddHype(6f);
 					IndustryCore.Change(IndustryCore.Studio(x.StudioId), -3, "You outbid them for shelf space");
-					return Name(x.GameId) + " is back at the front of the shops.";
+					return Name(x.GameId) + " is back at the front of the shops, with a display of its own: hype +6.";
 				}, (IndustryContext x) => Need(x.Amount)),
 				Choice("Complain to the Trade Press", "Free, but a gamble", "Standing with them -10; the shops may back down", delegate(IndustryContext x)
 				{
@@ -903,13 +932,13 @@ internal static partial class IndustryEvents
 					{
 						return "The story embarrasses the shops, and " + Name(x.GameId) + " goes back on the front shelves.";
 					}
-					IndustryCore.AddMod(Game(x.GameId), -0.08f, 8);
-					return "Nobody listens: " + Name(x.GameId) + " sells 8% less for 8 weeks.";
+					IndustryReal.Saturate(Game(x.GameId), 0.1f);
+					return "Nobody listens: " + Name(x.GameId) + " stays on the back shelves, and won't sell for as long.";
 				}),
-				Choice("Let It Go", "Nothing to pay", Name(c.GameId) + " sells 8% less for 8 weeks", delegate(IndustryContext x)
+				Choice("Let It Go", "Nothing to pay", "A shorter shelf life for " + Name(c.GameId), delegate(IndustryContext x)
 				{
-					IndustryCore.AddMod(Game(x.GameId), -0.08f, 8);
-					return "You leave " + StudioName(x.StudioId) + " to it.";
+					IndustryReal.Saturate(Game(x.GameId), 0.1f);
+					return "You leave " + StudioName(x.StudioId) + " to it. On the back shelves, " + Name(x.GameId) + " won't sell for as long.";
 				})
 			}
 		};
@@ -1041,7 +1070,8 @@ internal static partial class IndustryEvents
 		};
 	}
 
-	// Budget re-releases: your older games get a second wind.
+	// Budget re-releases: budget buyers find your older games, and players who'd passed them by buy them after all
+	// (their saturation eases).
 	private static IndustryEventDef Budget()
 	{
 		return new IndustryEventDef
@@ -1052,27 +1082,28 @@ internal static partial class IndustryEvents
 			To = 1995,
 			Cooldown = 60,
 			Weight = 0.6f,
-			Setup = (IndustryContext c) => IndustryCore.MyGamesOnMarket().Any((gameScript x) => x.weeksOnMarket >= 52 && Weekly(x) > 0),
+			Setup = (IndustryContext c) => IndustryCore.MyGamesOnMarket().Any((gameScript x) => x.gameTyp == 0 && x.weeksOnMarket >= 52 && Weekly(x) > 0),
 			Apply = delegate(IndustryContext c)
 			{
 				List<gameScript> old = (from x in IndustryCore.MyGamesOnMarket()
-					where x.weeksOnMarket >= 52 && Weekly(x) > 0
+					where x.gameTyp == 0 && x.weeksOnMarket >= 52 && Weekly(x) > 0
 					orderby Weekly(x) descending
-					select x).Take(3).ToList();
+					select x).ToList();
 				if (old.Count == 0)
 				{
 					return null;
 				}
 				foreach (gameScript g in old)
 				{
-					IndustryCore.AddMod(g, 0.12f, 8);
+					IndustryReal.Saturate(g, -0.15f);
 				}
-				return "Budget re-releases are the latest thing: older games like your " + old[0].GetNameSimple() + " sell 12% more for 8 weeks.";
+				return "Budget re-releases are the latest thing: bargain hunters find older games like your " + old[0].GetNameSimple() + ", and buyers come back to them.";
 			}
 		};
 	}
 
-	// A new chain of games shops opens: games are easier to find.
+	// A new chain of games shops opens: it stocks up on your boxed games (an opening order, which the game fills from
+	// your warehouse as it would any order).
 	private static IndustryEventDef NewShops()
 	{
 		return new IndustryEventDef
@@ -1096,12 +1127,15 @@ internal static partial class IndustryEvents
 			Apply = delegate(IndustryContext c)
 			{
 				IndustryCore.State.Cooldowns["shops:" + c.Number] = Now;
-				List<gameScript> mine = IndustryCore.MyGamesOnMarket().Where((gameScript x) => Weekly(x) > 0).ToList();
+				List<gameScript> mine = IndustryCore.MyGamesOnMarket().Where((gameScript x) => IndustryReal.Boxed(x) && x.releaseDate <= 0 && Weekly(x) > 0).ToList();
+				int ordered = 0;
 				foreach (gameScript g in mine)
 				{
-					IndustryCore.AddMod(g, 0.05f, 6);
+					int n = Mathf.Max(20, Mathf.RoundToInt((float)Weekly(g) * R(0.5f, 1f)));
+					g.vorbestellungen += n;
+					ordered += n;
 				}
-				return "A new chain of games shops, <i>" + Shops[c.Number] + "</i>, opens in towns everywhere" + ((mine.Count > 0) ? ": your games sell 5% more for 6 weeks." : ".");
+				return "A new chain of games shops, <i>" + Shops[c.Number] + "</i>, opens in towns everywhere" + ((ordered > 0) ? (": it orders " + ordered + " copies of your boxed games to stock its shelves.") : ".");
 			}
 		};
 	}

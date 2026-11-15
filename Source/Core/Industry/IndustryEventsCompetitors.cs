@@ -170,7 +170,7 @@ internal static partial class IndustryEvents
 				}, (IndustryContext x) => Need(x.Amount))
 			} : new List<IndustryChoice>
 			{
-				Choice("Out-Market It", "Costs " + Money(c.Amount), "Hype +10, " + Name(c.GameId) + " sells 8% more for 6 weeks", delegate(IndustryContext x)
+				Choice("Out-Market It", "Costs " + Money(c.Amount), "Hype +14 for " + Name(c.GameId), delegate(IndustryContext x)
 				{
 					gameScript g = Game(x.GameId);
 					if (!g)
@@ -178,12 +178,11 @@ internal static partial class IndustryEvents
 						return "The game is gone.";
 					}
 					G.MS.Pay(x.Amount, 12);
-					g.AddHype(10f);
-					IndustryCore.AddMod(g, 0.08f, 6);
+					g.AddHype(14f);
 					IndustryCore.Change(IndustryCore.Studio(x.StudioId), -2, "You out-marketed their launch");
-					return "Your campaign drowns out theirs: " + g.GetNameSimple() + " sells 8% more for 6 weeks.";
+					return "Your campaign drowns out theirs: hype +14 for " + g.GetNameSimple() + ".";
 				}, (IndustryContext x) => Need(x.Amount)),
-				Choice("Let It Ride", "The better game wins", "The better-reviewed one sells 8% more for 6 weeks, the other 8% less", delegate(IndustryContext x)
+				Choice("Let It Ride", "The better game wins", "The better-reviewed one gets the attention", delegate(IndustryContext x)
 				{
 					gameScript g = Game(x.GameId);
 					gameScript t = Game(x.Game2);
@@ -194,14 +193,13 @@ internal static partial class IndustryEvents
 					string score = g.reviewTotal + "% against " + t.reviewTotal + "%";
 					if (g.reviewTotal >= t.reviewTotal)
 					{
-						IndustryCore.AddMod(g, 0.08f, 6);
-						IndustryCore.AddMod(t, -0.08f, 6);
+						g.AddHype(6f);
+						int fans = AddFans(400f * R(0.8f, 1.3f));
 						IndustryCore.Change(IndustryCore.Studio(x.StudioId), -2, g.GetNameSimple() + " beat their " + t.GetNameSimple());
-						return "Yours reviewed better (" + score + "): players picked " + g.GetNameSimple() + ", which sells 8% more for 6 weeks.";
+						return "Yours reviewed better (" + score + "): players talk about " + g.GetNameSimple() + " (hype +6, " + fans + " new fans).";
 					}
-					IndustryCore.AddMod(g, -0.08f, 6);
-					IndustryCore.AddMod(t, 0.08f, 6);
-					return "Theirs reviewed better (" + score + "): " + g.GetNameSimple() + " sells 8% less for 6 weeks.";
+					g.AddHype(-6f);
+					return "Theirs reviewed better (" + score + "): players talk about " + t.GetNameSimple() + " instead (hype -6 for yours).";
 				})
 			}
 		};
@@ -326,7 +324,7 @@ internal static partial class IndustryEvents
 			Default = 1,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Match It", "Price -" + c.Number + "% for 8 weeks", "Sales +" + c.Number / 2 + "% while it lasts; standing with them -2", delegate(IndustryContext x)
+				Choice("Match It", "Price -" + c.Number + "% for 8 weeks", "The cheaper price sells more copies; standing -2", delegate(IndustryContext x)
 				{
 					gameScript g = Game(x.GameId);
 					if (!g)
@@ -335,16 +333,14 @@ internal static partial class IndustryEvents
 					}
 					IndustryCore.AddPriceCut(g, 1f - (float)x.Number / 100f, 8);
 					IndustryCore.AddPriceCut(Game(x.Game2), 1f - (float)x.Number / 100f, 8);
-					IndustryCore.AddMod(g, (float)x.Number / 200f, 8);
 					IndustryCore.Change(IndustryCore.Studio(x.StudioId), -2, "You matched their price cut on " + Name(x.Game2));
 					return "You matched their price: " + g.GetNameSimple() + " is " + x.Number + "% cheaper for 8 weeks, and the bargain hunters come back.";
 				}),
-				Choice("Hold Your Price", "Full price per copy", Name(c.GameId) + " sells 12% less for 6 weeks", delegate(IndustryContext x)
+				Choice("Hold Your Price", "Full price per copy", "Some buyers go to theirs for good", delegate(IndustryContext x)
 				{
 					IndustryCore.AddPriceCut(Game(x.Game2), 1f - (float)x.Number / 100f, 8);
-					IndustryCore.AddMod(Game(x.GameId), -0.12f, 6);
-					IndustryCore.AddMod(Game(x.Game2), 0.06f, 6);
-					return "You hold your price. Some buyers go for the cheaper game for a while.";
+					IndustryReal.Saturate(Game(x.GameId), 0.05f);
+					return "You hold your price. " + Name(x.Game2) + " is cheaper for 8 weeks, and the buyers who pick it won't buy " + Name(x.GameId) + ".";
 				})
 			}
 		};
@@ -405,7 +401,7 @@ internal static partial class IndustryEvents
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Rush It", "Cut features to finish sooner", "About 20% less work, less quality; morale -5; sales +10% if yours is out first", delegate(IndustryContext x)
+				Choice("Rush It", "Cut features to finish sooner", "About 20% less work, less quality; morale -5; launch buzz if yours is out first", delegate(IndustryContext x)
 				{
 					gameScript g = Game(x.GameId);
 					publisherScript p = IndustryCore.Studio(x.StudioId);
@@ -428,7 +424,7 @@ internal static partial class IndustryEvents
 					IndustryCore.State.Rushed[g.myID] = x.Game2;
 					Announce(x.Game2);
 					IndustryCore.Change(p, -2, "You raced them to the shelves with " + g.GetNameSimple());
-					return "The team cuts " + ((cut.Count == 1) ? cut[0] : (string.Join(", ", cut.Take(cut.Count - 1)) + " and " + cut[cut.Count - 1])) + " to finish " + g.GetNameSimple() + " sooner. Out before " + Name(x.Game2) + ", it gets the launch buzz: sales +10% for 8 weeks.";
+					return "The team cuts " + ((cut.Count == 1) ? cut[0] : (string.Join(", ", cut.Take(cut.Count - 1)) + " and " + cut[cut.Count - 1])) + " to finish " + g.GetNameSimple() + " sooner. Out before " + Name(x.Game2) + ", it gets the launch buzz: hype +10.";
 				}, delegate(IndustryContext x)
 				{
 					gameScript g = Game(x.GameId);
@@ -438,24 +434,24 @@ internal static partial class IndustryEvents
 					}
 					return null;
 				}),
-				Choice("Make It Stand Out", "Costs " + Money(c.Amount), "Hype +10; launch sales +6% for 12 weeks", delegate(IndustryContext x)
+				Choice("Make It Stand Out", "Costs " + Money(c.Amount), "More polish (a better review) and hype +10", delegate(IndustryContext x)
 				{
 					gameScript g = Game(x.GameId);
-					if (!g)
+					if (!g || !g.inDevelopment)
 					{
-						return "The game is gone.";
+						return "Too late: it's already finished.";
 					}
 					G.MS.Pay(x.Amount, 12);
+					// The money goes into polish: extra gameplay points, which the game's review counts.
+					g.points_gameplay += Mathf.Max(5f, g.points_gameplay * 0.06f);
 					g.AddHype(10f);
-					IndustryCore.AddModAfterRelease(g, 0.06f, 12);
 					Announce(x.Game2);
-					return "Your campaign shows what makes " + g.GetNameSimple() + " different.";
+					return "The team polishes what makes " + g.GetNameSimple() + " different, and your campaign shows it off: more gameplay for its review, and hype +10.";
 				}, (IndustryContext x) => Need(x.Amount)),
-				Choice("Ignore It", "Nothing to pay", "Launch sales -8% for 12 weeks", delegate(IndustryContext x)
+				Choice("Ignore It", "Nothing to pay", "Both come out; players compare", delegate(IndustryContext x)
 				{
-					IndustryCore.AddModAfterRelease(Game(x.GameId), -0.08f, 12);
 					Announce(x.Game2);
-					return "You carry on. Some players will wait to compare the two.";
+					return "You carry on. The two games will crowd the same genre, as any two would.";
 				})
 			}
 		};

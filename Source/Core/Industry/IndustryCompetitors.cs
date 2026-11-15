@@ -119,8 +119,8 @@ internal static class IndustryCompetitors
 				gameScript theirs = GameUpdates.FindGame(theirId);
 				if (!theirs || !theirs.isOnMarket)
 				{
-					IndustryCore.AddModAfterRelease(__instance, 0.1f, 8);
-					IndustryCore.Feed(__instance.GetNameSimple() + " beat " + (theirs ? theirs.GetNameSimple() : "its rival") + " to the shops: sales +10% for 8 weeks.");
+					__instance.AddHype(10f);
+					IndustryCore.Feed(__instance.GetNameSimple() + " beat " + (theirs ? theirs.GetNameSimple() : "its rival") + " to the shops: the launch buzz is all its own (hype +10).");
 				}
 				else
 				{

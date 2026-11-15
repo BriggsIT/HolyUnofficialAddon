@@ -163,8 +163,9 @@ The industry around you moves, and things land on your desk.
     - CD Burners (every copy protection weakens);
     - Hidden Content.
 
-    Headlines for these years include the dot-com boom and bust, internet cafés, the used-games market, the
-    handheld revival, and a console maker quitting hardware.
+    Headlines for these years include the dot-com boom and bust, internet cafés, the used-games market and the
+    handheld revival. Rarely, a struggling console maker quits hardware (a pop-up: hire its engineers or port
+    your games), and its studio goes third-party.
 - **Community Work** (with The Holy Expansion's Communities): a toggle in a Support room's menu makes the room start
   Holy's modding tools and tournaments for your games by itself, pausing calls while it works.
 - **Standing with every studio**, from Rival through Neutral and Friendly to Ally, grows out of what happens between
@@ -486,6 +487,8 @@ is switched off, keeping its good parts:
 - **Holy's delayed platforms** can be changed during development.
 - **Holy's "Your Anti-Cheat"** is greyed out until anti-cheat software exists.
 - **Holy's cracked-console pop-ups** say why a move isn't possible, instead of "You can't afford that."
+- **Holy's Movie & TV deals:** the industry event "A Cartoon" makes Holy's own animated-series deal for your series,
+  premiered and judged by Holy, so the two never double up.
 
 Most merges can be switched off in Game settings, which brings back Holy's own version. The Launch Planner merge
 follows Holy's own "Launch planner" setting.

@@ -237,7 +237,7 @@ internal static partial class IndustryEvents
 		{ "starstudio", "A Star Leaves" },
 		{ "fundport", "Fund a Port" },
 		{ "cdburn", "CD Burners" },
-		{ "hwexit", "A console maker quits hardware" }
+		{ "hwquit", "A Console Maker Quits" }
 	};
 
 	// Testing (cheats on): runs one event now if its conditions are met, whatever its years and cooldown.
@@ -483,32 +483,35 @@ internal static partial class IndustryEvents
 			To = 2002,
 			Cooldown = 60,
 			Weight = 1.2f,
+			// The game they sent is a small studio's real game in development; publishing it turns it into one of the game's
+			// own publishing offers (as the game does with NPC games: you negotiate and publish it there).
 			Setup = (IndustryContext c) =>
 			{
-				c.Amount = Scaled(3000.0);
-				c.Amount2 = Scaled(450.0);
+				publisherScript tiny = (from p in IndustryCore.Studios()
+					where p.developer && !p.publisher && p.stars <= 25f && !p.IsTochterfirma() && (bool)TheirGame(p) && Offerable(TheirGame(p))
+					orderby p.stars
+					select p).FirstOrDefault();
+				c.StudioId = (tiny ? tiny.myID : (-1));
+				c.Game2 = (tiny ? TheirGame(tiny).myID : (-1));
 				return true;
 			},
 			Title = (IndustryContext c) => "A " + Cap(IndustryCore.Media()) + " in the Post",
-			Text = (IndustryContext c) => "Two teenagers have sent you their first game on a " + IndustryCore.Media() + ". It's rough around the edges, but there's something there. They'd love you to publish it, or to come and work for you.",
+			Text = (IndustryContext c) => "Two teenagers" + ((c.StudioId >= 0) ? (" from " + StudioName(c.StudioId)) : "") + " have sent you their first game on a " + IndustryCore.Media() + ((c.Game2 >= 0) ? (": " + Name(c.Game2)) : "") + ". It's rough around the edges, but there's something there. They'd love you to publish it, or to come and work for you.",
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Publish It", "Costs " + Money(c.Amount), "A gamble: about " + Money(c.Amount2) + " a week for 20 weeks if it catches on", delegate(IndustryContext x)
+				Choice("Publish It", "It joins your publishing offers", "Negotiate and publish it there", delegate(IndustryContext x)
 				{
-					G.MS.Pay(x.Amount, 7);
-					bool hit = UnityEngine.Random.value < 0.65f;
-					long week = (long)((float)x.Amount2 * (hit ? R(0.7f, 1.5f) : 0.2f));
-					IndustryCore.State.Streams.Add(new IncomeStream
+					gameScript g = Game(x.Game2);
+					string problem = OfferProblem(g);
+					if (problem != null)
 					{
-						Label = "The teenagers' game",
-						Fixed = week,
-						WeeksLeft = 20,
-						Category = 3
-					});
-					int fans = AddFans((hit ? 600f : 150f) * R(0.8f, 1.3f));
-					return hit ? ("Their game finds an audience: about " + Money(week) + " a week for 20 weeks, and " + fans + " new fans.") : ("It barely sells: about " + Money(week) + " a week. Still, two kids are over the moon.");
-				}, (IndustryContext x) => Need(x.Amount)),
+						return problem;
+					}
+					MakeOffer(g);
+					int fans = AddFans(150f * R(0.8f, 1.3f));
+					return g.GetNameSimple() + " is in your publishing offers now, with " + StudioName(x.StudioId) + "'s terms: publish it like any other game you're offered. Word gets around that you give newcomers a chance: " + fans + " new fans.";
+				}, (IndustryContext x) => OfferProblem(Game(x.Game2))),
 				Choice("Hire Them", "Two applicants join the job market", "A game designer and a programmer, keen to learn", delegate
 				{
 					int added = Applicants();
@@ -517,6 +520,50 @@ internal static partial class IndustryEvents
 				Choice("Pass", "Nothing changes", "They'll try another studio", (IndustryContext x) => "You send the " + IndustryCore.Media() + " back with a kind note.")
 			}
 		};
+	}
+
+	// A game the game itself could turn into a publishing offer (publisherScript.CreateNewGame2's conditions).
+	private static bool Offerable(gameScript g)
+	{
+		if ((bool)g && g.inDevelopment && !g.isOnMarket && !g.pubAngebot && !g.auftragsspiel && g.gameTyp == 0 && !g.arcade && !g.handy && !g.typ_budget && !g.typ_goty && !g.typ_bundle && !g.typ_bundleAddon && !g.typ_addon && !g.typ_addonStandalone && !g.typ_mmoaddon)
+		{
+			if (!g.typ_standard && !g.typ_remaster && !g.typ_nachfolger)
+			{
+				return g.typ_spinoff;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	private static string OfferProblem(gameScript g)
+	{
+		if (!g || !Offerable(g))
+		{
+			return "No small studio has a game you could publish right now.";
+		}
+		if (!G.Singleplayer)
+		{
+			return "Not in multiplayer.";
+		}
+		if (G.MS.pubOffersAmount >= G.MS.GetStudioLevel(G.MS.studioPoints) / 2 + 1)
+		{
+			return "You already have as many publishing offers as your studio's level allows.";
+		}
+		return null;
+	}
+
+	// The studio's game in development becomes a publishing offer, as the game makes its own: no publisher yet, out of
+	// development (so the studio doesn't release it itself), with the game's terms (SetAsPublishingAngebot).
+	private static void MakeOffer(gameScript g)
+	{
+		g.inDevelopment = false;
+		g.angekuendigt = false;
+		g.publisherID = -1;
+		g.pS_ = null;
+		G.MS.pubOffersAmount++;
+		g.SetAsPublishingAngebot();
+		Plugin.Log.LogInfo("Cassette in the Post: " + g.GetNameSimple() + " (game " + g.myID + ") is now a publishing offer");
 	}
 
 	private static string Cap(string s)
@@ -672,12 +719,12 @@ internal static partial class IndustryEvents
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Let Them Print It", "About " + c.Amount2 + " new fans, hype +5 for your games in development", Name(c.GameId) + " sells 10% less for 8 weeks", delegate(IndustryContext x)
+				Choice("Let Them Print It", "About " + c.Amount2 + " new fans, hype +5 for your games in development", "Readers who type it in won't buy it", delegate(IndustryContext x)
 				{
 					int fans = AddFans(x.Amount2);
 					HypeInDevelopment(5f);
-					IndustryCore.AddMod(Game(x.GameId), -0.1f, 8);
-					return "Readers everywhere are typing in " + Name(x.GameId) + ": " + fans + " new fans.";
+					IndustryReal.Saturate(Game(x.GameId), 0.1f);
+					return "Readers everywhere are typing in " + Name(x.GameId) + ": " + fans + " new fans, though the ones who type it in won't buy it.";
 				}),
 				Choice("Buy an Advert Instead", "Costs " + Money(c.Amount), "About " + c.Amount2 / 3 + " new fans, hype +3 for your games in development", delegate(IndustryContext x)
 				{
@@ -942,7 +989,7 @@ internal static partial class IndustryEvents
 			Default = 3,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{
-				Choice("Sue Them", "Lawyers cost " + Money(c.Amount), "About " + Mathf.RoundToInt(c.Share * 100f) + "% to win " + Money(c.Amount2) + "; standing with them drops", delegate(IndustryContext x)
+				Choice("Sue Them", "Lawyers cost " + Money(c.Amount), "About " + Mathf.RoundToInt(c.Share * 100f) + "%: theirs off the shelves, " + Money(c.Amount2), delegate(IndustryContext x)
 				{
 					G.MS.Pay(x.Amount, 13);
 					publisherScript p = IndustryCore.Studio(x.StudioId);
@@ -950,41 +997,53 @@ internal static partial class IndustryEvents
 					{
 						G.MS.Earn(x.Amount2, 1);
 						gameScript theirs = Game(x.Game2);
-						if ((bool)theirs)
+						string name = Name(x.Game2);
+						if ((bool)theirs && theirs.isOnMarket)
 						{
-							HolyCompat.ShiftUserReviews(theirs, -0.05f);
+							theirs.RemoveFromMarket();
 						}
 						if ((bool)p)
 						{
 							IndustryCore.AddStars(p, -4f);
 						}
 						IndustryCore.Change(p, -25, "You sued them over " + Name(x.GameId) + " and won");
-						return "You win: " + StudioName(x.StudioId) + " pays " + Money(x.Amount2) + ", and players turn on " + Name(x.Game2) + ".";
+						return "You win: the court orders " + name + " off the shelves, and " + StudioName(x.StudioId) + " pays " + Money(x.Amount2) + ".";
 					}
 					IndustryCore.Change(p, -20, "You sued them over " + Name(x.GameId) + " and lost");
 					return "You lose: the court says " + Name(x.Game2) + " is different enough. The lawyers still want paying.";
 				}, (IndustryContext x) => Need(x.Amount)),
-				Choice("Outsell It", "Marketing costs " + Money(OutsellCost(c)), Name(c.GameId) + " sells 15% more for 8 weeks", delegate(IndustryContext x)
+				Choice("Outsell It", "Marketing costs " + Money(OutsellCost(c)), "Hype +12 for " + Name(c.GameId), delegate(IndustryContext x)
 				{
 					G.MS.Pay(OutsellCost(x), 12);
-					IndustryCore.AddMod(Game(x.GameId), 0.15f, 8);
-					return "Your campaign reminds everyone which one came first.";
+					Game(x.GameId)?.AddHype(12f);
+					return "Your campaign reminds everyone which one came first: hype +12.";
 				}, (IndustryContext x) => Need(OutsellCost(x))),
-				Choice("License It to Them", "They pay " + Money(c.Number), "Standing +10, but their official copy sells: yours -10% for 8 weeks", delegate(IndustryContext x)
+				Choice("License It to Them", "They pay " + Money(c.Number), "And " + LicenceShare + "% of what it earns for a year; standing +10", delegate(IndustryContext x)
 				{
 					G.MS.Earn(x.Number, 2);
-					IndustryCore.AddMod(Game(x.GameId), -0.1f, 8);
+					gameScript theirs = Game(x.Game2);
+					if ((bool)theirs)
+					{
+						IndustryCore.State.Streams.Add(new IncomeStream
+						{
+							Label = "Your share of " + theirs.GetNameSimple(),
+							StudioId = x.StudioId,
+							GameId = theirs.myID,
+							Share = (float)LicenceShare / 100f,
+							WeeksLeft = 52,
+							Category = 2
+						});
+					}
 					IndustryCore.Change(IndustryCore.Studio(x.StudioId), 10, "Licensed " + Name(x.GameId) + " to them");
-					return StudioName(x.StudioId) + " pays " + Money(x.Number) + " for the rights, and is grateful. Their official version takes some of your buyers.";
+					return StudioName(x.StudioId) + " pays " + Money(x.Number) + " for the rights, and is grateful. " + Name(x.Game2) + " is now the official version: you get " + LicenceShare + "% of what it earns for a year.";
 				}),
-				Choice("Ignore It", "Nothing to pay", Name(c.GameId) + " sells 5% less for 8 weeks", delegate(IndustryContext x)
-				{
-					IndustryCore.AddMod(Game(x.GameId), -0.05f, 8);
-					return "Some buyers pick up the copy instead.";
-				})
+				Choice("Ignore It", "Nothing to pay", "Both stay in the shops; players choose", (IndustryContext x) => "You leave it to the players. The two games crowd the same genre and topic, as any two games would.")
 			}
 		};
 	}
+
+	// A Copy of Your Game, License It: your share of what the official version earns, for a year.
+	private const int LicenceShare = 15;
 
 	// Two publishers bid to publish your game in development: an advance now, and when it's done they publish it for
 	// their usual cut (PublishDeals puts them at the top of the publisher list). Not with an exclusive publishing
