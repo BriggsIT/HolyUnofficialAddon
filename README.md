@@ -13,8 +13,8 @@ late game:
 
 Where it overlaps with The Holy Expansion, the two are merged into one system rather than stacked.
 
-It's a hobby project for friends: not for sale, and not affiliated with Eggcode Games or with The Holy Expansion's
-author.
+*** This is not for sale, and not affiliated with Eggcode Games or with The Holy Expansion's
+author.***
 
 **Version:** 0.35.0 ([what's new in each version](CHANGELOG.md)) · **Game:** Mad Games Tycoon 2 (Steam, PC) · **Loader:** BepInEx 5
 
