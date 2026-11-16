@@ -36,6 +36,15 @@ internal class LandmarkDef
 
 	public bool Add;
 
+	// An MMO (Ultima Online, EverQuest, World of Warcraft): made as an MMO; its entries are its expansions.
+	public bool Mmo;
+
+	// A phone game (Angry Birds, Candy Crush Saga, Pokemon Go): yours has to be a mobile game to become it.
+	public bool Mobile;
+
+	// The series' later games, in order (Super Mario Bros. 3, Super Mario World...): see LandmarkEntries.
+	public List<LandmarkEntry> Entries = new List<LandmarkEntry>();
+
 	// The projected review it needs: its real score less 10, at least 70.
 	public int Bar => Mathf.Max(70, Review - 10);
 
@@ -62,6 +71,16 @@ internal class LandmarkRecord
 	public bool Released;
 
 	public int Year;
+
+	// Your sequel chose to be this entry when it was started (LandmarkSequelStart): it's the entry whatever its review.
+	public bool Committed;
+
+	// That sequel came out below the entry's bar or too late: no rewards, and not a landmark game for the tie-ins.
+	public bool Short;
+
+	// A studio's game of it came out more than StudioYears after its real year (Fire Emblem in 2009): just a game, and
+	// the landmark counts as missed (the user's rule, 16 Nov 2026).
+	public bool Missed;
 }
 
 internal class LandmarkState
@@ -73,6 +92,27 @@ internal class LandmarkState
 
 	// Your landmarks out now, waiting for their pop-up.
 	public List<string> Celebrate = new List<string>();
+
+	// Series entries made (by you or a studio), by entry key ("super-mario-bros/super-mario-world").
+	public Dictionary<string, LandmarkRecord> Entries = new Dictionary<string, LandmarkRecord>();
+
+	// Anniversary remasters you planned: the series (its main game's id) and the last year it counts.
+	public Dictionary<int, int> Remasters = new Dictionary<int, int>();
+
+	// Studios copying the latest landmark's genre and topic, until this week.
+	public int CopyGenre = -1;
+
+	public int CopyTopic = -1;
+
+	public int CopyUntil = -1;
+
+	public string CopyOf = "";
+
+	// Landmarks in the awards' Hall of Fame (landmark ids and entry keys).
+	public List<string> HallOfFame = new List<string>();
+
+	// Your landmark series whose real games have run out (LandmarkSeriesDone), and when: year * 12 + month (0-based).
+	public Dictionary<string, int> Complete = new Dictionary<string, int>();
 }
 
 // The pop-up's question: this game can become this landmark.
@@ -89,6 +129,17 @@ internal class LandmarkOffer
 	public publisherScript Rival;
 
 	public Menu_DevGame_Complete Menu;
+
+	// A sequel of your landmark series becoming the series' next real game (null: the landmark itself).
+	public LandmarkEntry Entry;
+
+	// Asked when the sequel is set up, before there's a game (LandmarkSequelStart): its design screen and the game it
+	// follows.
+	public bool AtStart;
+
+	public Menu_DevGame DevMenu;
+
+	public gameScript Original;
 }
 
 // Landmark games:
@@ -102,7 +153,7 @@ internal class LandmarkOffer
 //   that makes one is known for its genre from then on.
 // - Pictures: landmarks/pictures/<id>/ in the plugin folder (PNG or JPG, any size: cropped to 4:3), one per game.
 [HarmonyPatch]
-internal static class Landmarks
+internal static partial class Landmarks
 {
 	public const int Lead = 3;
 
@@ -160,14 +211,38 @@ internal static class Landmarks
 		}
 	}
 
+	// A studio's game is the landmark only if it comes out by this many years after its real year (1997: by 1999). Its
+	// line only opens to studios in its real year, so one can't be early. Later, it's just a game and the landmark is
+	// missed. (You can still claim one nobody made until Window years after.)
+	public const int StudioYears = 2;
+
 	public static bool Missed(LandmarkDef d)
 	{
-		if ((bool)G.MS && G.MS.year > d.Year + Window)
+		LandmarkRecord r = Record(d.Id);
+		if (r != null)
 		{
-			return Record(d.Id) == null;
+			return r.Missed;
+		}
+		if ((bool)G.MS)
+		{
+			return G.MS.year > d.Year + Window;
 		}
 		return false;
 	}
+
+	// Its line is hidden from studios once a game started now would most likely come out too late (they take a year or
+	// so): picks stop a year before StudioYears runs out.
+	internal static bool ClosedToStudios(int line, int year)
+	{
+		if (landmarkAt.TryGetValue(line, out var d))
+		{
+			return year > d.Year + StudioYears - 1;
+		}
+		return false;
+	}
+
+	// Line index in npcIPs > the landmark it is (FixLines).
+	private static readonly Dictionary<int, LandmarkDef> landmarkAt = new Dictionary<int, LandmarkDef>();
 
 	public static LandmarkDef Def(string id)
 	{
@@ -209,6 +284,7 @@ internal static class Landmarks
 					continue;
 				}
 				d.Extra = d.Extra.Where((int t) => t >= 0 && t < th.themes_LEVEL.Length).ToArray();
+				PrepareEntries(d, gen.genres_UNLOCK.Length);
 				loaded.Add(d);
 			}
 			if (loaded.Count == 0 && list.Count > 0)
@@ -253,6 +329,12 @@ internal static class Landmarks
 			{
 				Directory.CreateDirectory(PictureFolder(d));
 				lines.Add(d.Id.PadRight(24) + d.Name + " (" + d.Year + ", " + d.Studio + ")");
+				// The series' later games: a folder each inside the landmark's (an empty one shows the landmark's).
+				foreach (LandmarkEntry e in d.Entries)
+				{
+					Directory.CreateDirectory(EntryFolder(e));
+					lines.Add("  " + (d.Id + "/" + e.Id).PadRight(46) + e.Name + " (" + e.Year + ")" + (e.Milestone ? "  milestone" : ""));
+				}
 			}
 			File.WriteAllLines(Path.Combine(root, "README.txt"), lines);
 		}
@@ -325,15 +407,25 @@ internal static class Landmarks
 		return int.Parse(m.Groups[1].Value);
 	}
 
-	// The landmark's line: its title, the one nearest its year if there are two.
+	// The landmark's line: its title; with several (a publisher's and a developer's, or two years), its own studio's,
+	// then the one nearest its year.
 	private static int LineOf(string[] lines, LandmarkDef d)
 	{
+		int studio = (((bool)G.MS && !string.IsNullOrEmpty(d.Studio)) ? StudioByName(d.Studio) : (-1));
+		string tag = ((studio >= 0) ? ("<P" + studio + ">") : null);
 		int best = -1;
+		bool bestOwn = false;
 		for (int i = 0; i < lines.Length; i++)
 		{
-			if (string.Equals(LineName(lines[i]), d.Title, StringComparison.OrdinalIgnoreCase) && (best < 0 || Math.Abs(LineYear(lines[i]) - d.Year) < Math.Abs(LineYear(lines[best]) - d.Year)))
+			if (!string.Equals(LineName(lines[i]), d.Title, StringComparison.OrdinalIgnoreCase))
+			{
+				continue;
+			}
+			bool own = tag != null && lines[i].Contains(tag);
+			if (best < 0 || (own && !bestOwn) || (own == bestOwn && Math.Abs(LineYear(lines[i]) - d.Year) < Math.Abs(LineYear(lines[best]) - d.Year)))
 			{
 				best = i;
+				bestOwn = own;
 			}
 		}
 		return best;
@@ -350,13 +442,25 @@ internal static class Landmarks
 		{
 			fixedLine = fixedLine.Replace("<T" + d.Topics[0] + ">", "<T" + d.Topics[0] + "><ST" + second + ">");
 		}
-		return fixedLine;
+		if (d.Mmo && !fixedLine.Contains("<MMO>"))
+		{
+			fixedLine = fixedLine.TrimEnd() + "<MMO>";
+		}
+		// Studios can start it in its year (Holy's own year can differ: Rust's line is the 2018 release, the landmark the
+		// 2013 early access).
+		return YearTagRx.Replace(fixedLine, "<Y" + d.Year + ">", 1);
 	}
 
-	private static int StudioByName(string name)
+	internal static int StudioByName(string name)
 	{
 		publisherScript p = (G.MS.arrayPublisherScripts ?? new publisherScript[0]).FirstOrDefault((publisherScript x) => (bool)x && !x.isPlayer && string.Equals(x.name_EN, name, StringComparison.OrdinalIgnoreCase));
 		return p ? p.myID : (-1);
+	}
+
+	// The lines are set again on next use (studios were added, so lines for their landmarks can be too).
+	public static void RefreshLines()
+	{
+		fixedArray = null;
 	}
 
 	// Every landmark's line gets its genre and topics, and missing ones are added (the arrays are saved with the game,
@@ -374,6 +478,7 @@ internal static class Landmarks
 			List<bool> used = (ts.npcIPsInUse ?? new bool[0]).ToList();
 			bool sized = used.Count > 0;
 			int added = 0;
+			landmarkAt.Clear();
 			foreach (LandmarkDef d in All)
 			{
 				int i = LineOf(lines.ToArray(), d);
@@ -387,7 +492,8 @@ internal static class Landmarks
 					lines.Add(d.Title + " <P" + studio + "><G" + d.Genre + "><T" + d.Topics[0] + "><%" + d.Review + "><Y" + d.Year + "><TG4><NOSPIN>");
 					if (sized)
 					{
-						used.Add(false);
+						// (A save already past its years: studios never see it, ClosedToStudios.)
+						used.Add(item: false);
 					}
 					i = lines.Count - 1;
 					added++;
@@ -395,8 +501,10 @@ internal static class Landmarks
 				if (i >= 0)
 				{
 					lines[i] = FixLine(lines[i], d);
+					landmarkAt[i] = d;
 				}
 			}
+			added += FixEntryLines(lines, used, sized);
 			ts.npcIPs = lines.ToArray();
 			if (sized)
 			{
@@ -450,6 +558,12 @@ internal static class Landmarks
 				return;
 			}
 			LandmarkDef d = All.FirstOrDefault((LandmarkDef x) => string.Equals(x.Title, __result.Trim(), StringComparison.OrdinalIgnoreCase));
+			// Only in its years: another line of the same name long before (Infocom's Journey of 1989) isn't the landmark,
+			// and after them its line is hidden (ClosedToStudios).
+			if (d != null && (G.MS.year < d.From - 1 || G.MS.year > d.Year + StudioYears))
+			{
+				return;
+			}
 			if (d != null && !S.Made.ContainsKey(d.Id))
 			{
 				S.Made[d.Id] = new LandmarkRecord
@@ -458,6 +572,11 @@ internal static class Landmarks
 					GameId = game_.myID,
 					StudioId = publisher_
 				};
+			}
+			else if (d == null)
+			{
+				// One of a series' later games.
+				EntryMade(__result.Trim(), game_, publisher_);
 			}
 		}
 		catch (Exception ex)
@@ -489,6 +608,13 @@ internal static class Landmarks
 					r.Released = true;
 					r.Year = g.date_year;
 				}
+				// Saves from before the studio rule: a studio's that came out late is missed, and so is one added to the
+				// list already past its years (0.33.0 marked those lines used, so they read as made with no game).
+				if (!r.Player && !r.Missed && ((r.Released && r.Year > d.Year + StudioYears) || (r.GameId < 0 && d.Add)))
+				{
+					r.Missed = true;
+					cacheKey = int.MinValue;
+				}
 				continue;
 			}
 			int i = LineOf(lines, d);
@@ -497,15 +623,38 @@ internal static class Landmarks
 				continue;
 			}
 			games = games ?? IndustryCore.AllGames();
-			gameScript theirs = games.FirstOrDefault((gameScript x) => !x.IsMyGame() && string.Equals(x.GetNameSimple(), d.Title, StringComparison.OrdinalIgnoreCase));
+			// The line's own studio's game, not an older one of the same name (Holy has Infocom's Journey of 1989 too).
+			Match lm = StudioTagRx.Match(lines[i]);
+			int lineStudio = (lm.Success ? int.Parse(lm.Groups[1].Value) : (-1));
+			gameScript theirs = (from x in games
+				where !x.IsMyGame() && string.Equals(x.GetNameSimple(), d.Title, StringComparison.OrdinalIgnoreCase) && (x.developerID == lineStudio || x.inDevelopment || x.date_year >= d.From - 1)
+				orderby x.developerID == lineStudio descending
+				select x).FirstOrDefault();
 			S.Made[d.Id] = new LandmarkRecord
 			{
 				Id = d.Id,
 				GameId = (theirs ? theirs.myID : (-1)),
 				StudioId = (theirs ? theirs.developerID : (-1)),
 				Released = (!theirs || !theirs.inDevelopment),
-				Year = (theirs ? theirs.date_year : d.Year)
+				Year = (theirs ? theirs.date_year : d.Year),
+				Missed = (theirs ? (!theirs.inDevelopment && theirs.date_year > d.Year + StudioYears) : d.Add)
 			};
+		}
+		TidyNames(games ?? IndustryCore.AllGames());
+	}
+
+	// The game reads a franchise line's name by taking off its tags and then its last character, the space before the
+	// tags. 0.33.0's series lines also ended in a space, so studios' games made from them kept one ("Battlefield 2 ").
+	// Fixed in the lines (FixEntryLines); this tidies the games already named that way.
+	private static void TidyNames(List<gameScript> games)
+	{
+		foreach (gameScript g in games)
+		{
+			string name = (g ? g.GetNameSimple() : null);
+			if (!string.IsNullOrEmpty(name) && name != name.TrimEnd())
+			{
+				g.SetMyName(name.TrimEnd());
+			}
 		}
 	}
 
@@ -594,7 +743,7 @@ internal static class Landmarks
 
 	public static bool Fits(gameScript g, LandmarkDef d)
 	{
-		if (g.maingenre != d.Genre)
+		if (g.maingenre != d.Genre || (d.Mmo && g.gameTyp != 1) || (d.Mobile && !g.handy))
 		{
 			return false;
 		}
@@ -648,7 +797,7 @@ internal static class Landmarks
 	{
 		try
 		{
-			LandmarkOffer o = Check(s1_);
+			LandmarkOffer o = Check(s1_) ?? EntryCheck(s1_);
 			if (o != null)
 			{
 				o.Menu = __instance;
@@ -721,6 +870,7 @@ internal static class Landmarks
 			{
 				o.Menu.uiObjects[0].GetComponent<UnityEngine.UI.Text>().text = g.GetNameWithTag();
 				o.Menu.uiObjects[6].GetComponent<UnityEngine.UI.Image>().sprite = g.GetScreenshot();
+				LandmarkFrame.Apply(o.Menu.uiObjects[6].transform, IsLandmark(g));
 			}
 		}
 		catch
@@ -743,6 +893,16 @@ internal static class Landmarks
 			{
 				return;
 			}
+			// Your MMO landmark's expansion comes out as the series' next one.
+			if (__instance.typ_mmoaddon && __instance.developerID == G.MS.myID)
+			{
+				NameExpansion(__instance, G.MS.myID);
+			}
+			AnniversaryRemaster(__instance);
+			if (EntryReleased(__instance))
+			{
+				return;
+			}
 			LandmarkRecord r = S.Made.Values.FirstOrDefault((LandmarkRecord x) => x.GameId == __instance.myID && !x.Released);
 			LandmarkDef d = ((r != null) ? Def(r.Id) : null);
 			if (d == null)
@@ -751,6 +911,15 @@ internal static class Landmarks
 			}
 			r.Released = true;
 			r.Year = G.MS.year;
+			// A studio's that comes out too late is just a game: no trend, stars or copycats, and the landmark is missed.
+			if (!r.Player && r.Year > d.Year + StudioYears)
+			{
+				r.Missed = true;
+				cacheKey = int.MinValue;
+				publisherScript late = IndustryCore.Studio(__instance.developerID);
+				IndustryCore.Feed((late ? late.GetName() : d.Studio) + " releases " + d.Title + " in " + r.Year + ", too late to be the landmark it was in " + d.Year + ".");
+				return;
+			}
 			genres gen = IndustryCore.Genres;
 			if ((bool)gen && d.Genre < gen.genres_BELIEBTHEIT.Length)
 			{
@@ -771,6 +940,7 @@ internal static class Landmarks
 				string text = "<b>" + d.Title + "</b> is a landmark: " + IndustryCore.GenreGames(d.Genre) + " will never be the same.";
 				IndustryCore.News(text);
 				IndustryCore.Feed(text.Replace("<b>", "").Replace("</b>", ""));
+				PlatformBonus(__instance, d.Title);
 			}
 			else
 			{
@@ -784,6 +954,7 @@ internal static class Landmarks
 				IndustryCore.News(text2);
 				IndustryCore.Feed(text2.Replace("<b>", "").Replace("</b>", ""));
 			}
+			StartCopycats(__instance, d.Title);
 		}
 		catch (Exception ex)
 		{
@@ -794,6 +965,11 @@ internal static class Landmarks
 	// Your landmark's pop-up, once nothing else is on screen.
 	public static void Tick()
 	{
+		if (On && (bool)G.MS && IndustryCore.Now != seriesChecked)
+		{
+			seriesChecked = IndustryCore.Now;
+			CheckSeriesDone();
+		}
 		if (!On || S.Celebrate.Count == 0 || !G.Gui || G.Gui.menuOpen || EditorWindow.Landmark.IsOpen || EditorWindow.LandmarkMade.IsOpen || EditorWindow.IndustryEvent.IsOpen || EditorWindow.ClashResult.IsOpen)
 		{
 			return;
@@ -822,7 +998,12 @@ internal static class Landmarks
 		{
 			return null;
 		}
-		string file = files[(seed & 0x7FFFFFFF) % files.Count];
+		return LoadPicture(files[(seed & 0x7FFFFFFF) % files.Count]);
+	}
+
+	// A picture file as a 4:3 sprite, loaded once.
+	private static Sprite LoadPicture(string file)
+	{
 		if (sprites.TryGetValue(file, out var s) && (bool)s)
 		{
 			return s;
@@ -885,7 +1066,7 @@ internal static class Landmarks
 			{
 				return;
 			}
-			Sprite s = Picture(Of(__instance), __instance.myID);
+			Sprite s = PictureFor(__instance);
 			if ((bool)s)
 			{
 				__result = s;
@@ -906,7 +1087,7 @@ internal static class Landmarks
 			{
 				return;
 			}
-			Sprite s = Picture(Of(__instance), __instance.myID);
+			Sprite s = PictureFor(__instance);
 			if ((bool)s)
 			{
 				__result = s.texture;
@@ -958,6 +1139,11 @@ internal static class Landmarks
 			S.Made = S.Made ?? new Dictionary<string, LandmarkRecord>();
 			S.Declined = S.Declined ?? new List<int>();
 			S.Celebrate = S.Celebrate ?? new List<string>();
+			S.Entries = S.Entries ?? new Dictionary<string, LandmarkRecord>();
+			S.Remasters = S.Remasters ?? new Dictionary<int, int>();
+			S.HallOfFame = S.HallOfFame ?? new List<string>();
+			S.Complete = S.Complete ?? new Dictionary<string, int>();
+			S.CopyOf = S.CopyOf ?? "";
 		}
 		catch (Exception ex)
 		{

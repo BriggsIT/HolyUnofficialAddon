@@ -87,7 +87,7 @@ internal static class ChartsMenu
 		{
 			picture.sprite = sprite;
 		}
-		UIKit.SetTooltip(go, "What sells right now: top sellers this week, by genre, consoles, studios, new releases and the most anticipated games. (Holy Unofficial Addon)");
+		UIKit.SetTooltip(go, "What sells right now: top sellers this week, by genre, consoles, studios, new releases and the most anticipated games. (Unholy Addon)");
 		Button component = go.GetComponent<Button>();
 		component.onClick = new Button.ButtonClickedEvent();
 		component.onClick.AddListener(() =>

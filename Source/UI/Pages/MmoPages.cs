@@ -16,13 +16,36 @@ internal static class MmoUi
 	// The room picked in a development room's menu (MMO Management), used first when it's free.
 	public static int PreferredRoom = -1;
 
+	// A game's screenshot filling the box: cropped to it, centred, like a banner (the game's screenshots are 4:3 and
+	// the boxes 16:9, and landmark pictures come in any shape).
 	public static Image Shot(EditorWindow w, gameScript g, float x, float y, float width, float height, Transform parent = null)
 	{
-		Image shot = new GameObject("Shot", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-		shot.transform.SetParent(parent ?? w.Body, worldPositionStays: false);
-		UIKit.Place(shot.gameObject, x, y, width, height);
-		shot.sprite = g.GetScreenshot();
-		shot.preserveAspect = true;
+		GameObject box = new GameObject("Shot", typeof(RectTransform), typeof(RectMask2D));
+		box.transform.SetParent(parent ?? w.Body, worldPositionStays: false);
+		UIKit.Place(box, x, y, width, height);
+		Image shot = new GameObject("Picture", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+		shot.transform.SetParent(box.transform, worldPositionStays: false);
+		shot.raycastTarget = false;
+		Sprite sprite = g.GetScreenshot();
+		shot.sprite = sprite;
+		float aspect = (sprite ? (sprite.rect.width / Mathf.Max(1f, sprite.rect.height)) : (width / height));
+		float sw = width;
+		float sh = sw / Mathf.Max(0.1f, aspect);
+		if (sh < height)
+		{
+			sh = height;
+			sw = sh * aspect;
+		}
+		RectTransform rt = shot.rectTransform;
+		rt.anchorMin = (rt.anchorMax = new Vector2(0.5f, 0.5f));
+		rt.pivot = new Vector2(0.5f, 0.5f);
+		rt.sizeDelta = new Vector2(sw, sh);
+		rt.anchoredPosition = Vector2.zero;
+		// A landmark game's gold frame and badge, inside the box (LandmarkFrame).
+		if (Core.Landmarks.Landmarks.IsLandmark(g))
+		{
+			LandmarkFrame.Apply(box.transform, on: true);
+		}
 		return shot;
 	}
 

@@ -386,7 +386,7 @@ internal static partial class IndustryEvents
 					where x.gameTyp == 0 && x.reviewTotal >= 70 && x.weeksOnMarket <= 156 && x.mainIP >= 0 && !IndustryCore.State.Cooldowns.ContainsKey("cartoon:" + x.mainIP)
 					let ip = Game(x.mainIP)
 					where (bool)ip && ip.ownerID == G.MS.myID && !IndustryReal.CartoonRunning(ip)
-					orderby x.reviewTotal descending
+					orderby Landmarks.Landmarks.IsLandmarkSeries(x) descending, x.reviewTotal descending
 					select x).FirstOrDefault();
 				if (!g)
 				{

@@ -6,6 +6,9 @@ Newest first. Each version below lists what changed; the table is a quick way in
 
 | Version | What it brought |
 |---|---|
+| [0.35.0](#0350-unholy-addon-landmarks-of-the-2010s-and-2020s) | The new name, Unholy Addon; landmarks of the 2010s and 2020s |
+| [0.34.0](#0340-the-design-assistant-and-landmark-series) | The design assistant, landmark series |
+| [0.33.0](#0330-landmarks-from-1990-series-that-follow-history) | Landmarks from 1990, series that follow history |
 | [0.32.0](#0320-third-and-fourth-topics-new-languages) | Third and fourth topics, new languages |
 | [0.31.0](#0310-landmark-games) | Landmark games |
 | [0.30.0](#0300-every-event-on-real-systems) | Every event on real systems |
@@ -45,6 +48,106 @@ Newest first. Each version below lists what changed; the table is a quick way in
 | [0.4.0 - 0.5.x](#040---05x-contracts) | Contracts |
 | [0.3.x](#03x-press-reviews) | Press reviews |
 | [0.1.x - 0.2.x](#01x---02x-the-employee-editor-and-game-settings) | The employee editor and game settings |
+
+## 0.35.0: Unholy Addon, landmarks of the 2010s and 2020s
+- **The new name:** the Holy Unofficial Addon is now the **Unholy Addon**, with new title art. It installs to
+  `BepInEx\plugins\UnholyAddon` and keeps its settings in `BepInEx\config\unholyaddon.mgt2.cfg`.
+  - Your settings carry over from the old file by themselves the first time you start the game, and saves are
+    unaffected.
+  - Delete the old `BepInEx\plugins\HolyUnofficialAddon` folder when you update. While it's still there, the old
+    version runs instead, and a message at the top of the screen says which folder to delete.
+- **86 new landmarks, 2010-2024**, with their later games as series data (172 landmarks and 665 series games in all):
+  - *Genre founders:* Dark Souls (Soulslike), Puzzle & Dragons (Gacha RPG), Stardew Valley (Cozy Life Sim), Overwatch
+    (Hero Shooter), PlayerUnknown's Battlegrounds (Battle Royale), Slay the Spire (Deckbuilder), Dota Auto Chess
+    (Auto Battler).
+  - *The era's new franchises:* from Limbo, Terraria and The Last of Us to Hollow Knight, Among Us, Hades, Elden Ring,
+    Palworld and Balatro.
+  - *Phone games* (Candy Crush Saga, Clash of Clans, Pokémon Go...) need a mobile game to claim, and now Angry Birds
+    does too.
+  - *Franchises missed before:* The Witcher, Monster Hunter, Batman: Arkham, X-COM and Red Dead Redemption.
+  - Dark Souls is a landmark of its own (it was a later game of Demon's Souls).
+- **30 new studios:** the real studios behind the era's indie hits (Team Meat, Toby Fox, Mega Crit, StudioMDHR,
+  ZA/UM, Pocketpair, LocalThunk...) open on their founding dates and make their landmarks on time, in new games and in
+  saves already running. Each has a name logo.
+- **Fixes:**
+  - A franchise sharing a landmark's name (Infocom's Journey) no longer counts as it.
+  - Studios start a landmark in its own year.
+  - MMO landmarks' studio games no longer get a space at the end of their names.
+  - 26 later series games now go to the studio The Holy Expansion's list knows them by.
+
+## 0.34.0: the design assistant and landmark series
+- **Design assistant** on the game design screen, in place of GameDev Assistant. It knows what your studio has
+  learned from its games' review reports, as the game does. **Reveal Every Fit** in the addon's game settings makes it
+  know everything, like the game's sandbox options.
+- **Fit colours:**
+  - *Genres:* a main genre by how it goes with the sub-genre, topics and age group you've picked; a sub-genre by
+    whether it's a good one for the main genre. The reasons are in the tooltip.
+  - *Topics and age groups:* the game's own colours.
+  - *Design sliders:* the value in green when it's right, else in red with the right value beside it.
+  - **Colour-blind colours:** blue and orange instead of green and red, the game's own fit colours included.
+- **Assist button** on the first page, a round button right of the licence, with a cog for its options on the left.
+  One click fills in:
+  - the main genre (or keeps yours), a sub-genre, all four topics and the age group;
+  - the design sliders and work priorities;
+  - the platforms (your dev kits that run your engine's tech level, by market share) and the engine features;
+  - the languages worth translating into, including the eleven new ones;
+  - optionally a licence and a name.
+
+  Each part can be switched off. A part it doesn't know enough for yet is left as it is, and the button's tooltip
+  says why. The first click picks the best; click again for another good mix of genres and topics. Contract games
+  only get the sliders, work priorities and engine features.
+- **Platform page:** its own button beside the engine picks just the platforms. **Design focus page:** the game's
+  Auto Design Settings also sets the work priorities.
+- **Game settings** in the addon's window are the size of its main window and scroll.
+- **Landmark sequels chosen at the start:** a sequel of your landmark series asks when you start it whether it's the
+  series' next real game, and what that takes. Made that way, it's that game from the start: it gets the rewards
+  if it's received as the real one was, and the series goes on either way. "Just a Sequel" makes an ordinary sequel.
+- **Landmarks made late are missed:** a studio's game is the landmark only if it comes out by 2 years after the real
+  one. Later, it's just a game, the Landmarks tab shows the landmark as missed, and studios stop starting it. Saves
+  from before are brought in line.
+- **Landmark frames:** landmark games' pictures have a gold frame and a landmark badge, in the game's lists (Sequel,
+  Spin-off, Remaster, publishing offers...), its Game Complete and review windows, and the addon's charts, awards,
+  store and MMO pages.
+- **Series complete:** when a landmark series of yours has run its course (every real game out or past its years), a
+  pop-up congratulates you and says how many you made. From then on its new sequels and spin-offs are your own
+  games: they don't get the series' starting hype, and they show pictures from the series' real games.
+- **Landmark pop-up:** a game you already gave the landmark's name keeps it, and the pop-up says so.
+- **Game pictures** in the awards, charts and MMO pages fill their frames.
+- **Charity speedrun marathons** (The Holy Expansion's) start in 2010, when the real ones did, instead of 1993.
+- **Fixes:**
+  - IP values: 0.33.0's landmark bonus to IP values made every IP price nonsense on this 32-bit game (a 236-point
+    series asked over $1 billion at a Closure Auction). The bonus now goes through the game's IP screens instead.
+  - Studios' games of a landmark series no longer have a space at the end of their names.
+
+## 0.33.0: landmarks from 1990, series that follow history
+- **64 new landmarks from 1990-2009** (86 in all): Fire Emblem, Sonic the Hedgehog, Civilization, Doom, Warcraft,
+  Pokémon, Tomb Raider, Resident Evil, Grand Theft Auto, Half-Life, StarCraft, The Sims, Halo, Call of Duty, World of
+  Warcraft, BioShock, Minecraft, League of Legends and more. Seven missing from The Holy Expansion's franchise list
+  are added (Tekken, EverQuest, Devil May Cry, Kingdom Hearts, Far Cry, Wii Sports, Minecraft). Ultima Online,
+  EverQuest and World of Warcraft are MMOs.
+- **Series that follow history:** each landmark's later games are in (583: Super Mario World, Super Mario 64, Ocarina
+  of Time, Final Fantasy VII...). A studio that owns the series makes them as its sequels, on time. When you own it,
+  a sequel you finish in an entry's years (from 2 years before) with a good enough projected review is offered as
+  that entry: its name, its pictures and rewards. Milestones (Super Mario 64, Ocarina of Time, Final Fantasy VII,
+  Street Fighter II, Metal Gear Solid...) are landmarks in their own right; other entries give IP points, fans and
+  hype. An MMO landmark's add-ons take its expansions' names. Entries more than 5 years past their year aren't made.
+- **Pictures:** a folder per landmark and per series game; a series game without pictures shows its landmark's.
+- **What a landmark does now:**
+  - *System seller:* its console sales as an exclusive count double, on a studio's console or yours.
+  - *Platform deals:* a full exclusive on a studio's console earns a payment from its maker at release; a timed
+    exclusive's deal pays half as much again.
+  - *Publishers:* 20% more per copy from its publisher; Publishers Bid offers half as much again.
+  - *The long tail:* it runs out of buyers 40% slower.
+  - *The series:* sequels start with more hype, the IP is worth half as much again, the fan shop sells 30% more, and
+    cartoon offers pick it first.
+  - *Copycats:* for a year after it comes out, studios' new games chase its genre and topic.
+  - *Awards:* a bonus in Game of the Year and Players' Choice. **Hall of Fame:** a new category inducts a landmark
+    from ten or more years ago each year.
+- **Landmark events:** its anniversary (10, 20, 25 years: plan a remaster for an anniversary launch, run a campaign,
+  or mark it quietly), the studio that made it in history wanting it back, a speedrun craze, and a film, TV series or
+  cartoon of it (through The Holy Expansion's Movie & TV deals when they're on).
+- **Fix:** the Cover Disc event's review drop now lands before the release, so The Holy Expansion's launch and the
+  game's own release use the lowered score.
 
 ## 0.32.0: third and fourth topics, new languages
 Two new research items give your games more topics, eleven new languages open over the years, and the game design

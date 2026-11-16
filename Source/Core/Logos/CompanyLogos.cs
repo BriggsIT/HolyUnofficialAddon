@@ -60,9 +60,10 @@ internal static class CompanyLogos
 	private static void Load(loadResources __instance)
 	{
 		names.Clear();
+		GUI_Main gui = null;
 		try
 		{
-			GUI_Main gui = LoaderGui(__instance) ?? G.Gui;
+			gui = LoaderGui(__instance) ?? G.Gui;
 			string dir = Path.Combine(Plugin.PluginDir, "logos");
 			string file = Path.Combine(dir, "logos.json");
 			if (!gui || gui.logoSprites == null || !File.Exists(file))
@@ -97,11 +98,16 @@ internal static class CompanyLogos
 			names.Clear();
 			Plugin.Log.LogError("Company logos failed: " + ex);
 		}
+		finally
+		{
+			// The added studios' logos go after these, at their own fixed numbers.
+			Studios.ExtraStudios.AddLogos(gui);
+		}
 	}
 
 	// The logos are 256x256 and the game shows them at roughly 40-130 pixels. mainScript.LoadPNG makes textures without
 	// mipmaps, which turns small text jagged, so these get mipmaps and trilinear filtering.
-	private static Sprite LoadSprite(string path)
+	internal static Sprite LoadSprite(string path)
 	{
 		if (!File.Exists(path))
 		{

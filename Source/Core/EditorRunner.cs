@@ -59,6 +59,8 @@ internal class EditorRunner : MonoBehaviour
 			EditorWindow.ExtraTopics.Tick();
 			DesignScreenPanels.Tick();
 			LanguagesRow.Tick();
+			DesignAssist.Tick();
+			EditorWindow.DesignAssist.Tick();
 			CopyProtectMenu.Tick();
 			UpdateMenus.Tick();
 			ContractTracker.Tick();

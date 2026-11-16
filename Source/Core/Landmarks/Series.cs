@@ -256,6 +256,19 @@ internal static class Series
 				linked++;
 			}
 		}
+		// Landmark series' entries (Landmarks.FixEntryLines) follow their landmark, whatever their names.
+		foreach (KeyValuePair<int, int> kv in Landmarks.EntryBases)
+		{
+			if (kv.Key >= 0 && kv.Key < list.Length && kv.Value >= 0 && kv.Value < list.Length && kv.Key != kv.Value)
+			{
+				if (list[kv.Key].Base < 0)
+				{
+					linked++;
+				}
+				list[kv.Key].Base = kv.Value;
+				list[kv.Key].Numbered = false;
+			}
+		}
 		lines = list;
 		linkedArray = arr;
 		Plugin.Log.LogInfo("Series: " + linked + " later entries in the franchise list belong to their series");
@@ -327,6 +340,14 @@ internal static class Series
 			}
 			root = a;
 		}
+		// A landmark series' entry is only ever part of its series: never a series of its own.
+		if (root != i && Landmarks.EntryBases.ContainsKey(i))
+		{
+			return new Status
+			{
+				Kind = Kind.Wait
+			};
+		}
 		if (root == i || (root < used.Length && used[root]))
 		{
 			// Not a later entry, or its series was started and is gone.
@@ -347,6 +368,17 @@ internal static class Series
 		{
 			Kind = Kind.Free
 		};
+	}
+
+	// A landmark series' entry more than a few years past its real year isn't made any more (a save from before this
+	// version would otherwise get every old entry at once).
+	private static bool Stale(int i, Line l, int year)
+	{
+		if (Landmarks.EntryBases.ContainsKey(i))
+		{
+			return year > l.Year + Landmarks.Window;
+		}
+		return false;
 	}
 
 	private static Status ByOwner(Line b, gameScript main)
@@ -449,6 +481,13 @@ internal static class Series
 			for (int i = 0; i < lines.Length; i++)
 			{
 				Line l = lines[i];
+				// A landmark too late for a studio to start now (Landmarks.StudioYears): hidden, so it's missed.
+				if (!used[i] && Landmarks.ClosedToStudios(i, year))
+				{
+					shown[i] = true;
+					hid = true;
+					continue;
+				}
 				if (l.Base < 0 || used[i])
 				{
 					continue;
@@ -460,7 +499,7 @@ internal static class Series
 				}
 				shown[i] = true;
 				hid = true;
-				if (((st.Kind == Kind.Owner && st.Studio == publisher_) || (st.Kind == Kind.Orphan && l.Studio == publisher_)) && l.Year <= year && Unlocked(gen, l) && (pick < 0 || l.Year < lines[pick].Year) && (st.Kind != Kind.Orphan || CanTakeOver(st.Main, publisher_)))
+				if (((st.Kind == Kind.Owner && st.Studio == publisher_) || (st.Kind == Kind.Orphan && l.Studio == publisher_)) && l.Year <= year && !Stale(i, l, year) && Unlocked(gen, l) && (pick < 0 || l.Year < lines[pick].Year) && (st.Kind != Kind.Orphan || CanTakeOver(st.Main, publisher_)))
 				{
 					pick = i;
 					pickStatus = st;
@@ -585,6 +624,11 @@ internal static class Series
 				{
 					NextEntry(__result, __instance);
 				}
+				else if (__result.typ_mmoaddon)
+				{
+					// An MMO landmark's expansion: the series' next one (World of Warcraft: The Burning Crusade...).
+					Landmarks.NameExpansion(__result, __instance.myID);
+				}
 			}
 		}
 		catch (Exception ex)
@@ -677,7 +721,7 @@ internal static class Series
 			for (int i = 0; i < lines.Length; i++)
 			{
 				Line l = lines[i];
-				if (l.Base < 0 || used[i] || l.Year > G.MS.year || (l.Genre != g.maingenre && !l.Numbered) || !Unlocked(gen, l) || (pick >= 0 && lines[pick].Year <= l.Year))
+				if (l.Base < 0 || used[i] || l.Year > G.MS.year || Stale(i, l, G.MS.year) || (l.Genre != g.maingenre && !l.Numbered && !Landmarks.EntryBases.ContainsKey(i)) || !Unlocked(gen, l) || (pick >= 0 && lines[pick].Year <= l.Year))
 				{
 					continue;
 				}
@@ -703,6 +747,7 @@ internal static class Series
 					Stem = l2.Name
 				};
 				Told(studio, l2.Name, main, sequel: true, takeover: false);
+				Landmarks.EntryMade(l2.Name, g, studio.myID);
 				return;
 			}
 		}

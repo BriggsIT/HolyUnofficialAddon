@@ -283,6 +283,12 @@ internal static class TimedExclusives
 		{
 			return;
 		}
+		// A landmark sells their console: they pay half as much again.
+		bool landmark = Landmarks.Landmarks.IsLandmark(g);
+		if (landmark)
+		{
+			rate *= 1.5f;
+		}
 		long deal = (long)((float)GameUpdates.DevCost(g) * rate);
 		if (deal <= 0)
 		{
@@ -290,7 +296,7 @@ internal static class TimedExclusives
 		}
 		t.Deal = deal;
 		G.MS.Earn(deal, 2);
-		CopyProtectDev.Report("<b>" + g.GetNameWithTag() + "</b> is out as a " + t.Months + "-month " + p.GetName() + " exclusive.\n\n" + p.GetManufacturer() + " pays " + G.Money(deal) + " for it (" + Mathf.RoundToInt(rate * 100f) + "% of its development costs). It comes to " + Names(t.Later) + " when the deal ends.");
+		CopyProtectDev.Report("<b>" + g.GetNameWithTag() + "</b> is out as a " + t.Months + "-month " + p.GetName() + " exclusive.\n\n" + p.GetManufacturer() + " pays " + G.Money(deal) + " for it (" + Mathf.RoundToInt(rate * 100f) + "% of its development costs" + (landmark ? ", half as much again for a landmark" : "") + "). It comes to " + Names(t.Later) + " when the deal ends.");
 	}
 
 	// The window is over: out on the other platforms (those still on the market), like a finished port.

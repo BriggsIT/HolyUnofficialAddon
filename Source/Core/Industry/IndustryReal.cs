@@ -317,23 +317,27 @@ internal static class IndustryReal
 
 	// With Holy's Movie & TV deals on, the series is Holy's deal (Holy premieres it and judges it: sales, IP points and
 	// fans for the whole series); otherwise the addon premieres it the same way, with the game's own levers.
-	public static void StartCartoon(gameScript ip, string studio, long fee, bool coProduced)
+	// kind: Holy's (0 a film, 1 a TV series, 2 an animated series). A film takes longer, as in Holy.
+	public static void StartCartoon(gameScript ip, string studio, long fee, bool coProduced, int kind = 2)
 	{
 		if (!ip)
 		{
 			return;
 		}
-		int weeks = UnityEngine.Random.Range(44, 80);
-		bool holy = AddHolyDeal(ip, studio, fee, weeks);
+		int weeks = ((kind == 0) ? UnityEngine.Random.Range(60, 100) : UnityEngine.Random.Range(44, 80));
+		bool holy = AddHolyDeal(ip, studio, fee, weeks, kind);
 		S.CartoonDeals.Add(new CartoonDeal
 		{
 			IpGameId = ip.myID,
 			Studio = studio,
 			ReleaseWeek = IndustryCore.Now + weeks,
 			CoProduced = coProduced,
-			Holy = holy
+			Holy = holy,
+			Kind = kind
 		});
 	}
+
+	public static readonly string[] ScreenKinds = new string[3] { "film", "TV series", "animated series" };
 
 	public static int CartoonWeeks(gameScript ip)
 	{
@@ -350,7 +354,7 @@ internal static class IndustryReal
 		return HolyBusy(ip);
 	}
 
-	private static bool AddHolyDeal(gameScript ip, string studio, long fee, int weeks)
+	private static bool AddHolyDeal(gameScript ip, string studio, long fee, int weeks, int kind)
 	{
 		try
 		{
@@ -369,7 +373,7 @@ internal static class IndustryReal
 			HolyCompat.Set(d, "IpGameId", ip.myID);
 			HolyCompat.Set(d, "IpName", ip.GetIpName());
 			HolyCompat.Set(d, "Studio", studio);
-			HolyCompat.Set(d, "Kind", 2);
+			HolyCompat.Set(d, "Kind", Mathf.Clamp(kind, 0, 2));
 			HolyCompat.Set(d, "Fee", fee);
 			HolyCompat.Set(d, "StartWeek", HolyAbsWeek());
 			HolyCompat.Set(d, "ReleaseWeek", HolyAbsWeek() + weeks);
@@ -425,7 +429,7 @@ internal static class IndustryReal
 		{
 			return 3;
 		}
-		object d = deals.Cast<object>().LastOrDefault((object x) => HolyCompat.Get<int>(x, "IpGameId") == c.IpGameId && HolyCompat.Get<int>(x, "Kind") == 2);
+		object d = deals.Cast<object>().LastOrDefault((object x) => HolyCompat.Get<int>(x, "IpGameId") == c.IpGameId && HolyCompat.Get<int>(x, "Kind") == c.Kind);
 		return (d == null) ? 3 : HolyCompat.Get<int>(d, "Result");
 	}
 
@@ -500,14 +504,14 @@ internal static class IndustryReal
 			else
 			{
 				c.Result = Premiere(c, ip);
-				string text = "The " + ip.GetIpName() + " animated series by " + c.Studio + " is out: " + Results[c.Result] + ((c.Result == 1) ? ". Lapsed players pick the games up again." : ((c.Result == 3) ? ". Fans of the games aren't happy." : "."));
+				string text = "The " + ip.GetIpName() + " " + ScreenKinds[Mathf.Clamp(c.Kind, 0, 2)] + " by " + c.Studio + " is out: " + Results[c.Result] + ((c.Result == 1) ? ". Lapsed players pick the games up again." : ((c.Result == 3) ? ". Fans of the games aren't happy." : "."));
 				IndustryCore.News(text);
 				IndustryCore.Feed(text);
 			}
 			if (c.CoProduced && c.Result != 3)
 			{
 				Merchandise(ip);
-				IndustryCore.Feed("The " + ip.GetIpName() + " cartoon has the shops wanting its merchandise: your fan shop's demand for it starts fresh.");
+				IndustryCore.Feed("The " + ip.GetIpName() + " " + ScreenKinds[Mathf.Clamp(c.Kind, 0, 2)] + " has the shops wanting its merchandise: your fan shop's demand for it starts fresh.");
 			}
 		}
 		S.CartoonDeals.RemoveAll((CartoonDeal x) => x.Result != 0 && IndustryCore.Now - x.ReleaseWeek > 104);

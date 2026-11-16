@@ -114,11 +114,11 @@ internal static class UpdateMenus
 	{
 		return k switch
 		{
-			UpdateKind.Port => "<b>Port to more platforms</b>\nBring a released game to more platforms of the same kind (another console, PC...). The game gets a launch boost on them and keeps the extra reach. (Holy Unofficial Addon)",
-			UpdateKind.Engine => "<b>Update the engine</b>\nMove a released game to newer engine features, from its own engine or another one you own or license. Better graphics, sound and tech, and a lasting sales bonus. (Holy Unofficial Addon)",
-			UpdateKind.Features => "<b>Add gameplay features</b>\nAdd researched gameplay features to a released game without making an addon. Features that suit the genre help most. (Holy Unofficial Addon)",
-			UpdateKind.Rating => "<b>Change the age rating</b>\nCut content so a released game gets a lower age rating and more players can buy it. (Holy Unofficial Addon)",
-			UpdateKind.Translation => "<b>Translate the game</b>\nBring a released game out in the new languages (Portuguese, Dutch, Turkish...) it doesn't have yet. Each one adds its share to its sales from then on. (Holy Unofficial Addon)",
+			UpdateKind.Port => "<b>Port to more platforms</b>\nBring a released game to more platforms of the same kind (another console, PC...). The game gets a launch boost on them and keeps the extra reach. (Unholy Addon)",
+			UpdateKind.Engine => "<b>Update the engine</b>\nMove a released game to newer engine features, from its own engine or another one you own or license. Better graphics, sound and tech, and a lasting sales bonus. (Unholy Addon)",
+			UpdateKind.Features => "<b>Add gameplay features</b>\nAdd researched gameplay features to a released game without making an addon. Features that suit the genre help most. (Unholy Addon)",
+			UpdateKind.Rating => "<b>Change the age rating</b>\nCut content so a released game gets a lower age rating and more players can buy it. (Unholy Addon)",
+			UpdateKind.Translation => "<b>Translate the game</b>\nBring a released game out in the new languages (Portuguese, Dutch, Turkish...) it doesn't have yet. Each one adds its share to its sales from then on. (Unholy Addon)",
 			_ => "",
 		};
 	}

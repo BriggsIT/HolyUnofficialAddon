@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Landmark icons</title>
+<!--
+  The landmark badge: shown in the bottom-left corner of a landmark game's picture, inside its gold frame
+  (UI/LandmarkFrame), in the charts, the game's lists (Sequel, Spin-off...) and the addon's pages. It's drawn small
+  (16-40 px), so it's bold and simple: a gold medallion with a white star and laurel sprigs.
+  Render with: ..\logos\render-logos.ps1 -Page ..\icons\landmark-icons.html -Size 128 -NoJson   (PNGs go to png\)
+-->
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  #sheet { display: grid; grid-template-columns: repeat(8, 128px); grid-auto-rows: 128px; }
+  #sheet svg { width: 128px; height: 128px; display: block; }
+  #meta { display: none; }
+</style>
+</head>
+<body>
+<div id="sheet"></div>
+<pre id="meta"></pre>
+<script>
+const O = '#2a1c05';
+const ICONS = [];
+const add = (id, svg) => ICONS.push({ id, name: id, svg });
+const stops = list => list.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('');
+const lg = (id, list, d = [0, 0, 0, 1]) => `<linearGradient id="${id}" x1="${d[0]}" y1="${d[1]}" x2="${d[2]}" y2="${d[3]}">${stops(list)}</linearGradient>`;
+
+function star(x, y, r, fill, sw) {
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 5;
+    const rr = i % 2 === 0 ? r : r * 0.45;
+    pts.push(`${(x + rr * Math.cos(a)).toFixed(1)},${(y + rr * Math.sin(a)).toFixed(1)}`);
+  }
+  return `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${O}" stroke-width="${sw}" stroke-linejoin="round"/>`;
+}
+
+// A sprig of laurel leaves along an arc, on the left (side -1) or right (side 1).
+function sprig(side) {
+  const leaves = [];
+  for (let i = 0; i < 4; i++) {
+    // From the bottom round to the side (screen angles, y down), each leaf along the circle.
+    const deg = 112 + i * 26;
+    const t = deg * Math.PI / 180;
+    const lx = 64 + 35 * Math.cos(t);
+    const y = 66 + 35 * Math.sin(t);
+    const x = side < 0 ? lx : 128 - lx;
+    const rot = side < 0 ? deg : -deg;
+    leaves.push(`<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="6.5" ry="11" transform="rotate(${rot} ${x.toFixed(1)} ${y.toFixed(1)})" fill="url(#lbL)" stroke="${O}" stroke-width="2.5"/>`);
+  }
+  return leaves.join('');
+}
+
+add('landmark-badge', `
+<defs>
+  ${lg('lbRim', [[0, '#fff1a8'], [0.5, '#f0b429'], [1, '#a8670c']])}
+  ${lg('lbFace', [[0, '#ffd965'], [1, '#c98a14']])}
+  ${lg('lbL', [[0, '#fff3b0'], [1, '#d99a1c']])}
+  <filter id="lbsh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#000" flood-opacity=".5"/></filter>
+</defs>
+<g filter="url(#lbsh)">
+  <circle cx="64" cy="64" r="58" fill="url(#lbRim)" stroke="${O}" stroke-width="5"/>
+  <circle cx="64" cy="64" r="46" fill="url(#lbFace)" stroke="${O}" stroke-width="3"/>
+  ${sprig(-1)}
+  ${sprig(1)}
+  ${star(64, 58, 25, '#ffffff', 4)}
+  <ellipse cx="52" cy="30" rx="18" ry="7" fill="#fff" fill-opacity=".45"/>
+</g>
+`);
+
+document.getElementById('sheet').innerHTML = ICONS.map(i => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">${i.svg}</svg>`).join('');
+document.getElementById('meta').textContent = JSON.stringify(ICONS.map(i => ({ id: i.id, name: i.name })));
+</script>
+</body>
+</html>

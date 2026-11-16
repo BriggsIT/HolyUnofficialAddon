@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unholy Addon title</title>
+<!--
+  The "Unholy Addon" title art: the lettering style of The Holy Expansion's title (a small top line over big, bubbly,
+  glossy letters with a dark outline and a light rim), in red and gold, on a transparent background.
+  Render with: .\render-title.ps1 (writes unholy-addon-title.png next to this page, trimmed to the lettering).
+  Fonts are the ones Windows has: Arial Rounded MT Bold, thickened by a same-colour round-joined stroke for the
+  bubbly look, and Arial Black for the top line.
+-->
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  svg { display: block; }
+  text { font-family: 'Arial Rounded MT Bold', 'Arial Black', sans-serif; text-anchor: middle; }
+  .top { font-family: 'Arial Black', 'Segoe UI Black', sans-serif; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="3400" height="900" viewBox="0 0 3400 900">
+  <defs>
+    <!-- The two lines, drawn several times over with different paint. -->
+    <text id="top" class="top" x="1700" y="300" font-size="132" letter-spacing="6">MAD GAMES TYCOON 2</text>
+    <text id="big" x="1700" y="620" font-size="330" letter-spacing="10">UNHOLY ADDON</text>
+
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff7a5c"/>
+      <stop offset="0.38" stop-color="#ee2f24"/>
+      <stop offset="0.72" stop-color="#b8131a"/>
+      <stop offset="1" stop-color="#6e070d"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff2b0"/>
+      <stop offset="0.45" stop-color="#ffcc3d"/>
+      <stop offset="1" stop-color="#d98a0b"/>
+    </linearGradient>
+    <linearGradient id="cream" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#fff1c2"/>
+      <stop offset="1" stop-color="#ffc53a"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.05"/>
+    </linearGradient>
+
+    <!-- The letters' own shape (with the thickening stroke), for the gloss. -->
+    <clipPath id="bigShape">
+      <use xlink:href="#big"/>
+    </clipPath>
+    <filter id="soft" x="-10%" y="-30%" width="120%" height="160%">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
+  </defs>
+
+  <!-- Drop shadows. -->
+  <g filter="url(#soft)" opacity="0.55">
+    <use xlink:href="#top" fill="#1a0204" stroke="#1a0204" stroke-width="34" stroke-linejoin="round" transform="translate(0 12)"/>
+    <use xlink:href="#big" fill="#1a0204" stroke="#1a0204" stroke-width="78" stroke-linejoin="round" transform="translate(0 18)"/>
+  </g>
+
+  <!-- Top line: a gold rim, a dark outline, cream-to-gold letters. -->
+  <use xlink:href="#top" fill="url(#gold)" stroke="url(#gold)" stroke-width="34" stroke-linejoin="round"/>
+  <use xlink:href="#top" fill="#2a0306" stroke="#2a0306" stroke-width="22" stroke-linejoin="round"/>
+  <use xlink:href="#top" fill="url(#cream)" stroke="url(#cream)" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- The title: a gold rim, a dark crimson outline, red letters thickened and rounded. -->
+  <use xlink:href="#big" fill="url(#gold)" stroke="url(#gold)" stroke-width="74" stroke-linejoin="round"/>
+  <use xlink:href="#big" fill="#2a0306" stroke="#2a0306" stroke-width="52" stroke-linejoin="round"/>
+  <use xlink:href="#big" fill="url(#red)" stroke="url(#red)" stroke-width="20" stroke-linejoin="round"/>
+
+  <!-- Gloss on the upper half of each letter, and a light edge along the top. -->
+  <g clip-path="url(#bigShape)">
+    <ellipse cx="1700" cy="420" rx="1750" ry="125" fill="url(#gloss)"/>
+  </g>
+  <use xlink:href="#big" fill="none" stroke="#ffd9c9" stroke-opacity="0.55" stroke-width="3" transform="translate(0 -4)"/>
+</svg>
+</body>
+</html>

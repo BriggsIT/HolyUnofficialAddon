@@ -63,8 +63,10 @@ internal static class IndustryHooks
 	}
 
 	// Cover Disc: the unfinished demo is remembered when the reviews come in (the game's own review score, set just
-	// before it goes on the market).
-	[HarmonyPostfix]
+	// before it goes on the market). A prefix, so the release itself, Holy's launch (its review embargo and launch
+	// boost) and every other release patch see the lowered score; as a postfix it came after Holy had judged the
+	// reviews, since Holy's patches register first.
+	[HarmonyPrefix]
 	[HarmonyPatch(typeof(gameScript), "SetOnMarket")]
 	private static void DemoRemembered(gameScript __instance)
 	{

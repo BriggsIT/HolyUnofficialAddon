@@ -134,14 +134,16 @@ internal static class AwardsShow
 		["controls"] = new Prize { FansShare = 0.01f, FansBase = 500, FansCap = 10000, Sales = 0.02f, Studio = 20, Ip = 20, NpcIp = 20, Hype = 25, Game = true },
 		["debut"] = new Prize { FansShare = 0.01f, FansBase = 500, FansCap = 10000, Sales = 0.02f, Studio = 20, Ip = 20, NpcIp = 20, Hype = 30, Game = true },
 		["indie"] = new Prize { FansShare = 0.01f, FansBase = 500, FansCap = 10000, Sales = 0.02f, Studio = 20, Ip = 20, NpcIp = 20, Hype = 30, Game = true },
-		["family"] = new Prize { FansShare = 0.01f, FansBase = 500, FansCap = 10000, Sales = 0.02f, Studio = 20, Ip = 20, NpcIp = 20, Hype = 25, Game = true }
+		["family"] = new Prize { FansShare = 0.01f, FansBase = 500, FansCap = 10000, Sales = 0.02f, Studio = 20, Ip = 20, NpcIp = 20, Hype = 25, Game = true },
+		// A landmark from ten or more years ago (Core/Landmarks): its series' IP and a classic's revival.
+		["halloffame"] = new Prize { FansShare = 0.015f, FansBase = 750, FansCap = 15000, Sales = 0f, Studio = 30, Ip = 100, NpcIp = 100, Hype = 40, Game = true }
 	};
 
 	// The order prizes are paid in: the game's own categories first, so the ceremony caps never cut them.
-	private static readonly string[] PayOrder = new string[12] { "goty", "graphics", "sound", "developer", "publisher", "players", "gameplay", "ongoing", "controls", "debut", "indie", "family" };
+	private static readonly string[] PayOrder = new string[13] { "goty", "graphics", "sound", "developer", "publisher", "players", "gameplay", "ongoing", "controls", "debut", "indie", "family", "halloffame" };
 
 	// The order they're presented in (the big one last, as at real shows).
-	private static readonly string[] ShowOrder = new string[13] { "debut", "indie", "family", "controls", "sound", "graphics", "gameplay", "ongoing", "players", "developer", "publisher", "worst", "goty" };
+	private static readonly string[] ShowOrder = new string[14] { "debut", "indie", "family", "controls", "sound", "graphics", "gameplay", "ongoing", "players", "developer", "publisher", "halloffame", "worst", "goty" };
 
 	public const float SalesCap = 0.6f;
 
@@ -286,6 +288,15 @@ internal static class AwardsShow
 		return Mathf.RoundToInt(v) + "%";
 	}
 
+	private static string LandmarkNote(gameScript g)
+	{
+		if (!Landmarks.Landmarks.IsLandmark(g))
+		{
+			return "";
+		}
+		return ", a landmark";
+	}
+
 	private static AwardResult Category(string id, string name, string about, IEnumerable<KeyValuePair<object, AwardEntry>> ranked, Dictionary<string, List<object>> picks, int take = 5)
 	{
 		List<KeyValuePair<object, AwardEntry>> top = ranked.Take(take).ToList();
@@ -329,12 +340,13 @@ internal static class AwardsShow
 			}
 		}
 		List<AwardResult> results = new List<AwardResult>();
-		results.Add(Category("goty", "Game of the Year", "The best game of the year: its review score and what players think of it.", Rank(games, (gameScript g) => (float)g.reviewTotal + g.GetUserReviewPercent(), (gameScript g) => "Rated " + g.reviewTotal + "%, players " + Pct(g.GetUserReviewPercent())), picks));
+		// A landmark (Core/Landmarks) has the critics' and players' attention: a bonus in the two big ones.
+		results.Add(Category("goty", "Game of the Year", "The best game of the year: its review score and what players think of it. Landmarks get a bonus.", Rank(games, (gameScript g) => (float)g.reviewTotal + g.GetUserReviewPercent() + Landmarks.Landmarks.AwardBonus(g), (gameScript g) => "Rated " + g.reviewTotal + "%, players " + Pct(g.GetUserReviewPercent()) + LandmarkNote(g)), picks));
 		results.Add(Category("gameplay", "Best Gameplay", "The highest gameplay score of the year.", Rank(games, (gameScript g) => g.reviewGameplay, (gameScript g) => "Gameplay " + g.reviewGameplay + "%"), picks));
 		results.Add(Category("graphics", "Best Graphics", "The highest graphics score of the year.", Rank(games, (gameScript g) => g.reviewGrafik, (gameScript g) => "Graphics " + g.reviewGrafik + "%"), picks));
 		results.Add(Category("sound", "Best Soundtrack", "The highest sound score of the year.", Rank(games, (gameScript g) => g.reviewSound, (gameScript g) => "Sound " + g.reviewSound + "%"), picks));
 		results.Add(Category("controls", "Best Controls", "The highest controls score of the year.", Rank(games, (gameScript g) => g.reviewSteuerung, (gameScript g) => "Controls " + g.reviewSteuerung + "%"), picks));
-		results.Add(Category("players", "Players' Choice", "The game players loved most: user reviews, and how many bought it.", Rank(games, (gameScript g) => g.GetUserReviewPercent() + 15f * Mathf.Log10(1f + (float)g.sellsTotal / 1000f), (gameScript g) => "Players " + Pct(g.GetUserReviewPercent()) + ", " + MmoUi.Short(g.sellsTotal) + " sold"), picks));
+		results.Add(Category("players", "Players' Choice", "The game players loved most: user reviews, and how many bought it. Landmarks get a bonus.", Rank(games, (gameScript g) => g.GetUserReviewPercent() + 15f * Mathf.Log10(1f + (float)g.sellsTotal / 1000f) + Landmarks.Landmarks.AwardBonus(g), (gameScript g) => "Players " + Pct(g.GetUserReviewPercent()) + ", " + MmoUi.Short(g.sellsTotal) + " sold" + LandmarkNote(g)), picks));
 		results.Add(Category("debut", "Best Debut", "The best first game from a studio.", Rank(games.Where((gameScript g) => firstRelease.TryGetValue(g.developerID, out var first) && ReleaseMonth(g) <= first), (gameScript g) => g.reviewTotal, (gameScript g) => "Rated " + g.reviewTotal + "%"), picks));
 		results.Add(Category("indie", "Best Independent Game", "The best small game (size A or smaller) its studio published itself.", Rank(games.Where((gameScript g) => g.publisherID == g.developerID && g.gameSize <= 2), (gameScript g) => g.reviewTotal, (gameScript g) => "Rated " + g.reviewTotal + "%, size " + MmoOps.SizeName(g.gameSize)), picks));
 		results.Add(Category("family", "Best Family Game", "The best game for children or everyone, rated 12 or under.", Rank(games.Where((gameScript g) => (g.gameZielgruppe == 0 || g.gameZielgruppe == 4) && g.usk <= 2), (gameScript g) => g.reviewTotal, (gameScript g) => "Rated " + g.reviewTotal + "%, " + g.GetZielgruppeString()), picks));
@@ -343,6 +355,12 @@ internal static class AwardsShow
 		Companies(ms, pool, out var developers, out var publishers);
 		results.Add(Category("developer", "Developer of the Year", "The studio whose games scored best this year.", developers, picks));
 		results.Add(Category("publisher", "Publisher of the Year", "The publisher that sold the most good games this year.", publishers, picks));
+		// The Hall of Fame: one landmark (or milestone of a series) from ten or more years ago is inducted each year.
+		List<gameScript> classics = Landmarks.Landmarks.HallOfFameCandidates(ms.year);
+		if (classics.Count > 0)
+		{
+			results.Add(Category("halloffame", "Hall of Fame", "A landmark from ten or more years ago joins the Hall of Fame: one a year, the best rated first.", classics.Select((gameScript g) => new KeyValuePair<object, AwardEntry>(g, GameEntry(g, g.reviewTotal, "Released " + g.date_year + ", rated " + g.reviewTotal + "%"))), picks));
+		}
 		gameScript goty = (picks["goty"].Count > 0) ? ((gameScript)picks["goty"][0]) : null;
 		results.Add(Category("worst", "Worst Game of the Year", "A dishonour: the lowest review score of the year, under 60%.", from g in games
 			where g.reviewTotal < 60 && g != goty
@@ -681,6 +699,10 @@ internal static class AwardsShow
 		foreach (gameScript g in pool)
 		{
 			g.warBeiAwards = true;
+		}
+		if (picks.TryGetValue("halloffame", out var classics) && classics.Count > 0)
+		{
+			Landmarks.Landmarks.Inducted(classics[0] as gameScript);
 		}
 		if (MmoOps.On && picks.TryGetValue("ongoing", out var mmo))
 		{

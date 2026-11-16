@@ -12,14 +12,19 @@ namespace HolyAddon;
 [BepInDependency("holyexpansion.mgt2", BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin
 {
-	// Called "Editor" (GUID mgt2.editor) up to 0.6.0. Save keys keep the old "mgt2.editor." prefix so saves still load.
-	public const string Guid = "holyunofficialaddon.mgt2";
+	// Called "Editor" (GUID mgt2.editor) up to 0.6.0, then "Holy Unofficial Addon" (holyunofficialaddon.mgt2) up to
+	// 0.35.0. Save keys keep the old "mgt2.editor." prefix so saves still load.
+	public const string Guid = "unholyaddon.mgt2";
 
-	public const string Name = "Holy Unofficial Addon";
+	public const string Name = "Unholy Addon";
 
-	public const string Version = "0.32.0";
+	public const string Version = "0.35.0";
 
-	private const string OldGuid = "mgt2.editor";
+	// The settings files of the old names, newest first.
+	private static readonly string[] OldGuids = new string[2] { "holyunofficialaddon.mgt2", "mgt2.editor" };
+
+	// The old name's DLL: a copy left in the plugins folder would load as well (it has another GUID).
+	private const string OldDll = "HolyUnofficialAddon.dll";
 
 	internal static ManualLogSource Log;
 
@@ -85,6 +90,16 @@ public class Plugin : BaseUnityPlugin
 
 	internal static ConfigEntry<bool> LandmarksShowUpcoming;
 
+	internal static ConfigEntry<bool> DesignAssistant;
+
+	internal static ConfigEntry<bool> DesignRevealAll;
+
+	internal static ConfigEntry<bool> DesignColourBlind;
+
+	internal static ConfigEntry<bool> DesignKeepMainGenre;
+
+	internal static ConfigEntry<string> DesignParts;
+
 	internal static ConfigEntry<bool> BottomBarExpanded;
 
 	internal static ConfigEntry<bool> StoreEnabled;
@@ -115,6 +130,17 @@ public class Plugin : BaseUnityPlugin
 	{
 		Log = Logger;
 		PluginDir = Path.GetDirectoryName(Info.Location);
+		string oldCopy = FindOldCopy();
+		if (oldCopy != null)
+		{
+			// Two copies would hook everything twice. Let the old one run alone, and say how to fix it.
+			string folder = Path.GetDirectoryName(oldCopy);
+			Log.LogError("The old Holy Unofficial Addon is still installed in " + folder + ". Delete that folder: " + Name + " replaces it, and the two can't run together. " + Name + " is off until then.");
+			GameObject warning = new GameObject("UnholyAddonOldCopy");
+			Object.DontDestroyOnLoad(warning);
+			warning.AddComponent<OldCopyWarning>().Folder = folder;
+			return;
+		}
 		MoveOldSettings();
 		Hotkey = Config.Bind("General", "Hotkey", KeyboardShortcut.Empty, "Optional key that opens or closes the addon's window (the bottom bar button always works).");
 		// 0.1.0 saved a game sprite (iconRename) as the button icon; drop that setting so the Editor's own icon shows.
@@ -122,7 +148,7 @@ public class Plugin : BaseUnityPlugin
 		Config.Bind(oldIcon, "");
 		Config.Remove(oldIcon);
 		Config.Save();
-		ButtonIcon = Config.Bind("General", "Icon", "", "Leave empty for the addon's own icon (icon.png next to HolyUnofficialAddon.dll), or enter a game sprite name such as iconOptions or iconSkill.");
+		ButtonIcon = Config.Bind("General", "Icon", "", "Leave empty for the addon's own icon (icon.png next to UnholyAddon.dll), or enter a game sprite name such as iconOptions or iconSkill.");
 		EnableCheats = Config.Bind("General", "EnableCheats", false, "Shows the Employees editor on the addon's home page (set any employee's skills, motivation and sickness). Off by default.");
 		KeepEditedSkills = Config.Bind("Employees", "KeepEditedSkills", true, "Skills outside an employee's profession normally get pushed back down to 50 (60 with the right perk) as soon as they use them. When on, a skill you raised above that in the employee editor stays where you put it (it just won't grow further).");
 		ExtraSpeedButtons = Config.Bind("Speed", "ExtraSpeedButtons", true, "Show Turbo and Ultra speed buttons next to the game's pause / play / fast buttons.");
@@ -179,9 +205,23 @@ public class Plugin : BaseUnityPlugin
 		BottomBarExpanded = Config.Bind("General", "BottomBarExpanded", true, "Show the addon's buttons on the bottom bar (the arrow button before them shows or hides them). On narrow screens they sit in a row just above the bar.");
 		MergedRival = Config.Bind("Industry", "Rivals", true, "Rivals from your standing with studios: the one you get on worst with is your arch-rival and makes moves against you every few months (poaching, copycats, release clashes, trash talk); your moves against rivals are on their page in the Industry window. Replaces The Holy Expansion's Rival Studio (its rival carries over). Needs industry events. Off = Holy's Rival Studio as before.");
 		LandmarksShowUpcoming = Config.Bind("Industry", "ShowUpcomingLandmarks", false, "The Landmarks tab (Industry window) also lists the landmark games nobody has made yet, with what it takes to make them. Off = only the ones already made, so you discover them.");
+		DesignAssistant = Config.Bind("DesignAssistant", "Enabled", true, "The design assistant on the game design screen: fit colours on genres, topics, age groups and design sliders, the Assist button (first page) that fills in the parts you choose, a Platforms button (platform page), and work priorities from the game's Auto Design Settings.");
+		DesignRevealAll = Config.Bind("DesignAssistant", "RevealEveryFit", false, "Know every fit and the right design settings, as the game's sandbox options do. Off = only what your studio has learned from its games' review reports, as the game does.");
+		DesignColourBlind = Config.Bind("DesignAssistant", "ColourBlindColours", false, "Blue for a good fit and orange for a bad one, instead of the game's green and red.");
+		DesignKeepMainGenre = Config.Bind("DesignAssistant", "KeepMainGenre", true, "When you've already picked a main genre, Assist builds the game around it instead of picking the most promising one.");
+		DesignParts = Config.Bind("DesignAssistant", "Parts", UI.DesignAssist.DefaultParts, "What the Assist button fills in, comma-separated: Genre, SubGenre, Topics, ExtraTopics, AgeGroup, Design, Priorities, Platforms, Engine, Licence, Languages, Name.");
 		Harmony harmony = new Harmony(Guid);
 		harmony.PatchAll(typeof(Plugin).Assembly);
 		HolyCompat.Apply(harmony);
+		// The game is 32-bit: a hooked method that returns a long, double or struct gives garbage (StutterFinder.SafeReturn;
+		// 0.33.0's GetIpWert hook made IP prices run into billions). Say so loudly if one ever slips in again.
+		foreach (System.Reflection.MethodBase patched in harmony.GetPatchedMethods())
+		{
+			if (patched is System.Reflection.MethodInfo info && !Core.Performance.StutterFinder.SafeReturn(info))
+			{
+				Log.LogError("Unsafe patch: " + info.DeclaringType?.Name + "." + info.Name + " returns " + info.ReturnType.Name + ", which this 32-bit game can't hook. Its results will be garbage.");
+			}
+		}
 		GameObject gameObject = new GameObject("HolyAddon");
 		Object.DontDestroyOnLoad(gameObject);
 		gameObject.hideFlags = HideFlags.HideAndDontSave;
@@ -190,23 +230,56 @@ public class Plugin : BaseUnityPlugin
 		Log.LogInfo(Name + " " + Version + " loaded");
 	}
 
-	// Settings lived in mgt2.editor.cfg before the rename: carry them over once.
+	// Settings lived in the old names' .cfg files before each rename: carry the newest over once.
 	private void MoveOldSettings()
 	{
 		try
 		{
-			string old = Path.Combine(Paths.ConfigPath, OldGuid + ".cfg");
-			if (File.Exists(old) && !File.Exists(Config.ConfigFilePath))
+			if (File.Exists(Config.ConfigFilePath))
 			{
-				File.Copy(old, Config.ConfigFilePath);
-				Config.Reload();
-				File.Delete(old);
-				Log.LogInfo("Moved the settings from " + OldGuid + ".cfg");
+				return;
+			}
+			foreach (string guid in OldGuids)
+			{
+				string old = Path.Combine(Paths.ConfigPath, guid + ".cfg");
+				if (File.Exists(old))
+				{
+					File.Copy(old, Config.ConfigFilePath);
+					Config.Reload();
+					File.Delete(old);
+					Log.LogInfo("Moved the settings from " + guid + ".cfg");
+					return;
+				}
 			}
 		}
 		catch (System.Exception ex)
 		{
 			Log.LogWarning("Could not move the old settings: " + ex.Message);
+		}
+	}
+
+	private static string FindOldCopy()
+	{
+		try
+		{
+			string[] found = Directory.GetFiles(Paths.PluginPath, OldDll, SearchOption.AllDirectories);
+			return (found.Length > 0) ? found[0] : null;
+		}
+		catch (System.Exception ex)
+		{
+			Log.LogWarning("Could not look for an old copy: " + ex.Message);
+			return null;
+		}
+	}
+
+	// A box at the top of the screen while the old copy is still installed.
+	private class OldCopyWarning : MonoBehaviour
+	{
+		internal string Folder;
+
+		private void OnGUI()
+		{
+			GUI.Box(new Rect(20f, 20f, Screen.width - 40f, 70f),"Unholy Addon replaces the Holy Unofficial Addon, which is still installed in:\n" + Folder + "\nQuit the game, delete that folder and start again. Until then the old version runs.");
 		}
 	}
 }

@@ -312,7 +312,7 @@ internal static class CopyProtectDev
 
 	public static string ResearchName => G.Text(381, "Copy protection");
 
-	public static string ResearchTooltip => "Develop your own copy protection in a development room: free for your own games, kept strong with updates, and something you can license to other studios. (Holy Unofficial Addon)";
+	public static string ResearchTooltip => "Develop your own copy protection in a development room: free for your own games, kept strong with updates, and something you can license to other studios. (Unholy Addon)";
 
 	// What stops you starting a copy protection right now, or null if nothing does.
 	public static string LockReason()

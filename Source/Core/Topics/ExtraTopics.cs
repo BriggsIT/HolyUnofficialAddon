@@ -225,9 +225,9 @@ internal static class ExtraTopics
 	{
 		if (i == 0)
 		{
-			return "Games can have a third topic: pick it on the game design screen. Topics that suit the genre and go with the others lift the review; each extra topic adds about 10% to the development cost and time. (Holy Unofficial Addon)";
+			return "Games can have a third topic: pick it on the game design screen. Topics that suit the genre and go with the others lift the review; each extra topic adds about 10% to the development cost and time. (Unholy Addon)";
 		}
-		return "Games can have a fourth topic, on top of the third. (Holy Unofficial Addon)";
+		return "Games can have a fourth topic, on top of the third. (Unholy Addon)";
 	}
 
 	private static readonly AccessTools.FieldRef<Menu_Forschung, string> SearchText = AccessTools.FieldRefAccess<Menu_Forschung, string>("searchStringA");

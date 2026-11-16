@@ -336,6 +336,9 @@ internal class CartoonDeal
 
 	// 0 in production, 1 hit, 2 solid, 3 flop.
 	public int Result;
+
+	// Holy's kinds: 0 a film, 1 a TV series, 2 an animated series (the cartoon event's; older saves).
+	public int Kind = 2;
 }
 
 internal class PortDeal

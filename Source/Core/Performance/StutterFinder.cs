@@ -650,8 +650,7 @@ internal class StutterFinder : MonoBehaviour
 		string tag = (assembly == "Assembly-CSharp") ? "" : (assembly switch
 		{
 			"HolyExpansion" => "[Holy] ",
-			"HolyUnofficialAddon" => "[Addon] ",
-			"GameDevAssistant" => "[GDA] ",
+			"UnholyAddon" => "[Addon] ",
 			_ => "[" + assembly + "] ",
 		});
 		return tag + m.DeclaringType.Name + "." + m.Name;
@@ -667,7 +666,7 @@ internal class StutterFinder : MonoBehaviour
 			StringBuilder sb = new StringBuilder();
 			TimeSpan running = DateTime.Now - started;
 			double avg = ((frames > 0) ? (frameMsTotal / (double)frames) : 0.0);
-			sb.AppendLine("Holy Unofficial Addon " + Plugin.Version + " - stutter report");
+			sb.AppendLine(Plugin.Name + " " + Plugin.Version + " - stutter report");
 			sb.AppendLine("Written " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ", game date " + GameDate() + ", Unity " + Application.unityVersion + ", " + (IntPtr.Size * 8) + "-bit");
 			sb.AppendLine("Plugins: " + string.Join(", ", Chainloader.PluginInfos.Values.Select((PluginInfo p) => p.Metadata.Name + " " + p.Metadata.Version)));
 			sb.AppendLine(instrumentedNote);

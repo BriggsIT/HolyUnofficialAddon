@@ -103,6 +103,12 @@ internal static class UpdateIcons
 		return File("award-" + category + ".png") ?? File("award-goty.png") ?? UIKit.Sprite("iconMadGamesAwards");
 	}
 
+	// The landmark badge on a landmark game's picture (Assets/icons/landmark-icons.html).
+	public static Sprite LandmarkBadge()
+	{
+		return File("landmark-badge.png") ?? Award("halloffame");
+	}
+
 	// The awards ceremony backdrop (Assets/awards/awards-art.html).
 	public static Sprite AwardsBackdrop()
 	{

@@ -26,7 +26,7 @@ internal static class LandmarkUi
 	// "Platformer with Plumber", "Skill Game with Aliens (and Spaceships suit it)".
 	public static string Recipe(LandmarkDef d)
 	{
-		string s = IndustryCore.GenreName(d.Genre) + " with " + string.Join(" and ", d.Topics.Select(Topic));
+		string s = IndustryCore.GenreName(d.Genre) + (d.Mobile ? " (a mobile game)" : (d.Mmo ? " (an MMO)" : "")) + " with " + string.Join(" and ", d.Topics.Select(Topic));
 		if (d.Extra.Length != 0)
 		{
 			s = s + " (" + string.Join(" and ", d.Extra.Select(Topic)) + " suit" + ((d.Extra.Length == 1) ? "s" : "") + " it)";
@@ -84,9 +84,10 @@ internal class LandmarkPage : Page
 			{
 				return 300f;
 			}
+			Landmarks.DropStaleStart();
 			if (Landmarks.Offer == null)
 			{
-				return 550f;
+				return (Landmarks.Showing != null && Landmarks.Showing.StartsWith(Landmarks.CompletePrefix)) ? 610f : 550f;
 			}
 			return 610f;
 		}
@@ -96,8 +97,12 @@ internal class LandmarkPage : Page
 	// has no pictures yet), a gold glow and a gold line under it.
 	private static void Hero(EditorWindow w, LandmarkDef d, int seed, string kicker, string title, string sub)
 	{
+		Hero(w, Landmarks.Picture(d, seed), kicker, title, sub);
+	}
+
+	private static void Hero(EditorWindow w, Sprite pic, string kicker, string title, string sub)
+	{
 		float W = w.Width;
-		Sprite pic = Landmarks.Picture(d, seed);
 		RectTransform banner = (pic ? w.Banner(pic, 14f, 14f, W - 28f, 210f) : w.Banner(UpdateIcons.Banner("industry"), 14f, 14f, W - 28f, 210f, full: true));
 		Image glow = MmoUi.Rect(banner, -120f, -110f, 520f, 330f, new Color(LandmarkUi.Gold.r, LandmarkUi.Gold.g, LandmarkUi.Gold.b, 0.28f));
 		glow.sprite = SpriteTools.Glow();
@@ -130,18 +135,37 @@ internal class LandmarkPage : Page
 	public override void Build(EditorWindow w)
 	{
 		float W = w.Width;
+		Landmarks.DropStaleStart();
 		LandmarkOffer o = Landmarks.Offer;
-		LandmarkDef shown = ((Landmarks.Showing != null) ? Landmarks.Def(Landmarks.Showing) : null);
-		if (result != null || (o == null && shown == null))
+		LandmarkDef shown =((Landmarks.Showing != null) ? Landmarks.Def(Landmarks.Showing) : null);
+		LandmarkEntry shownEntry = ((Landmarks.Showing != null) ? Landmarks.Entry(Landmarks.Showing) : null);
+		LandmarkDef completed = ((Landmarks.Showing != null && Landmarks.Showing.StartsWith(Landmarks.CompletePrefix)) ? Landmarks.Def(Landmarks.Showing.Substring(Landmarks.CompletePrefix.Length)) : null);
+		if (result != null || (o == null && shown == null && shownEntry == null && completed == null))
 		{
 			w.Label(result ?? "That's been dealt with.", 24f, 30f, W - 48f, 110f, TextAnchor.UpperLeft, bold: false, null, 15);
 			w.BigButton("Close", 14f, 150f, 220f, 44f, w.Close);
 			w.SmallButton("Open Landmarks...", 248f, 157f, 220f, OpenList, enabled: true, null, null, 30f);
 			return;
 		}
-		if (o != null)
+		if (o != null && o.AtStart)
+		{
+			StartOffer(w, o);
+		}
+		else if (o != null && o.Entry != null)
+		{
+			EntryOffer(w, o);
+		}
+		else if (o != null)
 		{
 			Offer(w, o);
+		}
+		else if (completed != null)
+		{
+			SeriesDone(w, completed);
+		}
+		else if (shownEntry != null)
+		{
+			EntryMade(w, shownEntry);
 		}
 		else
 		{
@@ -187,9 +211,10 @@ internal class LandmarkPage : Page
 		});
 		y += 76f;
 		string rival = (o.Rival ? (" <color=#c62828>" + o.Rival.GetName() + " is making it right now: claim it and they shelve theirs.</color>") : "");
-		w.Label("<b>" + o.Game.GetNameSimple() + "</b> can become <b>" + d.Title + "</b>." + rival, 24f, y, W - 48f, 46f, TextAnchor.UpperLeft, bold: false, null, 16);
+		bool same = SameName(o.Game, d.Title);
+		w.Label((same ? ("Your game can become the real <b>" + d.Title + "</b>.") : ("<b>" + o.Game.GetNameSimple() + "</b> can become <b>" + d.Title + "</b>.")) + rival, 24f, y, W - 48f, 46f, TextAnchor.UpperLeft, bold: false, null, 16);
 		y += 50f;
-		w.Label("It's renamed and shows " + d.Name + "'s pictures. When it comes out: IP points, fans of " + IndustryCore.GenreGames(d.Genre) + ", hype, and " + IndustryCore.GenrePlural(d.Genre) + " become the trend. " + d.Studio + " will never make it.", 24f, y, W - 48f, 44f, TextAnchor.UpperLeft, bold: false, null, 13).color = UIKit.Grey;
+		w.Label((same ? "It keeps its name and shows " : "It's renamed and shows ") + d.Name + "'s pictures. When it comes out: IP points, fans of " + IndustryCore.GenreGames(d.Genre) + ", hype, and " + IndustryCore.GenrePlural(d.Genre) + " become the trend. " + d.Studio + " will never make it.", 24f, y, W - 48f, 44f, TextAnchor.UpperLeft, bold: false, null, 13).color = UIKit.Grey;
 		y += 56f;
 		w.BigButton("Make It " + d.Name, 14f, y, 300f, 46f, delegate
 		{
@@ -214,6 +239,172 @@ internal class LandmarkPage : Page
 			w.Rebuild();
 		});
 		w.Label("Closing this window asks again when it's finished next time.", 14f, y + 54f, W - 28f, 22f, TextAnchor.MiddleLeft, bold: false, null, 12).color = UIKit.Grey;
+	}
+
+	// The game already has the landmark's name (you named it that yourself).
+	private static bool SameName(gameScript g, string name)
+	{
+		return (bool)g && string.Equals((g.GetNameSimple() ?? "").Trim(), (name ?? "").Trim(), System.StringComparison.OrdinalIgnoreCase);
+	}
+
+	// Your sequel of a landmark series can become the series' next real game.
+	private void EntryOffer(EditorWindow w, LandmarkOffer o)
+	{
+		float W = w.Width;
+		LandmarkEntry e = o.Entry;
+		LandmarkDef d = o.Def;
+		Hero(w, Landmarks.EntryPicture(e, o.Game.myID), "THE NEXT " + d.Name.ToUpperInvariant() + " GAME", e.Name, e.Year + "  ·  in the " + d.Name + " series");
+		float y = 240f;
+		Chips(w, y, new string[2] { "Series", d.Name }, new string[3]
+		{
+			"Its kind",
+			e.Milestone ? "A landmark in its own right" : "The next in the series",
+			e.Milestone ? "gold" : "green"
+		}, new string[2]
+		{
+			"Projected review",
+			o.Review + "%  (needs " + e.Bar + "%)"
+		});
+		y += 76f;
+		bool same = SameName(o.Game, e.Name);
+		w.Label(same ? ("Your game can become the real <b>" + e.Name + "</b>.") : ("<b>" + o.Game.GetNameSimple() + "</b> can become <b>" + e.Name + "</b>."), 24f, y, W - 48f, 46f, TextAnchor.UpperLeft, bold: false, null, 16);
+		y += 50f;
+		w.Label((same ? "It keeps its name and shows its pictures." : "It's renamed and shows its pictures.") + (e.Milestone ? " When it comes out: IP points, fans, hype, and its genre becomes the trend, as for a landmark." : " When it comes out: IP points +75, fans of its genre and hype +15."), 24f, y, W - 48f, 44f, TextAnchor.UpperLeft, bold: false, null, 13).color = UIKit.Grey;
+		y += 56f;
+		w.BigButton("Make It " + e.Name, 14f, y, 420f, 46f, delegate
+		{
+			result = Landmarks.ClaimEntry();
+			w.Rebuild();
+		});
+		w.BigButton("Keep It As It Is", 444f, y, 220f, 46f, delegate
+		{
+			Landmarks.Decline();
+			result = "It stays " + o.Game.GetNameSimple() + ".";
+			w.Rebuild();
+		});
+		w.Label("Closing this window asks again when it's finished next time.", 14f, y + 54f, W - 28f, 22f, TextAnchor.MiddleLeft, bold: false, null, 12).color = UIKit.Grey;
+	}
+
+	// Starting a sequel of your landmark series: it can be the series' next real game from the start.
+	private void StartOffer(EditorWindow w, LandmarkOffer o)
+	{
+		float W = w.Width;
+		LandmarkEntry e = o.Entry;
+		LandmarkDef d = o.Def;
+		int by = e.Year + Landmarks.Window;
+		Hero(w, Landmarks.EntryPicture(e, o.Original ? o.Original.myID : 0), "THE NEXT " + d.Name.ToUpperInvariant() + " GAME", e.Name, e.Year + "  ·  in the " + d.Name + " series");
+		float y = 240f;
+		Chips(w, y, new string[2] { "Series", d.Name }, new string[3]
+		{
+			"Its kind",
+			e.Milestone ? "A landmark in its own right" : "The next in the series",
+			e.Milestone ? "gold" : "green"
+		}, new string[2]
+		{
+			"Review needed",
+			e.Bar + "% or more"
+		}, new string[2]
+		{
+			"Out by",
+			by.ToString()
+		});
+		y += 76f;
+		w.Label("Your sequel can be the real <b>" + e.Name + "</b>, from the start.", 24f, y, W - 48f, 30f, TextAnchor.UpperLeft, bold: false, null, 16);
+		y += 34f;
+		string rewards = (e.Milestone ? "IP points, fans, hype, and its genre becomes the trend, as for a landmark" : "IP points +75, fans of its genre and hype +15");
+		bool otherGenre = e.Genre >= 0 && (bool)o.DevMenu && e.Genre != o.DevMenu.g_GameMainGenre;
+		w.Label("It's named " + e.Name + " and shows its pictures while you make it. Received as it was (a review of " + e.Bar + "% or more, out by " + by + "): " + rewards + ". Otherwise it's still " + e.Name + ", without those, and the series goes on." + (otherGenre ? (" The real one was in the " + IndustryCore.GenreName(e.Genre) + " genre.") : ""), 24f, y, W - 48f, 60f, TextAnchor.UpperLeft, bold: false, null, 13).color = UIKit.Grey;
+		y += 72f;
+		w.BigButton("Make It " + e.Name, 14f, y, 420f, 46f, delegate
+		{
+			result = Landmarks.CommitAtStart();
+			w.Rebuild();
+		});
+		w.BigButton("Just a Sequel", 444f, y, 220f, 46f, delegate
+		{
+			result = Landmarks.DeclineAtStart();
+			w.Rebuild();
+		});
+		w.Label("Closing this window leaves the choice for when it's finished.", 14f, y + 54f, W - 28f, 22f, TextAnchor.MiddleLeft, bold: false, null, 12).color = UIKit.Grey;
+	}
+
+	// Your landmark series' real games have run out: the congratulations, and what changes now (LandmarkSeriesDone).
+	private void SeriesDone(EditorWindow w, LandmarkDef d)
+	{
+		float W = w.Width;
+		Landmarks.Tally(d, out var yours, out var made, out var total);
+		bool all = yours == total;
+		LandmarkEntry last = d.Entries.OrderBy((LandmarkEntry e) => e.Year).LastOrDefault();
+		int lastYear = ((last != null) ? last.Year : d.Year);
+		Hero(w, d, d.Year, all ? "THE WHOLE SERIES, RECREATED" : "THE REAL SERIES HAS RUN ITS COURSE", d.Name, d.Year + "-" + lastYear + "  ·  " + total + " real games");
+		float y = 240f;
+		Chips(w, y, new string[3]
+		{
+			"You made",
+			yours + " of " + total,
+			"gold"
+		}, new string[3]
+		{
+			"Made in all",
+			made + " of " + total,
+			"gold"
+		}, new string[3]
+		{
+			"Its years",
+			d.Year + "-" + lastYear,
+			"gold"
+		});
+		y += 76f;
+		string praise = (all ? ("Congratulations: you've recreated the whole " + d.Name + " series, every real game from " + d.Title + " to " + ((last != null) ? last.Name : d.Title) + ", just as history had it.") : ("Congratulations: the real " + d.Name + " series has run its course, and you made " + yours + " of its " + total + " games" + ((made > yours) ? (" (other studios made " + (made - yours) + ")") : "") + "."));
+		w.Label(praise, 24f, y, W - 48f, 52f, TextAnchor.UpperLeft, bold: false, null, 16);
+		y += 58f;
+		w.Label("From now on " + d.Name + " is yours to take anywhere. New sequels and spin-offs are your own games: there's no real game left for them to become, sequels don't start with the series' extra hype, and they show pictures from the series' real games. Its IP keeps its higher value and its fan shop bonus.", 24f, y, W - 48f, 60f, TextAnchor.UpperLeft, bold: false, null, 13).color = UIKit.Grey;
+		y += 70f;
+		w.BigButton("Close", 14f, y, 220f, 44f, delegate
+		{
+			Landmarks.DoneShowing();
+			EditorWindow.LandmarkMade.Close();
+		});
+		w.SmallButton("Open Landmarks...", 248f, y + 7f, 220f, delegate
+		{
+			Landmarks.DoneShowing();
+			OpenList();
+		}, enabled: true, null, null, 30f);
+	}
+
+	// Your milestone entry is out.
+	private void EntryMade(EditorWindow w, LandmarkEntry e)
+	{
+		float W = w.Width;
+		LandmarkRecord r = Landmarks.EntryRecord(e);
+		gameScript g = ((r != null) ? GameUpdates.FindGame(r.GameId) : null);
+		int genre = (g ? g.maingenre : e.Of.Genre);
+		Hero(w, Landmarks.EntryPicture(e, g ? g.myID : 0), "YOU MADE A LANDMARK GAME", e.Name, "Out now  ·  the next " + e.Of.Name + " game");
+		float y = 240f;
+		Chips(w, y, new string[3] { "IP points", "+150", "gold" }, new string[3]
+		{
+			"New fans",
+			IndustryCore.GenrePlural(genre),
+			"gold"
+		}, new string[3] { "Hype", "+25", "gold" }, new string[3]
+		{
+			"The trend",
+			IndustryCore.GenrePlural(genre),
+			"gold"
+		});
+		y += 76f;
+		w.Label("Players know " + e.Name + " is something special. " + IndustryCore.GenrePlural(genre) + " are the trend, and fans of " + IndustryCore.GenreGames(genre) + " flock to your studio.", 24f, y, W - 48f, 48f, TextAnchor.UpperLeft, bold: false, null, 16);
+		y += 64f;
+		w.BigButton("Close", 14f, y, 220f, 44f, delegate
+		{
+			Landmarks.DoneShowing();
+			EditorWindow.LandmarkMade.Close();
+		});
+		w.SmallButton("Open Landmarks...", 248f, y + 7f, 220f, delegate
+		{
+			Landmarks.DoneShowing();
+			OpenList();
+		}, enabled: true, null, null, 30f);
 	}
 
 	private void Made(EditorWindow w, LandmarkDef d)
@@ -302,17 +493,37 @@ internal static class LandmarksTab
 			LandmarkRecord r = Landmarks.Record(d.Id);
 			gameScript g = ((r != null) ? GameUpdates.FindGame(r.GameId) : null);
 			int pics = Landmarks.PictureCount(d);
-			RowView row = list.Row(64f, null, "<b>" + d.Title + "</b>\n" + LandmarkUi.Recipe(d) + "\nProjected review " + d.Bar + "% or more.\n\nPictures: " + pics + " (landmarks/pictures/" + d.Id + ")");
+			// Its series so far: the later games made (by you or a studio).
+			List<string> madeEntries = new List<string>();
+			foreach (LandmarkEntry e in d.Entries)
+			{
+				LandmarkRecord er = Landmarks.EntryRecord(e);
+				if (er != null && er.Released)
+				{
+					publisherScript ep = IndustryCore.Studio(er.StudioId);
+					madeEntries.Add(e.Name + " (" + er.Year + ", " + (er.Player ? "you" : (ep ? ep.GetName() : "a studio")) + (er.Short ? ", fell short" : "") + ")");
+				}
+			}
+			string series = ((d.Entries.Count == 0) ? "" : (all ? ("  ·  series: " + madeEntries.Count + " of " + d.Entries.Count) : ((madeEntries.Count > 0) ? ("  ·  series: " + madeEntries.Count + " made") : "")));
+			string seriesTip = ((madeEntries.Count > 0) ? ("\n\nThe series so far:\n" + string.Join("\n", madeEntries.Take(8)) + ((madeEntries.Count > 8) ? ("\n... and " + (madeEntries.Count - 8) + " more") : "")) : "");
+			RowView row = list.Row(64f, null, "<b>" + d.Title + "</b>\n" + LandmarkUi.Recipe(d) + "\nProjected review " + d.Bar + "% or more." + seriesTip + "\n\nPictures: " + pics + " (landmarks/pictures/" + d.Id + ")");
 			Sprite pic = Landmarks.Picture(d, g ? g.myID : 0);
 			row.Picture(pic ? pic : LandmarkUi.GenrePic(d.Genre), 8f, 52f);
 			row.Top(d.Name + "  (" + d.Year + ", " + d.Studio + ")", 72f, row.W - 380f);
-			row.Bottom(LandmarkUi.Recipe(d) + "  ·  " + d.Bar + "%+", 72f, row.W - 380f);
+			row.Bottom(LandmarkUi.Recipe(d) + "  ·  " + d.Bar + "%+" + series, 72f, row.W - 380f);
 			string status;
 			Color c;
 			if (r != null && r.Player)
 			{
 				status = (r.Released ? ("Yours, " + r.Year) : "Yours, in the making");
 				c = LandmarkUi.Gold;
+			}
+			else if (r != null && (r.Missed || (!r.Released && year > d.Year + Landmarks.StudioYears)))
+			{
+				// A studio made it (or is making it) too late to count: Landmarks.StudioYears.
+				publisherScript pm = IndustryCore.Studio(r.StudioId);
+				status = ((r.GameId < 0) ? "Missed: nobody made it" : ("Missed: " + (pm ? pm.GetName() : d.Studio) + (r.Released ? (" made it in " + r.Year) : " is making it") + ", too late"));
+				c = UIKit.Grey;
 			}
 			else if (r != null && r.Released)
 			{

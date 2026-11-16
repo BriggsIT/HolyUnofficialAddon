@@ -1,7 +1,8 @@
-# Holy Unofficial Addon
+<h1 align="center"><img src="Screenshots/branding/unholy-addon-title.png" width="90%" alt="Mad Games Tycoon 2: Unholy Addon"></h1>
 
-An unofficial addon for **Mad Games Tycoon 2**, made to sit alongside **The Holy Expansion**. It makes the whole game
-livelier, from a 1976 start to the late game:
+The **Unholy Addon** is an unofficial addon for **Mad Games Tycoon 2**, made to sit alongside **The Holy Expansion**
+(it was called the Holy Unofficial Addon up to 0.34.0). It makes the whole game livelier, from a 1976 start to the
+late game:
 - **Industry:** events, the other studios you deal with, and historical landmark games to make before they do.
 - **Designing games:** a third and fourth topic, eleven more languages, and a design screen that shows the market and
   the whole project.
@@ -15,7 +16,7 @@ Where it overlaps with The Holy Expansion, the two are merged into one system ra
 It's a hobby project for friends: not for sale, and not affiliated with Eggcode Games or with The Holy Expansion's
 author.
 
-**Version:** 0.32.0 ([what's new in each version](CHANGELOG.md)) · **Game:** Mad Games Tycoon 2 (Steam, PC) · **Loader:** BepInEx 5
+**Version:** 0.35.0 ([what's new in each version](CHANGELOG.md)) · **Game:** Mad Games Tycoon 2 (Steam, PC) · **Loader:** BepInEx 5
 
 <img src="Screenshots/overview/bottom-bar.png" width="100%" alt="The bottom bar with the addon's buttons">
 
@@ -65,14 +66,19 @@ Expansion, you have BepInEx already.
 2. Open the game folder: in Steam, right-click Mad Games Tycoon 2 > **Manage > Browse local files** (the folder with
    `Mad Games Tycoon 2.exe` in it).
 3. Copy the **`BepInEx`** folder from the zip's **`Install`** folder into the game folder, and say yes to merging
-   folders. The addon ends up in `BepInEx\plugins\HolyUnofficialAddon`.
+   folders. The addon ends up in `BepInEx\plugins\UnholyAddon`.
 4. Start the game. The addon's buttons appear on the bottom bar.
 
 **Updating:** do the same again and let the new files replace the old ones. Your settings and saves are kept.
 
-**Removing:** delete `BepInEx\plugins\HolyUnofficialAddon` (and, if you like, its settings file
-`BepInEx\config\holyunofficialaddon.mgt2.cfg`). Back up your saves first: loading a save without the addon hasn't
-been tested.
+**Updating from the Holy Unofficial Addon (0.34.0 or older):** install as above, then delete the old
+`BepInEx\plugins\HolyUnofficialAddon` folder. Your settings move to the new name by themselves, and your saves load
+as before. Until the old folder is gone, the old version runs instead, and a message at the top of the screen says
+which folder to delete.
+
+**Removing:** delete `BepInEx\plugins\UnholyAddon` (and, if you like, its settings file
+`BepInEx\config\unholyaddon.mgt2.cfg`). Back up your saves first: loading a save without the addon hasn't been
+tested.
 
 ---
 
@@ -223,21 +229,33 @@ The industry around you moves, and things land on your desk.
 <img src="Screenshots/landmarks/made.png" width="49%" alt="Pac-Man is out: the landmark's rewards">
 </p>
 
-Historical games you can make first, before the studio that made them for real: 22 so far, from Breakout (1976) to
-SimCity and Populous (1989), on The Holy Expansion's real franchise list.
+Historical games you can make first, before the studio that made them for real: 172 of them, from Breakout (1976) to
+Balatro (2024), on The Holy Expansion's real franchise list. They include the founders of Holy's late genres (Dark
+Souls, Stardew Valley, PUBG, Slay the Spire...), three MMOs, and phone games that only a mobile game can claim.
 - **Claiming one:** when a new game of yours is finished and fits a landmark (its genre and topics, a good enough
   projected review, and the years), a pop-up offers to make it that landmark. It's renamed, shows the landmark's
   screenshots, and its studio never makes it. A landmark can be made from 3 years before its real year until its
   studio releases it.
 - **At release:** IP points, fans of its genre, hype, and its genre becomes the trend. A second landmark in another
   genre offers to make that your special genre.
-- **Studios make them for real**, on time and in the right genre, if you don't.
-- **Series follow history:** later games of a series in Holy's list (Mega Man X, Metal Gear Solid...) are made as
-  sequels by whoever owns the series, not as new series. Yours are never made by a studio.
+- **Studios make them for real**, on time and in the right genre, if you don't. A studio that's more than 2 years
+  late has missed it. 30 real studios that The Holy Expansion doesn't have open on their founding dates to make the
+  2010s' indie hits.
+- **Series follow history:** each landmark's later games (665 in all) are made as sequels by whoever owns the series,
+  on time. When you own it, starting a sequel asks whether it's the series' next real game (Mass Effect 2), and what
+  that takes. Milestones (Super Mario 64, Ocarina of Time...) are landmarks in their own right.
+- **What a landmark does:** its exclusive sells consoles, platform makers and publishers pay more for it, it sells for
+  longer, its series is worth more, and it gets an edge at the awards, plus a Hall of Fame. Events follow it:
+  anniversaries, its historical studio wanting it back, speedrun crazes, films and cartoons.
+- **Gold frames:** landmark games' pictures have a gold frame and a landmark badge wherever the game shows them.
+- **Series complete:** when a series of yours has run out of real games, a pop-up congratulates you. Its later games
+  are your own, without the series' starting hype.
 - **Landmarks tab** in the Industry window: the landmarks made so far, and who made them. "Show upcoming landmarks"
   in Game settings lists the rest, with what it takes to make each.
-- **Pictures:** each landmark shows real screenshots from `BepInEx\plugins\HolyUnofficialAddon\landmarks\pictures\<landmark>`
-  (PNG or JPG, any size, cropped to 4:3). Without any, it shows the game's usual screenshot.
+- **Pictures:** each landmark and series game shows real screenshots from
+  `BepInEx\plugins\UnholyAddon\landmarks\pictures\<landmark>` (PNG or JPG, any size, cropped to 4:3). Without any, it
+  shows the game's usual screenshot. This repo only has pictures for the first 22 landmarks: the screenshots belong
+  to the games' publishers, so add your own for the rest.
 
 <p>
 <img src="Screenshots/landmarks/landmarks-tab.png" width="62%" alt="The Landmarks tab in the Industry window">
@@ -246,6 +264,12 @@ SimCity and Populous (1989), on The Holy Expansion's real franchise list.
 
 ### Designing games
 
+- **Design assistant:** fit colours on genres, topics, age groups and design sliders, from what your studio has
+  learned (or everything, with Reveal Every Fit), with a colour-blind option. An **Assist** button on the first page
+  fills in the parts you choose: genre, topics, age group, sliders, work priorities, platforms, engine features,
+  languages, and optionally a licence and a name. Click again for another good mix. The platform page has its own
+  button for the platforms, and the game's Auto Design Settings also sets the work priorities. It replaces GameDev
+  Assistant.
 - **Third and fourth topics:** two research items, **Layered Settings** (from 1988) and **Rich Worlds** (from 1996),
   open Third topic and Fourth topic buttons under Main topic and Subtopic. A topic that suits the genre and goes with
   the others lifts the review (up to about +5%); one that doesn't lowers it. Each adds about 10% to the development
@@ -555,7 +579,7 @@ follows Holy's own "Launch planner" setting.
 ## Settings
 
 Almost everything can be switched on or off in the addon's window under **Game settings**. All settings are also in
-`BepInEx\config\holyunofficialaddon.mgt2.cfg`, which BepInEx creates the first time you start the game. That file
+`BepInEx\config\unholyaddon.mgt2.cfg`, which BepInEx creates the first time you start the game. That file
 also holds a few extras, such as:
 - an optional hotkey for the addon's window;
 - how many outlets review each game;
@@ -568,8 +592,10 @@ saves.
 
 ## Compatibility and saves
 
-- Made for and played with **The Holy Expansion 1.8.3** and **GameDev Assistant** installed. It should load without
-  Holy (Holy's extras then simply do nothing), but that hasn't been tested.
+- Made for and played with **The Holy Expansion 1.8.3**. It should load without Holy (Holy's extras then simply do
+  nothing), but that hasn't been tested.
+- **GameDev Assistant** isn't needed: the addon's design assistant replaces it, and hides its buttons if it's still
+  installed.
 - Made for **single player**. Multiplayer hasn't been tested.
 - What the addon adds is saved inside your normal save file, so there's nothing extra to back up or move. Before a
   save is overwritten, the addon keeps a backup copy, and puts it back if saving fails.
@@ -579,9 +605,9 @@ saves.
 
 ## Known issues
 
-- **New features need play-testing:** landmark games, series following history, the third and fourth topics, the
-  new languages, industry events, the Launch Planner merge, the MMO tab, the Rooms Overview, the yearly convention and
-  Sales Events are recent. Please report anything odd: numbers that feel off, or events that come too often or too
+- **New features need play-testing:** the landmarks from 1990 on and their series, the new studios, the design
+  assistant, the third and fourth topics, the new languages, industry events, the Launch Planner merge, the MMO tab,
+  the Rooms Overview, the yearly convention and Sales Events are recent. Please report anything odd: numbers that feel off, or events that come too often or too
   rarely.
 - **Other mods on the design screen:** the addon makes the new-game screen a row taller and lays out its new rows
   from what's on screen. A mod that changes that screen too could end up overlapped; the BepInEx log says what moved.
@@ -596,14 +622,14 @@ saves.
 
 ## Reporting a bug
 
-Open an [issue](https://github.com/BriggsIT/HolyUnofficialAddon/issues) and attach your log file:
+Open an [issue](https://github.com/BriggsIT/UnholyAddon/issues) and attach your log file:
 
 1. Right after the bug, find the log: in Steam, right-click **Mad Games Tycoon 2**, choose
    **Manage → Browse local files**, and open the **BepInEx** folder. The file is **`LogOutput.log`**.
 2. **Send it before you start the game again.** The log starts fresh every time the game starts, so the bug is
    only in it until then. Closing the game first is fine.
 
-The one file has everything: the addon's own lines (marked `Holy Unofficial Addon`), and the errors from the game
+The one file has everything: the addon's own lines (marked `Unholy Addon`), and the errors from the game
 and The Holy Expansion. Please also say what you were doing, the in-game year, and your screen resolution
 (some layouts change below 1080p). A screenshot helps.
 

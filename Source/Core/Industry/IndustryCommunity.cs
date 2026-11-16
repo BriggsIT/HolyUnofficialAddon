@@ -215,6 +215,34 @@ internal static class IndustryCommunity
 		{
 			Plugin.Log.LogWarning("Watching Holy's mods of the month: " + ex.Message);
 		}
+		try
+		{
+			Type pr = HolyCompat.HolyType("HolyExpansion.Systems.Pr");
+			MethodInfo enqueue = ((pr != null) ? AccessTools.Method(pr, "Enqueue") : null);
+			if (enqueue != null)
+			{
+				harmony.Patch(enqueue, new HarmonyMethod(typeof(IndustryCommunity), "HoldMarathon"));
+			}
+		}
+		catch (Exception ex2)
+		{
+			Plugin.Log.LogWarning("Holding back Holy's charity marathons: " + ex2.Message);
+		}
+	}
+
+	// ---- Holy's "Charity speedrun marathon" waits for the real ones ----
+
+	// Streamed charity speedrun marathons began with Classic Games Done Quick in January 2010. Holy's community system
+	// runs from 1993, so its marathon could come up in the 90s; the speedrunners themselves still gather from then.
+	public const int MarathonsFrom = 2010;
+
+	private static bool HoldMarathon(string __0)
+	{
+		if (__0 == "marathon")
+		{
+			return IndustryCore.Year >= MarathonsFrom;
+		}
+		return true;
 	}
 
 	private static void ModOfTheMonth(gameScript __0, string __result)

@@ -471,7 +471,7 @@ internal static partial class IndustryEvents
 			Hit(),
 			PriceCut(),
 			Delay()
-		}.Concat(Early()).Concat(Consoles()).Concat(RivalMoves()).Concat(CompetitorFights()).Concat(ThreeD()).Concat(Studios3D()).ToList();
+		}.Concat(Early()).Concat(Consoles()).Concat(RivalMoves()).Concat(CompetitorFights()).Concat(ThreeD()).Concat(Studios3D()).Concat(LandmarkEvents()).ToList();
 	}
 
 	// Two teenagers send you their game: publish it (a gamble), hire them, or pass.
@@ -1063,7 +1063,7 @@ internal static partial class IndustryEvents
 				}
 				gameScript g = (from x in IndustryCore.MyGamesInDevelopment()
 					where x.developerID == G.MS.myID && (x.publisherID == -1 || x.publisherID == G.MS.myID) && PublishDeals.Publishable(x) && !IndustryCore.State.DealtGames.Contains(x.myID) && DevProgress(x) >= 0.3f
-					orderby x.hype descending
+					orderby Landmarks.Landmarks.IsLandmark(x) descending, x.hype descending
 					select x).FirstOrDefault();
 				if (!g)
 				{
@@ -1083,10 +1083,17 @@ internal static partial class IndustryEvents
 				c.Amount = Advance(g, pubs[0]);
 				c.Amount2 = Advance(g, pubs[1]);
 				c.Number = UnityEngine.Random.Range(5, 11);
+				// A landmark: they pay half as much again for it.
+				if (Landmarks.Landmarks.IsLandmark(g))
+				{
+					c.Amount = Prices.Round((double)c.Amount * 1.5);
+					c.Amount2 = Prices.Round((double)c.Amount2 * 1.5);
+					c.Text = "landmark";
+				}
 				return true;
 			},
 			Title = (IndustryContext c) => "Publishers Bid for " + Name(c.GameId),
-			Text = (IndustryContext c) => "Word of " + Name(c.GameId) + " has got around. " + StudioName(c.StudioId) + " and " + StudioName(c.Studio2) + " both want to publish it: each pays an advance now, starts the hype, and publishes it for its usual cut when it's done.",
+			Text = (IndustryContext c) => ((c.Text == "landmark") ? "Word is out that " + Name(c.GameId) + " is a landmark in the making. " : ("Word of " + Name(c.GameId) + " has got around. ")) + StudioName(c.StudioId) + " and " + StudioName(c.Studio2) + " both want to publish it: each pays an advance now, starts the hype, and publishes it for its usual cut when it's done.",
 			Default = 2,
 			Choices = (IndustryContext c) => new List<IndustryChoice>
 			{

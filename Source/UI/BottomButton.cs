@@ -88,7 +88,7 @@ internal static class BottomButton
 		new Entry
 		{
 			Id = "Editor",
-			Tooltip = () => "<b>Holy Unofficial Addon</b>\nEdit your employees, change game settings and more.",
+			Tooltip = () => "<b>" + Plugin.Name + "</b>\nEdit your employees, change game settings and more.",
 			Icon = () => UIKit.Sprite(Plugin.ButtonIcon.Value) ?? UIKit.EditorIcon() ?? UIKit.Sprite("iconOptions"),
 			Window = EditorWindow.Main,
 			Wanted = () => true

@@ -87,11 +87,7 @@ internal abstract class UpdatePageBase : Page
 			w.Label("This game no longer exists.", 24f, 60f, w.Width - 48f, 30f);
 			return -1f;
 		}
-		Image shot = new GameObject("Shot", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-		shot.transform.SetParent(w.Body, worldPositionStays: false);
-		UIKit.Place(shot.gameObject, 14f, 48f, 120f, 68f);
-		shot.sprite = g.GetScreenshot();
-		shot.preserveAspect = true;
+		MmoUi.Shot(w, g, 14f, 48f, 120f, 68f);
 		w.Label("<b>" + g.GetNameWithTag() + "</b>", 146f, 48f, w.Width - 160f, 28f, TextAnchor.MiddleLeft, bold: false, null, 17);
 		w.Label(G.Text(277, "Review") + " " + g.reviewTotal + "%  ·  " + g.weeksOnMarket + " weeks on the market  ·  " + G.MS.GetMoney(g.sellsTotal, showDollar: false) + " sold", 146f, 78f, w.Width - 160f, 24f, TextAnchor.MiddleLeft, bold: false, null, 13);
 		string problem = GameUpdates.Problem(Kind, g);

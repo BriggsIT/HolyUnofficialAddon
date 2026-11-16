@@ -50,6 +50,9 @@ internal class EditorWindow
 	// The design screen's third and fourth topics (UI/ExtraTopicsMenu), over the same screen.
 	public static readonly EditorWindow ExtraTopics = new EditorWindow("Editor_ExtraTopicsWindow", () => new ExtraTopicsPage(), overlay: true);
 
+	// The design assistant's options (UI/DesignAssist), over the same screen.
+	public static readonly EditorWindow DesignAssist = new EditorWindow("Editor_DesignAssistWindow", () => new DesignAssistPage(), overlay: true);
+
 	// The MGH Games Awards ceremony (Core/Awards/AwardsShow), opened by the game's December awards.
 	public static readonly EditorWindow Awards = new EditorWindow("Editor_AwardsWindow", () => new AwardsCeremonyPage(0));
 
@@ -173,6 +176,10 @@ internal class EditorWindow
 	private readonly Dictionary<Image, Sprite> titleSprites = new Dictionary<Image, Sprite>();
 
 	public RectTransform Body { get; private set; }
+
+	// While set, controls made without a parent go in here instead of the body (a ScrollArea's content). A page sets it
+	// for the part it scrolls; every rebuild clears it.
+	public Transform Into;
 
 	public Skin Skin { get; private set; }
 
@@ -535,6 +542,7 @@ internal class EditorWindow
 			return;
 		}
 		ReleaseInput();
+		Into = null;
 		ApplySize();
 		titleText.text = Current.Title;
 		Sprite sprite = Current.IconSprite ?? UIKit.Sprite(Current.Icon) ?? UIKit.EditorIcon();
@@ -901,7 +909,7 @@ internal class EditorWindow
 
 	public Text Label(string text, float x, float y, float w, float h = 24f, TextAnchor align = TextAnchor.MiddleLeft, bool bold = false, Transform parent = null, int size = 0)
 	{
-		GameObject go = UIKit.Make(bold ? "BoldText" : "Paragraph", parent ?? Body);
+		GameObject go = UIKit.Make(bold ? "BoldText" : "Paragraph", parent ?? Into ?? Body);
 		UIKit.Place(go, x, y, w, h);
 		Text component = go.GetComponent<Text>();
 		component.text = ((Skin != null) ? Skin.Fix(text) : text);
@@ -939,7 +947,7 @@ internal class EditorWindow
 
 	public Button BigButton(string text, float x, float y, float w, float h, Action onClick, bool enabled = true, string tooltip = null, Transform parent = null)
 	{
-		GameObject go = UIKit.Make("BigButton", parent ?? Body);
+		GameObject go = UIKit.Make("BigButton", parent ?? Into ?? Body);
 		UIKit.Place(go, x, y, w, h);
 		foreach (Transform item in go.transform)
 		{
@@ -970,7 +978,7 @@ internal class EditorWindow
 
 	public Button SmallButton(string text, float x, float y, float w, Action onClick, bool enabled = true, string tooltip = null, Transform parent = null, float h = 26f)
 	{
-		GameObject go = UIKit.Make("SmallButton", parent ?? Body);
+		GameObject go = UIKit.Make("SmallButton", parent ?? Into ?? Body);
 		UIKit.Place(go, x, y, w, h);
 		foreach (Transform item in go.transform)
 		{
@@ -997,7 +1005,7 @@ internal class EditorWindow
 		if (Skin != null)
 		{
 			// Capitals in the accent colour over a thin rule, brighter at its start.
-			Transform p = parent ?? Body;
+			Transform p = parent ?? Into ?? Body;
 			Text t = Label(Skin.CapsHeaders ? text.ToUpperInvariant() : text, x + 2f, y, w - 4f, 22f, TextAnchor.MiddleLeft, bold: true, p, 14);
 			t.color = Skin.AccentLight;
 			Image rule = NewImage("Rule", p, new Color(Skin.Accent.r, Skin.Accent.g, Skin.Accent.b, 0.35f));
@@ -1006,7 +1014,7 @@ internal class EditorWindow
 			UIKit.Place(bright.gameObject, x, y + 22.5f, Mathf.Min(120f, w * 0.3f), 2f);
 			return;
 		}
-		GameObject go = UIKit.Make("Header", parent ?? Body);
+		GameObject go = UIKit.Make("Header", parent ?? Into ?? Body);
 		UIKit.Place(go, x, y, w, 24f);
 		Transform label = go.transform.Find("Text");
 		UIKit.Stretch(label, 8f, 0f, 8f);
@@ -1015,7 +1023,7 @@ internal class EditorWindow
 
 	public RectTransform Panel(float x, float y, float w, float h, Transform parent = null)
 	{
-		GameObject go = UIKit.Make("Panel", parent ?? Body);
+		GameObject go = UIKit.Make("Panel", parent ?? Into ?? Body);
 		Skin?.Box(go, Skin.Panel, Skin.PanelLine);
 		return UIKit.Place(go, x, y, w, h);
 	}
@@ -1030,7 +1038,7 @@ internal class EditorWindow
 			Label(text, 14f, 2f, w - 22f, h - 4f, TextAnchor.MiddleLeft, bold: false, box, 13);
 			return;
 		}
-		GameObject go = UIKit.Make("Info", parent ?? Body);
+		GameObject go = UIKit.Make("Info", parent ?? Into ?? Body);
 		UIKit.Place(go, x, y, w, h);
 		RectTransform rt = (RectTransform)go.transform.Find("TextInfo");
 		UIKit.Stretch(rt, 44f, 2f, 6f, 2f);
@@ -1069,7 +1077,7 @@ internal class EditorWindow
 
 	public Dropdown Dropdown(float x, float y, float w, IList<string> options, int value, Action<int> onChange, Transform parent = null)
 	{
-		GameObject go = UIKit.Make("Dropdown", parent ?? Body);
+		GameObject go = UIKit.Make("Dropdown", parent ?? Into ?? Body);
 		UIKit.Place(go, x, y, w, 30f);
 		Dropdown component = go.GetComponent<Dropdown>();
 		component.onValueChanged = new Dropdown.DropdownEvent();
@@ -1094,7 +1102,7 @@ internal class EditorWindow
 
 	public Toggle Toggle(string text, float x, float y, float w, bool isOn, Action<bool> onChange, string tooltip = null, Transform parent = null)
 	{
-		GameObject go = UIKit.Make("Toggle", parent ?? Body);
+		GameObject go = UIKit.Make("Toggle", parent ?? Into ?? Body);
 		UIKit.Place(go, x, y, w, 26f);
 		RectTransform label = (RectTransform)go.transform.Find("Label");
 		label.anchorMin = new Vector2(0f, 0f);
@@ -1133,7 +1141,7 @@ internal class EditorWindow
 
 	public InputField Input(string text, string placeholder, float x, float y, float w, Action<string> onChange, Transform parent = null)
 	{
-		GameObject go = UIKit.Make("Input", parent ?? Body);
+		GameObject go = UIKit.Make("Input", parent ?? Into ?? Body);
 		UIKit.Place(go, x, y, w, 34f);
 		foreach (Transform item in go.transform)
 		{
@@ -1176,7 +1184,7 @@ internal class EditorWindow
 	public Slider Slider(float x, float y, float w, float min, float max, float value, Action<float> onChange, Func<float, string> format = null, bool colorByValue = false, Transform parent = null)
 	{
 		const float labelWidth = 58f;
-		GameObject go = UIKit.Make("Slider", parent ?? Body);
+		GameObject go = UIKit.Make("Slider", parent ?? Into ?? Body);
 		UIKit.Place(go, x, y, w - labelWidth - 6f, 30f);
 		Slider slider = go.GetComponent<Slider>();
 		slider.onValueChanged = new Slider.SliderEvent();
@@ -1215,7 +1223,7 @@ internal class EditorWindow
 
 	public void Bar(float x, float y, float w, float h, float value, string text, Color color, Transform parent = null, string tooltip = null)
 	{
-		GameObject go = UIKit.Make("Bar", parent ?? Body);
+		GameObject go = UIKit.Make("Bar", parent ?? Into ?? Body);
 		UIKit.Place(go, x, y, w, h);
 		StyleBar(go, value, text, color, h);
 		if (tooltip != null)
@@ -1248,6 +1256,39 @@ internal class EditorWindow
 		UIKit.Place(go, x, y, w, h);
 		Skin?.DressScroll(go);
 		return new ListView(go.GetComponent<ScrollRect>(), w - 38f, Skin);
+	}
+
+	// A scrolling area for free-placed controls (pass the returned content as their parent): the list's scroll view
+	// without its row layout. Usable width is w - 38 (the scroll bar's side); set the height with ScrollHeight once
+	// everything is in.
+	public RectTransform ScrollArea(float x, float y, float w, float h)
+	{
+		GameObject go = UIKit.Make("Scroll", Body);
+		UIKit.Place(go, x, y, w, h);
+		Skin?.DressScroll(go);
+		ScrollRect scroll = go.GetComponent<ScrollRect>();
+		RectTransform content = scroll.content;
+		foreach (LayoutGroup group in content.GetComponents<LayoutGroup>())
+		{
+			UnityEngine.Object.DestroyImmediate(group);
+		}
+		foreach (ContentSizeFitter fitter in content.GetComponents<ContentSizeFitter>())
+		{
+			UnityEngine.Object.DestroyImmediate(fitter);
+		}
+		content.anchorMin = new Vector2(0f, 1f);
+		content.anchorMax = new Vector2(1f, 1f);
+		content.pivot = new Vector2(0.5f, 1f);
+		content.anchoredPosition = Vector2.zero;
+		content.sizeDelta = new Vector2(0f, h);
+		scroll.horizontal = false;
+		scroll.vertical = true;
+		return content;
+	}
+
+	public static void ScrollHeight(RectTransform content, float h)
+	{
+		content.sizeDelta = new Vector2(content.sizeDelta.x, h);
 	}
 
 	public void Empty(string text, float y)

@@ -210,7 +210,7 @@ internal static partial class IndustryEvents
 				c.Studio2 = Pick(bidders).myID;
 				c.GameId = ip.myID;
 				c.Number = week;
-				c.Amount = Math.Max(Scaled(20000.0), ip.GetIpWert());
+				c.Amount = Math.Max(Scaled(20000.0), Landmarks.Landmarks.IpValueOf(ip));
 				c.Amount2 = c.Amount * 7 / 5;
 				IndustryCore.State.Cooldowns["auction:" + closed.myID] = Now;
 				return true;

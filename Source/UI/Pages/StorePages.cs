@@ -127,6 +127,10 @@ internal static class StoreUi
 			pic.raycastTarget = false;
 			Sprite shot = g.GetScreenshot();
 			pic.sprite = shot;
+			if (Core.Landmarks.Landmarks.IsLandmark(g))
+			{
+				LandmarkFrame.Apply(frame.transform, on: true);
+			}
 			float aspect = (shot ? (shot.rect.width / Mathf.Max(1f, shot.rect.height)) : 1.78f);
 			float pw = width - 6f;
 			float ph = pw / aspect;
